@@ -1,14 +1,7 @@
-import {
-  ActionCodeSettings,
-  onAuthStateChanged,
-  sendSignInLinkToEmail,
-  User,
-} from 'firebase/auth';
+import { User } from '@supabase/supabase-js';
 import React, { createContext, useEffect, useState } from 'react';
 
-import { auth } from '../config/firebase';
-
-export const EMAIL_KEY = 'wl_signin_email';
+import { supabase } from '../config/supabase';
 
 interface AuthContextValue {
   user: User | null;
@@ -23,20 +16,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
       setLoading(false);
     });
-    return unsub;
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
   const sendLoginLink = async (email: string) => {
-    const actionCodeSettings: ActionCodeSettings = {
-      url: window.location.origin + '/login',
-      handleCodeInApp: true,
-    };
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    localStorage.setItem(EMAIL_KEY, email);
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin + '/login' },
+    });
+    if (error) throw error;
   };
 
   return (

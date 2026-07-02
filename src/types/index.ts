@@ -24,7 +24,7 @@ export interface Transaction {
   zelleInfo?: string;
   // Direct payment
   isIndividualVendor?: boolean;
-  // Document URLs (Firebase Storage download URLs)
+  // Storage object paths (Supabase Storage, 'documents' bucket)
   receiptFileUrl?: string;
   contractFileUrl?: string;
   w9FileUrl?: string;
@@ -85,12 +85,6 @@ export interface BudgetLineSummaryData {
   outflow: number;
 }
 
-export interface OverallSummaryData {
-  totalBalance: number;
-  totalInflow: number;
-  totalOutflow: number;
-}
-
 export type BudgetAllocations = Record<BudgetLine, number>;
 
 export interface PendingChange {
@@ -126,13 +120,16 @@ export interface LedgerContextValue {
   auditLog: AuditEntry[];
   pendingChanges: PendingChange[];
   organizations: Organization[];
-  addOrganization: (name: string, budgetAllocations: BudgetAllocations) => Promise<void>;
   activeOrganizationId: string | null;
   setActiveOrganizationId: (id: string) => void;
   activeOrganization: Organization | null;
   userRole: UserRole | null;
   generateTransactionId: () => string;
-  addTransaction: (transaction: Omit<Transaction, 'id'>, id?: string) => Promise<void>;
+  addTransaction: (
+    transaction: Omit<Transaction, 'id'>,
+    id?: string,
+    uploadTokens?: Record<string, string>,
+  ) => Promise<void>;
   updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   approvePendingChange: (pendingId: string) => Promise<void>;
@@ -152,5 +149,4 @@ export interface LedgerContextValue {
   setSelectedBudgetLine: (line: BudgetLine | null) => void;
   filteredTransactions: Transaction[];
   budgetLineSummaries: BudgetLineSummaryData[];
-  overallSummary: OverallSummaryData;
 }

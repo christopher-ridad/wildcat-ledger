@@ -1,19 +1,7 @@
-import { onAuthStateChanged } from 'firebase/auth';
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  increment,
-  onSnapshot,
-  setDoc,
-  updateDoc,
-} from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import React, { createContext, useEffect, useMemo, useState } from 'react';
 
-import { auth, db, storage } from '../config/firebase';
+import { supabase } from '../config/supabase';
+import { useAuth } from '../hooks/useAuth';
 import {
   AuditAction,
   AuditEntry,
@@ -26,11 +14,16 @@ import {
   Transaction,
   UserRole,
 } from '../types';
+import { applyFilters, calculateBudgetLineSummaries } from '../utilities/calculations';
 import {
-  applyFilters,
-  calculateBudgetLineSummaries,
-  calculateOverallSummary,
-} from '../utilities/calculations';
+  rowToAuditEntry,
+  rowToOrganization,
+  rowToPendingChange,
+  rowToReloadRequest,
+  rowToTransaction,
+  transactionToRow,
+} from '../utilities/dbMapping';
+import { documentPath, uploadDocument } from '../utilities/storage';
 
 export const LedgerContext = createContext<LedgerContextValue | undefined>(undefined);
 
@@ -42,6 +35,9 @@ const EMPTY_ALLOCATIONS: BudgetAllocations = {
 };
 
 export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useAuth();
+  const userEmail = user?.email ?? null;
+
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
@@ -56,126 +52,151 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   };
   const [selectedBudgetLine, setSelectedBudgetLine] = useState<BudgetLine | null>(null);
 
-  // Load clubs from Firestore where the logged-in user is an admin.
-  // Re-runs whenever the auth user changes.
+  // Load orgs the user belongs to (RLS already restricts the select to those
+  // rows), each with its transactions, and keep them live via Realtime.
   useEffect(() => {
-    let unsubSnapshot: (() => void) | null = null;
+    if (!userEmail) {
+      setOrganizations([]);
+      return;
+    }
 
-    let previousEmail: string | null = null;
+    let cancelled = false;
 
-    const unsubAuth = onAuthStateChanged(auth, (firebaseUser) => {
-      const userEmail = firebaseUser?.email ?? null;
-
-      // Clean up any previous snapshot listener
-      if (unsubSnapshot) {
-        unsubSnapshot();
-        unsubSnapshot = null;
+    const loadOrganizations = async () => {
+      const { data: orgRows, error: orgError } = await supabase
+        .from('organizations')
+        .select('*');
+      if (orgError) {
+        console.error('Failed to load organizations:', orgError);
+        return;
       }
+      if (!orgRows) return;
 
-      // If the user changed, clear the active org so they go through org selection
-      if (userEmail !== previousEmail) {
-        previousEmail = userEmail;
-        localStorage.removeItem('activeOrganizationId');
-        setActiveOrganizationIdState(null);
-        setOrganizations([]);
-      }
+      const orgs: Organization[] = await Promise.all(
+        orgRows.map(async (row) => {
+          const { data: txnRows } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('org_id', row.id);
+          const transactions = (txnRows ?? []).map(rowToTransaction);
+          return rowToOrganization(row, transactions);
+        }),
+      );
 
-      if (!userEmail) return;
+      if (!cancelled) setOrganizations(orgs);
+    };
 
-      const orgsRef = collection(db, 'clubs');
-      unsubSnapshot = onSnapshot(orgsRef, async (snapshot) => {
-        const orgs: Organization[] = await Promise.all(
-          snapshot.docs
-            .filter((doc) => {
-              const data = doc.data();
-              const admins: string[] = data.admins ?? [];
-              const officers: string[] = data.officers ?? [];
-              const treasurers: string[] = data.treasurers ?? [];
-              const presidents: string[] = data.presidents ?? [];
-              return (
-                admins.includes(userEmail) ||
-                treasurers.includes(userEmail) ||
-                presidents.includes(userEmail) ||
-                officers.includes(userEmail)
-              );
-            })
-            .map(async (doc) => {
-              const data = doc.data();
-              const txnsSnap = await getDocs(
-                collection(db, 'clubs', doc.id, 'transactions'),
-              );
-              const transactions: Transaction[] = txnsSnap.docs.map((t) => ({
-                id: t.id,
-                ...(t.data() as Omit<Transaction, 'id'>),
-              }));
-              return {
-                id: doc.id,
-                name: data.name as string,
-                admins: (data.admins ?? []) as string[],
-                treasurer: (data.treasurers ?? []) as string[],
-                president: (data.presidents ?? []) as string[],
-                officers: (data.officers ?? []) as string[],
-                budgetAllocations: data.budgetAllocations as BudgetAllocations,
-                isBudgetLinesSet: (data.isBudgetLinesSet as boolean) ?? false,
-                lastReconciliationDate: (data.lastReconciliationDate as number) ?? null,
-                transactions,
-              };
-            }),
-        );
-        setOrganizations(orgs);
-      });
-    });
+    loadOrganizations();
+
+    const channel = supabase
+      .channel('organizations-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'organizations' },
+        () => loadOrganizations(),
+      )
+      .subscribe();
 
     return () => {
-      unsubAuth();
-      if (unsubSnapshot) unsubSnapshot();
+      cancelled = true;
+      supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userEmail]);
 
-  // When active org changes, subscribe to its transactions and audit log in real-time
+  // When the active org changes, keep its transactions/audit log/pending
+  // changes/reload requests live via Realtime.
   useEffect(() => {
     if (!activeOrganizationId) return;
 
-    const txnsRef = collection(db, 'clubs', activeOrganizationId, 'transactions');
-    const unsubTxns = onSnapshot(txnsRef, (snapshot) => {
-      const transactions: Transaction[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...(doc.data() as Omit<Transaction, 'id'>),
-      }));
+    const loadTransactions = async () => {
+      const { data } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('org_id', activeOrganizationId);
+      const transactions = (data ?? []).map(rowToTransaction);
       setOrganizations((prev) =>
         prev.map((o) => (o.id === activeOrganizationId ? { ...o, transactions } : o)),
       );
-    });
+    };
 
-    const auditRef = collection(db, 'clubs', activeOrganizationId, 'auditLog');
-    const unsubAudit = onSnapshot(auditRef, (snapshot) => {
-      const entries: AuditEntry[] = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<AuditEntry, 'id'>) }))
-        .sort((a, b) => b.timestamp - a.timestamp);
-      setAuditLog(entries);
-    });
+    const loadAuditLog = async () => {
+      const { data } = await supabase
+        .from('audit_log')
+        .select('*')
+        .eq('org_id', activeOrganizationId)
+        .order('timestamp', { ascending: false });
+      setAuditLog((data ?? []).map(rowToAuditEntry));
+    };
 
-    const pendingRef = collection(db, 'clubs', activeOrganizationId, 'pendingChanges');
-    const unsubPending = onSnapshot(pendingRef, (snapshot) => {
-      const changes: PendingChange[] = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<PendingChange, 'id'>) }))
-        .sort((a, b) => b.requestedAt - a.requestedAt);
-      setPendingChanges(changes);
-    });
+    const loadPendingChanges = async () => {
+      const { data } = await supabase
+        .from('pending_changes')
+        .select('*')
+        .eq('org_id', activeOrganizationId)
+        .order('requested_at', { ascending: false });
+      setPendingChanges((data ?? []).map(rowToPendingChange));
+    };
 
-    const reloadRef = collection(db, 'clubs', activeOrganizationId, 'reloadRequests');
-    const unsubReload = onSnapshot(reloadRef, (snapshot) => {
-      const requests: ReloadRequest[] = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<ReloadRequest, 'id'>) }))
-        .sort((a, b) => b.requestedAt - a.requestedAt);
-      setReloadRequests(requests);
-    });
+    const loadReloadRequests = async () => {
+      const { data } = await supabase
+        .from('reload_requests')
+        .select('*')
+        .eq('org_id', activeOrganizationId)
+        .order('requested_at', { ascending: false });
+      setReloadRequests((data ?? []).map(rowToReloadRequest));
+    };
+
+    loadTransactions();
+    loadAuditLog();
+    loadPendingChanges();
+    loadReloadRequests();
+
+    const channel = supabase
+      .channel(`org-${activeOrganizationId}-changes`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `org_id=eq.${activeOrganizationId}`,
+        },
+        loadTransactions,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'audit_log',
+          filter: `org_id=eq.${activeOrganizationId}`,
+        },
+        loadAuditLog,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pending_changes',
+          filter: `org_id=eq.${activeOrganizationId}`,
+        },
+        loadPendingChanges,
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reload_requests',
+          filter: `org_id=eq.${activeOrganizationId}`,
+        },
+        loadReloadRequests,
+      )
+      .subscribe();
 
     return () => {
-      unsubTxns();
-      unsubAudit();
-      unsubPending();
-      unsubReload();
+      supabase.removeChannel(channel);
     };
   }, [activeOrganizationId]);
 
@@ -185,61 +206,26 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     transactionTitle: string,
     before: Omit<Transaction, 'id'> | null,
     after: Omit<Transaction, 'id'> | null,
+    extra?: {
+      reconciliationSummary?: AuditEntry['reconciliationSummary'];
+      reloadAmount?: number;
+    },
   ) => {
     if (!activeOrganizationId) return;
-    const userEmail = auth.currentUser?.email ?? 'unknown';
-    await addDoc(collection(db, 'clubs', activeOrganizationId, 'auditLog'), {
+    const { error } = await supabase.from('audit_log').insert({
+      org_id: activeOrganizationId,
       action,
-      performedBy: userEmail,
+      performed_by: userEmail ?? 'unknown',
       timestamp: Date.now(),
-      transactionId,
-      transactionTitle,
-      before: before ? toFirestore(before) : null,
-      after: after ? toFirestore(after) : null,
+      transaction_id: transactionId,
+      transaction_title: transactionTitle,
+      before,
+      after,
+      reconciliation_summary: extra?.reconciliationSummary ?? null,
+      reload_amount: extra?.reloadAmount ?? null,
     });
+    if (error) throw error;
   };
-
-  const addOrganization = async (name: string, budgetAllocations: BudgetAllocations) => {
-    const duplicate = organizations.some(
-      (o) => o.name.trim().toLowerCase() === name.trim().toLowerCase(),
-    );
-    if (duplicate) {
-      throw new Error(`An organization named "${name}" already exists.`);
-    }
-    await setDoc(doc(db, 'clubs', name), {
-      name,
-      budgetAllocations,
-    });
-    // onSnapshot above will update local state automatically
-  };
-
-  const applyDelta = (
-    orgId: string,
-    line: BudgetLine,
-    direction: string,
-    amount: number,
-  ) => {
-    const delta = direction === 'Inflow' ? amount : -amount;
-    return updateDoc(doc(db, 'clubs', orgId), {
-      [`budgetAllocations.${line}`]: increment(delta),
-    });
-  };
-
-  const reverseDelta = (
-    orgId: string,
-    line: BudgetLine,
-    direction: string,
-    amount: number,
-  ) => {
-    const delta = direction === 'Inflow' ? -amount : amount;
-    return updateDoc(doc(db, 'clubs', orgId), {
-      [`budgetAllocations.${line}`]: increment(delta),
-    });
-  };
-
-  // Firestore rejects undefined field values — strip them before every write.
-  const toFirestore = (transaction: Omit<Transaction, 'id'>) =>
-    Object.fromEntries(Object.entries(transaction).filter(([, v]) => v !== undefined));
 
   const omitId = (t: Transaction): Omit<Transaction, 'id'> => {
     const { id: omitted, ...rest } = t;
@@ -249,26 +235,39 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
 
   const generateTransactionId = (): string => {
     if (!activeOrganizationId) throw new Error('No active organization');
-    return doc(collection(db, 'clubs', activeOrganizationId, 'transactions')).id;
+    return crypto.randomUUID();
   };
 
-  const addTransaction = async (transaction: Omit<Transaction, 'id'>, id?: string) => {
+  // Outflows decrease a budget line's balance, inflows increase it; reversing
+  // a transaction (edit/delete) just negates this same signed amount.
+  const signedAmount = (t: Pick<Transaction, 'direction' | 'amount'>): number =>
+    t.direction === 'Inflow' ? t.amount : -t.amount;
+
+  const adjustBudgetAllocation = async (line: BudgetLine, delta: number) => {
     if (!activeOrganizationId) return;
-    const txnsRef = collection(db, 'clubs', activeOrganizationId, 'transactions');
-    let txnId: string;
-    if (id) {
-      await setDoc(doc(txnsRef, id), toFirestore(transaction));
-      txnId = id;
-    } else {
-      const newRef = await addDoc(txnsRef, toFirestore(transaction));
-      txnId = newRef.id;
-    }
-    await applyDelta(
-      activeOrganizationId,
-      transaction.budgetLine,
-      transaction.direction,
-      transaction.amount,
-    );
+    const { error } = await supabase.rpc('adjust_budget_allocation', {
+      p_org_id: activeOrganizationId,
+      p_line: line,
+      p_delta: delta,
+    });
+    if (error) throw error;
+  };
+
+  const addTransaction = async (
+    transaction: Omit<Transaction, 'id'>,
+    id?: string,
+    uploadTokens?: Record<string, string>,
+  ) => {
+    if (!activeOrganizationId) return;
+    const txnId = id ?? crypto.randomUUID();
+    const { error } = await supabase.from('transactions').insert({
+      id: txnId,
+      org_id: activeOrganizationId,
+      ...transactionToRow(transaction),
+      upload_tokens: uploadTokens ?? {},
+    });
+    if (error) throw error;
+    await adjustBudgetAllocation(transaction.budgetLine, signedAmount(transaction));
     await writeAuditEntry('create', txnId, transaction.title, null, transaction);
   };
 
@@ -278,20 +277,21 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (role !== 'treasurer' && role !== 'president') return;
     const old = activeOrganization?.transactions.find((t) => t.id === id);
     if (!old) return;
-    // Block editing reconciled Debit Card transactions
     if (old.budgetLine === 'Debit Card' && old.reconciledAt != null) {
       throw new Error('This transaction has been reconciled and cannot be edited.');
     }
-    await addDoc(collection(db, 'clubs', activeOrganizationId, 'pendingChanges'), {
+    const { error } = await supabase.from('pending_changes').insert({
+      org_id: activeOrganizationId,
       type: 'edit',
-      transactionId: id,
-      transactionTitle: transaction.title,
-      requestedBy: auth.currentUser?.email ?? 'unknown',
-      requestedByRole: role,
-      requestedAt: Date.now(),
-      before: toFirestore(omitId(old)),
-      after: toFirestore(transaction),
+      transaction_id: id,
+      transaction_title: transaction.title,
+      requested_by: userEmail ?? 'unknown',
+      requested_by_role: role,
+      requested_at: Date.now(),
+      before: omitId(old),
+      after: transaction,
     });
+    if (error) throw error;
     await writeAuditEntry(
       'request_edit',
       id,
@@ -307,20 +307,21 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (role !== 'treasurer' && role !== 'president') return;
     const old = activeOrganization?.transactions.find((t) => t.id === id);
     if (!old) return;
-    // Block deleting reconciled Debit Card transactions
     if (old.budgetLine === 'Debit Card' && old.reconciledAt != null) {
       throw new Error('This transaction has been reconciled and cannot be deleted.');
     }
-    await addDoc(collection(db, 'clubs', activeOrganizationId, 'pendingChanges'), {
+    const { error } = await supabase.from('pending_changes').insert({
+      org_id: activeOrganizationId,
       type: 'delete',
-      transactionId: id,
-      transactionTitle: old.title,
-      requestedBy: auth.currentUser?.email ?? 'unknown',
-      requestedByRole: role,
-      requestedAt: Date.now(),
-      before: toFirestore(omitId(old)),
+      transaction_id: id,
+      transaction_title: old.title,
+      requested_by: userEmail ?? 'unknown',
+      requested_by_role: role,
+      requested_at: Date.now(),
+      before: omitId(old),
       after: null,
     });
+    if (error) throw error;
     await writeAuditEntry('request_delete', id, old.title, omitId(old), null);
   };
 
@@ -328,13 +329,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (!activeOrganizationId) return;
     const pending = pendingChanges.find((p) => p.id === pendingId);
     if (!pending) return;
-    const pendingRef = doc(
-      db,
-      'clubs',
-      activeOrganizationId,
-      'pendingChanges',
-      pendingId,
-    );
+
     await writeAuditEntry(
       'approve',
       pending.transactionId,
@@ -342,57 +337,43 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
       pending.before,
       pending.after,
     );
+
     if (pending.type === 'edit' && pending.after) {
-      const txnRef = doc(
-        db,
-        'clubs',
-        activeOrganizationId,
-        'transactions',
-        pending.transactionId,
-      );
-      await updateDoc(txnRef, toFirestore(pending.after));
-      await reverseDelta(
-        activeOrganizationId,
+      const { error } = await supabase
+        .from('transactions')
+        .update(transactionToRow(pending.after))
+        .eq('id', pending.transactionId);
+      if (error) throw error;
+      await adjustBudgetAllocation(
         pending.before.budgetLine,
-        pending.before.direction,
-        pending.before.amount,
+        -signedAmount(pending.before),
       );
-      await applyDelta(
-        activeOrganizationId,
-        pending.after.budgetLine,
-        pending.after.direction,
-        pending.after.amount,
-      );
+      await adjustBudgetAllocation(pending.after.budgetLine, signedAmount(pending.after));
     } else if (pending.type === 'delete') {
-      const txnRef = doc(
-        db,
-        'clubs',
-        activeOrganizationId,
-        'transactions',
-        pending.transactionId,
-      );
-      await deleteDoc(txnRef);
-      await reverseDelta(
-        activeOrganizationId,
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', pending.transactionId);
+      if (error) throw error;
+      await adjustBudgetAllocation(
         pending.before.budgetLine,
-        pending.before.direction,
-        pending.before.amount,
+        -signedAmount(pending.before),
       );
     }
-    await deleteDoc(pendingRef);
+
+    const { error: deleteError } = await supabase
+      .from('pending_changes')
+      .delete()
+      .eq('id', pendingId);
+    if (deleteError) throw deleteError;
   };
 
   const rejectPendingChange = async (pendingId: string) => {
     if (!activeOrganizationId) return;
     const pending = pendingChanges.find((p) => p.id === pendingId);
-    const pendingRef = doc(
-      db,
-      'clubs',
-      activeOrganizationId,
-      'pendingChanges',
-      pendingId,
-    );
-    await deleteDoc(pendingRef);
+    const { error } = await supabase.from('pending_changes').delete().eq('id', pendingId);
+    if (error) throw error;
+    setPendingChanges((prev) => prev.filter((p) => p.id !== pendingId));
     if (pending) {
       await writeAuditEntry(
         'reject',
@@ -407,14 +388,9 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const cancelPendingChange = async (pendingId: string) => {
     if (!activeOrganizationId) return;
     const pending = pendingChanges.find((p) => p.id === pendingId);
-    const pendingRef = doc(
-      db,
-      'clubs',
-      activeOrganizationId,
-      'pendingChanges',
-      pendingId,
-    );
-    await deleteDoc(pendingRef);
+    const { error } = await supabase.from('pending_changes').delete().eq('id', pendingId);
+    if (error) throw error;
+    setPendingChanges((prev) => prev.filter((p) => p.id !== pendingId));
     if (pending) {
       await writeAuditEntry(
         'cancel',
@@ -428,33 +404,36 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateBudgetAllocations = async (allocations: BudgetAllocations) => {
     if (!activeOrganizationId) return;
-    const orgRef = doc(db, 'clubs', activeOrganizationId);
-    await updateDoc(orgRef, { budgetAllocations: allocations });
+    const { error } = await supabase
+      .from('organizations')
+      .update({ budget_allocations: allocations })
+      .eq('id', activeOrganizationId);
+    if (error) throw error;
   };
 
-  // Sets the initial budget allocations and locks the flag so it cannot be
-  // done again through the normal onboarding flow.
   const initializeBudgetAllocations = async (allocations: BudgetAllocations) => {
     if (!activeOrganizationId) return;
-    const orgRef = doc(db, 'clubs', activeOrganizationId);
-    await updateDoc(orgRef, { budgetAllocations: allocations, isBudgetLinesSet: true });
+    const { error } = await supabase
+      .from('organizations')
+      .update({ budget_allocations: allocations, is_budget_lines_set: true })
+      .eq('id', activeOrganizationId);
+    if (error) throw error;
   };
 
-  // Marks the selected Debit Card transactions as reconciled and updates
-  // lastReconciliationDate on the club to now.
   const reconcileTransactions = async (transactionIds: string[]) => {
     if (!activeOrganizationId) return;
     const now = Date.now();
-    await Promise.all(
-      transactionIds.map((id) =>
-        updateDoc(doc(db, 'clubs', activeOrganizationId, 'transactions', id), {
-          reconciledAt: now,
-        }),
-      ),
-    );
-    await updateDoc(doc(db, 'clubs', activeOrganizationId), {
-      lastReconciliationDate: now,
-    });
+    const { error: txnError } = await supabase
+      .from('transactions')
+      .update({ reconciled_at: now })
+      .in('id', transactionIds);
+    if (txnError) throw txnError;
+    const { error: orgError } = await supabase
+      .from('organizations')
+      .update({ last_reconciliation_date: now })
+      .eq('id', activeOrganizationId);
+    if (orgError) throw orgError;
+
     const txnsToReconcile = (activeOrganization?.transactions ?? []).filter((t) =>
       transactionIds.includes(t.id),
     );
@@ -462,22 +441,22 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
       .filter((t) => t.direction === 'Outflow')
       .reduce((sum, t) => sum + t.amount, 0);
     const exemptionCount = txnsToReconcile.filter((t) => t.exemptionFormUrl).length;
-    const userEmail = auth.currentUser?.email ?? 'unknown';
-    await addDoc(collection(db, 'clubs', activeOrganizationId, 'auditLog'), {
-      action: 'reconcile',
-      performedBy: userEmail,
-      timestamp: now,
-      transactionId: '',
-      transactionTitle: `${transactionIds.length} transaction${transactionIds.length !== 1 ? 's' : ''} reconciled`,
-      before: null,
-      after: null,
-      reconciliationSummary: {
-        transactionCount: transactionIds.length,
-        totalAmount,
-        exemptionCount,
-        transactionIds,
+
+    await writeAuditEntry(
+      'reconcile',
+      '',
+      `${transactionIds.length} transaction${transactionIds.length !== 1 ? 's' : ''} reconciled`,
+      null,
+      null,
+      {
+        reconciliationSummary: {
+          transactionCount: transactionIds.length,
+          totalAmount,
+          exemptionCount,
+          transactionIds,
+        },
       },
-    });
+    );
   };
 
   const requestReload = async (
@@ -486,53 +465,53 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     transactionCount: number,
   ) => {
     if (!activeOrganizationId) return;
-    const userEmail = auth.currentUser?.email ?? 'unknown';
     const now = Date.now();
-    await addDoc(collection(db, 'clubs', activeOrganizationId, 'reloadRequests'), {
+    const { error } = await supabase.from('reload_requests').insert({
+      org_id: activeOrganizationId,
       amount,
-      requestedBy: userEmail,
-      requestedAt: now,
-      reconciledTotal,
-      transactionCount,
+      requested_by: userEmail ?? 'unknown',
+      requested_at: now,
+      reconciled_total: reconciledTotal,
+      transaction_count: transactionCount,
     });
-    await addDoc(collection(db, 'clubs', activeOrganizationId, 'auditLog'), {
-      action: 'reload_request',
-      performedBy: userEmail,
-      timestamp: now,
-      transactionId: '',
-      transactionTitle: `Reload request: $${amount.toFixed(2)}`,
-      before: null,
-      after: null,
-      reloadAmount: amount,
-    });
-  };
-
-  // Uploads an exemption form for a debit card transaction missing a receipt,
-  // stores it in Firebase Storage, and saves the download URL on the transaction doc.
-  const uploadExemptionForm = async (transactionId: string, file: File) => {
-    if (!activeOrganizationId) return;
-    const path = `clubs/${activeOrganizationId}/transactions/${transactionId}/exemption-form_${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(storageRef);
-    await updateDoc(
-      doc(db, 'clubs', activeOrganizationId, 'transactions', transactionId),
+    if (error) throw error;
+    await writeAuditEntry(
+      'reload_request',
+      '',
+      `Reload request: $${amount.toFixed(2)}`,
+      null,
+      null,
       {
-        exemptionFormUrl: url,
+        reloadAmount: amount,
       },
     );
+  };
+
+  const uploadExemptionForm = async (transactionId: string, file: File) => {
+    if (!activeOrganizationId) return;
+    const path = documentPath(
+      activeOrganizationId,
+      transactionId,
+      file,
+      'exemption-form',
+    );
+    await uploadDocument(path, file);
+    const { error } = await supabase
+      .from('transactions')
+      .update({ exemption_form_url: path })
+      .eq('id', transactionId);
+    if (error) throw error;
   };
 
   const activeOrganization =
     organizations.find((o: Organization) => o.id === activeOrganizationId) ?? null;
 
   const userRole = ((): UserRole | null => {
-    const email = auth.currentUser?.email;
-    if (!email || !activeOrganization) return null;
-    if (activeOrganization.treasurer?.includes(email)) return 'treasurer';
-    if (activeOrganization.president?.includes(email)) return 'president';
-    if (activeOrganization.officers?.includes(email)) return 'officer';
-    if (activeOrganization.admins?.includes(email)) return 'treasurer';
+    if (!userEmail || !activeOrganization) return null;
+    if (activeOrganization.treasurer?.includes(userEmail)) return 'treasurer';
+    if (activeOrganization.president?.includes(userEmail)) return 'president';
+    if (activeOrganization.officers?.includes(userEmail)) return 'officer';
+    if (activeOrganization.admins?.includes(userEmail)) return 'treasurer';
     return null;
   })();
 
@@ -549,16 +528,10 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     [transactions, budgetAllocations],
   );
 
-  const overallSummary = useMemo(
-    () => calculateOverallSummary(transactions, budgetAllocations),
-    [transactions, budgetAllocations],
-  );
-
   const value: LedgerContextValue = {
     auditLog,
     pendingChanges,
     organizations,
-    addOrganization,
     activeOrganizationId,
     setActiveOrganizationId,
     activeOrganization,
@@ -580,7 +553,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     setSelectedBudgetLine,
     filteredTransactions,
     budgetLineSummaries,
-    overallSummary,
   };
 
   return <LedgerContext.Provider value={value}>{children}</LedgerContext.Provider>;

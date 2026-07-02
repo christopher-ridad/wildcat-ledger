@@ -1,20 +1,21 @@
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { db, storage } from '../config/firebase';
+import { supabase } from '../config/supabase';
+import { documentPath, uploadDocument } from '../utilities/storage';
 
-const FILE_TYPE_MAP: Record<string, { field: string; label: string }> = {
-  receipt: { field: 'receiptFileUrl', label: 'Receipt' },
-  contract: { field: 'contractFileUrl', label: 'RSO Agreement' },
-  w9: { field: 'w9FileUrl', label: 'W-9' },
+const FILE_TYPE_MAP: Record<string, { field: string; prefix: string; label: string }> = {
+  receipt: { field: 'receiptFileUrl', prefix: 'receipt', label: 'Receipt' },
+  contract: { field: 'contractFileUrl', prefix: 'contract', label: 'RSO Agreement' },
+  w9: { field: 'w9FileUrl', prefix: 'w9', label: 'W-9' },
   contractedServices: {
     field: 'contractedServicesFileUrl',
+    prefix: 'contractedServices',
     label: 'Contracted Services Form',
   },
   conflictOfInterest: {
     field: 'conflictOfInterestFileUrl',
+    prefix: 'conflictOfInterest',
     label: 'Conflict of Interest Form',
   },
 };
@@ -23,9 +24,10 @@ export const UploadReceiptPage = () => {
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId');
   const orgId = searchParams.get('orgId');
+  const token = searchParams.get('token');
   const rawFileType = searchParams.get('fileType') ?? 'receipt';
   const fileType = rawFileType in FILE_TYPE_MAP ? rawFileType : 'receipt';
-  const { field: firestoreField, label: docLabel } = FILE_TYPE_MAP[fileType];
+  const { field, prefix, label: docLabel } = FILE_TYPE_MAP[fileType];
 
   const [txnTitle, setTxnTitle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,41 +38,48 @@ export const UploadReceiptPage = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    if (!transactionId || !orgId) {
-      setLoadError('Invalid link — missing transaction or organization ID.');
+    if (!transactionId || !orgId || !token) {
+      setLoadError('Invalid link — missing transaction, organization, or token.');
       setLoading(false);
       return;
     }
-    const txnRef = doc(db, 'clubs', orgId, 'transactions', transactionId);
-    getDoc(txnRef)
-      .then((snap) => {
-        if (!snap.exists()) {
+    (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_transaction_title', {
+          p_org_id: orgId,
+          p_transaction_id: transactionId,
+        });
+        if (error || !data) {
           setLoadError('Transaction not found.');
         } else {
-          setTxnTitle((snap.data().title as string) ?? 'Unknown transaction');
+          setTxnTitle(data as string);
         }
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         setLoadError('Failed to load transaction details.');
+      } finally {
         setLoading(false);
-      });
-  }, [transactionId, orgId]);
+      }
+    })();
+  }, [transactionId, orgId, token]);
 
   const handleUpload = async () => {
-    if (!file || !transactionId || !orgId) return;
+    if (!file || !transactionId || !orgId || !token) return;
     setUploading(true);
     setUploadError(null);
     try {
-      const path = `clubs/${orgId}/transactions/${transactionId}/${fileType}_${Date.now()}_${file.name}`;
-      const storageRef = ref(storage, path);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      const txnRef = doc(db, 'clubs', orgId, 'transactions', transactionId);
-      await updateDoc(txnRef, { [firestoreField]: url });
+      const path = documentPath(orgId, transactionId, file, prefix);
+      await uploadDocument(path, file);
+      const { error } = await supabase.rpc('submit_document_upload', {
+        p_org_id: orgId,
+        p_transaction_id: transactionId,
+        p_field: field,
+        p_token: token,
+        p_url: path,
+      });
+      if (error) throw error;
       setSuccess(true);
     } catch {
-      setUploadError('Upload failed. Please try again.');
+      setUploadError('Upload failed. The link may have expired or already been used.');
     } finally {
       setUploading(false);
     }

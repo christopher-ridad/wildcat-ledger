@@ -2,7 +2,6 @@ import {
   BudgetAllocations,
   BudgetLine,
   BudgetLineSummaryData,
-  OverallSummaryData,
   Transaction,
 } from '../types';
 
@@ -22,20 +21,6 @@ export const calculateBudgetLineSummaries = (
       .reduce((sum, t) => sum + t.amount, 0);
     return { line, balance: allocations[line], inflow, outflow };
   });
-
-export const calculateOverallSummary = (
-  transactions: Transaction[],
-  allocations: BudgetAllocations,
-): OverallSummaryData => {
-  const totalInflow = transactions
-    .filter((t) => t.direction === 'Inflow')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalOutflow = transactions
-    .filter((t) => t.direction === 'Outflow')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalBalance = Object.values(allocations).reduce((sum, v) => sum + v, 0);
-  return { totalBalance, totalInflow, totalOutflow };
-};
 
 const byDateDescending = (a: Transaction, b: Transaction): number =>
   (b.date ?? '').localeCompare(a.date ?? '');

@@ -1,41 +1,42 @@
 /**
- * Reads club_officers.csv and creates/updates each club in Firestore with:
- *   presidents: [email, ...]
- *   treasurers: [email, ...]
- *   officers:   [email, ...]
+ * Reads club_officers.csv and creates/updates each club in Supabase with:
+ *   president: [email, ...]
+ *   treasurer: [email, ...]
+ *   officers:  [email, ...]
  *
- * Run with:  node scripts/importAdmins.mjs
+ * Run with:  node scripts/importAdmins.mjs path/to/club_officers.csv
+ *       or:  CLUB_OFFICERS_CSV=path/to/club_officers.csv node scripts/importAdmins.mjs
  */
 
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, query, where, getDocs, updateDoc, doc, setDoc, deleteField } from "firebase/firestore";
-import { createReadStream } from "fs";
-import { parse } from "csv-parse";
-import dotenv from "dotenv";
+import { createClient } from '@supabase/supabase-js';
+import { parse } from 'csv-parse';
+import dotenv from 'dotenv';
+import { createReadStream } from 'fs';
 
 dotenv.config();
 
-const firebaseConfig = {
-  apiKey:            process.env.VITE_FIREBASE_API_KEY,
-  authDomain:        process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             process.env.VITE_FIREBASE_APP_ID,
-};
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
 
-const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
+const csvPath = process.argv[2] ?? process.env.CLUB_OFFICERS_CSV;
 
-const CSV_PATH = "/Users/coreyzhang/Downloads/club_officers.csv";
+if (!csvPath) {
+  console.error(
+    'Usage: node scripts/importAdmins.mjs path/to/club_officers.csv\n' +
+      '   or: CLUB_OFFICERS_CSV=path/to/club_officers.csv node scripts/importAdmins.mjs',
+  );
+  process.exit(1);
+}
 
 function decodeHTML(str) {
   return str
-    .replace(/&amp;/g,  "&")
-    .replace(/&#39;/g,  "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;/g, "'")
     .replace(/&quot;/g, '"')
-    .replace(/&lt;/g,   "<")
-    .replace(/&gt;/g,   ">")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
 }
 
@@ -45,63 +46,70 @@ async function readCSV(filePath) {
     const clubs = {};
     createReadStream(filePath)
       .pipe(parse({ columns: true, trim: true }))
-      .on("data", (row) => {
-        const name  = decodeHTML(row.club_name?.trim() || "");
+      .on('data', (row) => {
+        const name = decodeHTML(row.club_name?.trim() || '');
         const email = row.email?.trim();
-        const role  = row.role?.trim().toLowerCase();
+        const role = row.role?.trim().toLowerCase();
         if (!name || !email) return;
 
-        if (!clubs[name]) clubs[name] = { presidents: new Set(), treasurers: new Set(), officers: new Set() };
+        if (!clubs[name]) {
+          clubs[name] = { presidents: new Set(), treasurers: new Set(), officers: new Set() };
+        }
 
-        if (role === "president")       clubs[name].presidents.add(email);
-        else if (role === "treasurer")  clubs[name].treasurers.add(email);
-        else                            clubs[name].officers.add(email);
+        if (role === 'president') clubs[name].presidents.add(email);
+        else if (role === 'treasurer') clubs[name].treasurers.add(email);
+        else clubs[name].officers.add(email);
       })
-      .on("end",   () => resolve(clubs))
-      .on("error", reject);
+      .on('end', () => resolve(clubs))
+      .on('error', reject);
   });
 }
 
 async function importAdmins() {
-  console.log("Reading CSV...");
-  const clubs = await readCSV(CSV_PATH);
+  console.log('Reading CSV...');
+  const clubs = await readCSV(csvPath);
   const clubNames = Object.keys(clubs);
   console.log(`Found ${clubNames.length} clubs.\n`);
 
-  let created = 0, updated = 0;
+  let created = 0,
+    updated = 0;
 
   for (const clubName of clubNames) {
     const { presidents, treasurers, officers } = clubs[clubName];
-
     const fields = {
-      presidents: Array.from(presidents),
-      treasurers: Array.from(treasurers),
-      officers:   Array.from(officers),
+      president: Array.from(presidents),
+      treasurer: Array.from(treasurers),
+      officers: Array.from(officers),
     };
 
-    // Check if club already exists
-    let existingRef = null;
-    for (const field of ["name", "clubName"]) {
-      const snap = await getDocs(query(collection(db, "clubs"), where(field, "==", clubName)));
-      if (!snap.empty) {
-        existingRef = snap.docs[0].ref;
-        break;
-      }
-    }
+    const { data: existing, error: selectError } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('name', clubName)
+      .maybeSingle();
+    if (selectError) throw selectError;
 
-    if (existingRef) {
-      await updateDoc(existingRef, { ...fields, admins: deleteField() });
-      console.log(`  ✓ updated: ${clubName} — ${fields.presidents.length} presidents, ${fields.treasurers.length} treasurers, ${fields.officers.length} officers`);
+    if (existing) {
+      const { error } = await supabase
+        .from('organizations')
+        .update(fields)
+        .eq('id', existing.id);
+      if (error) throw error;
+      console.log(
+        `  ✓ updated: ${clubName} — ${fields.president.length} presidents, ${fields.treasurer.length} treasurers, ${fields.officers.length} officers`,
+      );
       updated++;
     } else {
-      const docId = clubName.replace(/[^a-zA-Z0-9]/g, "_");
-      await setDoc(doc(db, "clubs", docId), {
-        name:              clubName,
+      const { error } = await supabase.from('organizations').insert({
+        name: clubName,
         ...fields,
-        budgetAllocations: {},
-        isBudgetLinesSet:  false,
+        budget_allocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 },
+        is_budget_lines_set: false,
       });
-      console.log(`  + created: ${clubName} — ${fields.presidents.length} presidents, ${fields.treasurers.length} treasurers, ${fields.officers.length} officers`);
+      if (error) throw error;
+      console.log(
+        `  + created: ${clubName} — ${fields.president.length} presidents, ${fields.treasurer.length} treasurers, ${fields.officers.length} officers`,
+      );
       created++;
     }
   }

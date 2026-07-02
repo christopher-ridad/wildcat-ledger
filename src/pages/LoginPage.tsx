@@ -1,38 +1,22 @@
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { auth } from '../config/firebase';
-import { EMAIL_KEY } from '../context/AuthContext';
 import { useAuth } from '../hooks/useAuth';
 
-type View = 'checking' | 'form' | 'sent';
-
 export const LoginPage = () => {
-  const { sendLoginLink } = useAuth();
+  const { user, sendLoginLink } = useAuth();
   const navigate = useNavigate();
-  const [view, setView] = useState<View>('checking');
+  const [view, setView] = useState<'form' | 'sent'>('form');
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      const stored = localStorage.getItem(EMAIL_KEY) ?? '';
-      signInWithEmailLink(auth, stored, window.location.href)
-        .then(() => {
-          localStorage.removeItem(EMAIL_KEY);
-          localStorage.removeItem('activeOrganizationId');
-          navigate('/organizations', { replace: true });
-        })
-        .catch((err: Error) => {
-          setError(err.message ?? 'Sign-in failed. Please request a new link.');
-          setView('form');
-        });
-    } else {
-      setView('form');
+    if (user) {
+      localStorage.removeItem('activeOrganizationId');
+      navigate('/organizations', { replace: true });
     }
-  }, [navigate]);
+  }, [user, navigate]);
 
   const handleSend = async () => {
     const trimmed = email.trim();
@@ -51,8 +35,6 @@ export const LoginPage = () => {
       setSubmitting(false);
     }
   };
-
-  if (view === 'checking') return null;
 
   return (
     <div className="wl-register-root">

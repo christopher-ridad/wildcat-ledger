@@ -25,13 +25,7 @@ export const Dashboard = () => {
     if (activeOrganization === null) {
       navigate('/organizations', { replace: true });
     }
-  }, [activeOrganization]);
-
-  useEffect(() => {
-    if (activeOrganization === null) {
-      navigate('/organizations', { replace: true });
-    }
-  }, [activeOrganization]);
+  }, [activeOrganization, navigate]);
 
   return (
     <div className="wl-app">
