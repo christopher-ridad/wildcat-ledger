@@ -3,11 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useLedger } from '../hooks/useLedger';
 import { Transaction } from '../types';
 import { formatCurrency } from '../utilities/calculations';
+import { POLICY_EXEMPTION_FORM_URL } from '../utilities/constants';
 import { downloadReceiptsZip } from '../utilities/downloadReceiptsZip';
-
-// Northwestern Policy Exemption Request Form
-const EXEMPTION_FORM_URL =
-  'https://www.northwestern.edu/financial-operations/policies-procedures/forms/policy_exception.pdf';
 
 interface ReconciliationModalProps {
   isOpen: boolean;
@@ -253,7 +250,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                                   ? 'Submitted without receipt. '
                                   : 'No receipt on file. '}
                                 <a
-                                  href={EXEMPTION_FORM_URL}
+                                  href={POLICY_EXEMPTION_FORM_URL}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="wl-recon-exemption-link"

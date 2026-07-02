@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { TopNav } from '../components/TopNav';
 import { useLedger } from '../hooks/useLedger';
-import { AuditEntry } from '../types';
+import { AuditAction, AuditEntry } from '../types';
+import { diffChangedKeys } from '../utilities/diff';
 
 const formatTimestamp = (ts: number) =>
   new Date(ts).toLocaleString('en-US', {
@@ -13,76 +14,86 @@ const formatTimestamp = (ts: number) =>
     minute: '2-digit',
   });
 
-const actionLabel = (action: AuditEntry['action'], after: AuditEntry['after']) => {
-  if (action === 'create')
-    return {
-      label: 'Created',
-      icon: '+',
-      className: 'wl-audit-badge--create',
-      entryClass: 'wl-audit-entry--create',
-    };
-  if (action === 'edit')
-    return {
-      label: 'Edited',
-      icon: '~',
-      className: 'wl-audit-badge--edit',
-      entryClass: 'wl-audit-entry--edit',
-    };
-  if (action === 'delete')
-    return {
-      label: 'Deleted',
-      icon: '×',
-      className: 'wl-audit-badge--delete',
-      entryClass: 'wl-audit-entry--delete',
-    };
-  if (action === 'request_edit')
-    return {
-      label: 'Edit Requested',
-      icon: '?',
-      className: 'wl-audit-badge--request',
-      entryClass: 'wl-audit-entry--request',
-    };
-  if (action === 'request_delete')
-    return {
-      label: 'Delete Requested',
-      icon: '?',
-      className: 'wl-audit-badge--request',
-      entryClass: 'wl-audit-entry--request',
-    };
-  if (action === 'approve')
-    return {
-      label: after === null ? 'Approved Delete' : 'Approved Edit',
-      icon: '✓',
-      className: 'wl-audit-badge--approve',
-      entryClass: 'wl-audit-entry--approve',
-    };
-  if (action === 'reject')
-    return {
-      label: 'Rejected',
-      icon: '✕',
-      className: 'wl-audit-badge--reject',
-      entryClass: 'wl-audit-entry--reject',
-    };
-  if (action === 'reconcile')
-    return {
-      label: 'Reconciled',
-      icon: '✓',
-      className: 'wl-audit-badge--approve',
-      entryClass: 'wl-audit-entry--approve',
-    };
-  if (action === 'reload_request')
-    return {
-      label: 'Reload Requested',
-      icon: '↻',
-      className: 'wl-audit-badge--create',
-      entryClass: 'wl-audit-entry--create',
-    };
-  return {
+interface ActionDisplay {
+  label: string;
+  icon: string;
+  className: string;
+  entryClass: string;
+}
+
+// Record<AuditAction, ...> means TypeScript catches it if a new AuditAction
+// variant is ever added without a corresponding label here.
+const ACTION_LABELS: Record<AuditAction, ActionDisplay> = {
+  create: {
+    label: 'Created',
+    icon: '+',
+    className: 'wl-audit-badge--create',
+    entryClass: 'wl-audit-entry--create',
+  },
+  edit: {
+    label: 'Edited',
+    icon: '~',
+    className: 'wl-audit-badge--edit',
+    entryClass: 'wl-audit-entry--edit',
+  },
+  delete: {
+    label: 'Deleted',
+    icon: '×',
+    className: 'wl-audit-badge--delete',
+    entryClass: 'wl-audit-entry--delete',
+  },
+  request_edit: {
+    label: 'Edit Requested',
+    icon: '?',
+    className: 'wl-audit-badge--request',
+    entryClass: 'wl-audit-entry--request',
+  },
+  request_delete: {
+    label: 'Delete Requested',
+    icon: '?',
+    className: 'wl-audit-badge--request',
+    entryClass: 'wl-audit-entry--request',
+  },
+  // 'approve' label depends on `after` (null means it was an approved delete),
+  // so it's handled separately in actionLabel() below rather than here.
+  approve: {
+    label: 'Approved',
+    icon: '✓',
+    className: 'wl-audit-badge--approve',
+    entryClass: 'wl-audit-entry--approve',
+  },
+  reject: {
+    label: 'Rejected',
+    icon: '✕',
+    className: 'wl-audit-badge--reject',
+    entryClass: 'wl-audit-entry--reject',
+  },
+  cancel: {
     label: 'Cancelled',
     icon: '↩',
     className: 'wl-audit-badge--cancel',
     entryClass: 'wl-audit-entry--cancel',
-  };
+  },
+  reconcile: {
+    label: 'Reconciled',
+    icon: '✓',
+    className: 'wl-audit-badge--approve',
+    entryClass: 'wl-audit-entry--approve',
+  },
+  reload_request: {
+    label: 'Reload Requested',
+    icon: '↻',
+    className: 'wl-audit-badge--create',
+    entryClass: 'wl-audit-entry--create',
+  },
+};
+
+const actionLabel = (action: AuditAction, after: AuditEntry['after']): ActionDisplay => {
+  const display = ACTION_LABELS[action];
+  if (action === 'approve') {
+    return { ...display, label: after === null ? 'Approved Delete' : 'Approved Edit' };
+  }
+  return display;
 };
 
 const EditDiff = ({
@@ -166,16 +177,10 @@ export const AuditLogPage = () => {
                 entry.after,
               );
               const changedKeys =
-                (entry.action === 'edit' ||
-                  entry.action === 'request_edit' ||
-                  entry.action === 'approve') &&
-                entry.before &&
-                entry.after
-                  ? Object.keys(entry.after).filter(
-                      (k) =>
-                        (entry.before as Record<string, unknown>)[k] !==
-                        (entry.after as Record<string, unknown>)[k],
-                    )
+                entry.action === 'edit' ||
+                entry.action === 'request_edit' ||
+                entry.action === 'approve'
+                  ? diffChangedKeys(entry.before, entry.after)
                   : [];
               return (
                 <div key={entry.id} className={`wl-audit-entry ${entryClass}`}>

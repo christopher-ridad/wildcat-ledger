@@ -1,10 +1,10 @@
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import React, { useRef, useState } from 'react';
 
-import { storage } from '../config/firebase';
 import { useLedger } from '../hooks/useLedger';
 import { BudgetLine, Transaction, TransactionType } from '../types';
+import { POLICY_EXEMPTION_FORM_URL } from '../utilities/constants';
 import { parseReceipt } from '../utilities/parseReceipt';
+import { documentPath, getSignedFileUrl, uploadDocument } from '../utilities/storage';
 
 type SupportedType = Extract<
   TransactionType,
@@ -17,10 +17,6 @@ interface AddTransactionFormProps {
   onSuccess?: () => void;
   existingTransaction?: Transaction;
 }
-
-// Northwestern Policy Exemption Request Form
-const PERF_URL =
-  'https://www.northwestern.edu/financial-operations/policies-procedures/forms/policy_exception.pdf';
 
 interface FormState {
   title: string;
@@ -74,6 +70,24 @@ const deriveBudgetLine = (type: SupportedType, funding: FundingOption): BudgetLi
 const deriveDirection = (type: SupportedType): 'Inflow' | 'Outflow' =>
   type === 'Deposit' ? 'Inflow' : 'Outflow';
 
+// Existing files are stored as private Storage object paths, so "View file"
+// mints a short-lived signed URL on demand rather than linking directly.
+const ExistingFileLink = ({ path }: { path: string }) => {
+  const handleClick = async () => {
+    try {
+      const url = await getSignedFileUrl(path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      // ignore — user can retry the click
+    }
+  };
+  return (
+    <button type="button" className="wl-link-button" onClick={handleClick}>
+      View file
+    </button>
+  );
+};
+
 export const AddTransactionForm = ({
   onSuccess,
   existingTransaction,
@@ -124,6 +138,7 @@ export const AddTransactionForm = ({
   } | null>(null);
   const [preGeneratedId, setPreGeneratedId] = useState<string | null>(null);
   const [requestedDocTypes, setRequestedDocTypes] = useState<Set<string>>(new Set());
+  const [uploadTokens, setUploadTokens] = useState<Record<string, string>>({});
 
   const handleReceiptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -193,23 +208,36 @@ export const AddTransactionForm = ({
       zelleInfo: '',
     }));
     setRequestedDocTypes(new Set());
+    setUploadTokens({});
     setError(null);
   };
 
-  const submitTransaction = async (transaction: Omit<Transaction, 'id'>, id?: string) => {
+  const submitTransaction = async (
+    transaction: Omit<Transaction, 'id'>,
+    id?: string,
+    tokens?: Record<string, string>,
+  ) => {
     setSubmitting(true);
+    setError(null);
     try {
       if (isEditing && existingTransaction) {
         await updateTransaction(existingTransaction.id, transaction);
       } else {
-        await addTransaction(transaction, id);
+        await addTransaction(transaction, id, tokens);
       }
       setForm(initialForm);
       setPreGeneratedId(null);
       setRequestedDocTypes(new Set());
+      setUploadTokens({});
       setPendingTransaction(null);
       setOverdraftWarning(null);
       onSuccess?.();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to save transaction. Please try again.',
+      );
     } finally {
       setSubmitting(false);
       submitGuard.current = false;
@@ -230,7 +258,9 @@ export const AddTransactionForm = ({
       id = generateTransactionId();
       setPreGeneratedId(id);
     }
-    const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${docType}`;
+    const token = crypto.randomUUID();
+    setUploadTokens((prev) => ({ ...prev, [docType]: token }));
+    const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${docType}&token=${token}`;
     const templateLine = templatePath
       ? `\n\nYou can download a blank ${label} here:\n${window.location.origin}${templatePath}`
       : '';
@@ -248,147 +278,165 @@ export const AddTransactionForm = ({
     setError(null);
   };
 
-  const uploadFile = async (file: File): Promise<string> => {
-    const path = `clubs/${activeOrganizationId}/transactions/${Date.now()}_${file.name}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
+  const uploadFile = async (
+    file: File,
+    prefix: string,
+    transactionId: string,
+  ): Promise<string> => {
+    const path = documentPath(activeOrganizationId ?? '', transactionId, file, prefix);
+    await uploadDocument(path, file);
+    return path;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitGuard.current) return;
     submitGuard.current = true;
-    const amount = parseFloat(form.amount);
+    try {
+      const amount = parseFloat(form.amount);
 
-    if (!form.title.trim()) {
-      setError('Title is required.');
-      return;
-    }
-    if (!AMOUNT_REGEX.test(form.amount) || amount <= 0) {
-      setError(
-        'Enter a valid dollar amount (e.g. 12.50). No negative values or scientific notation.',
-      );
-      return;
-    }
-
-    // Type-specific validation
-    if (form.type === 'Debit card purchase') {
-      const hasExistingReceipt = isEditing && !!existingTransaction?.receiptFileUrl;
-      if (
-        !form.receiptFile &&
-        !hasExistingReceipt &&
-        !form.noReceiptAcknowledged &&
-        !requestedDocTypes.has('receipt')
-      ) {
+      if (!form.title.trim()) {
+        setError('Title is required.');
+        return;
+      }
+      if (!AMOUNT_REGEX.test(form.amount) || amount <= 0) {
         setError(
-          'Upload a receipt, request one via email, or check "I don\'t have a receipt".',
+          'Enter a valid dollar amount (e.g. 12.50). No negative values or scientific notation.',
         );
         return;
       }
-    }
 
-    if (form.type === 'Direct payment') {
-      if (!form.contractFile && !isEditing && !requestedDocTypes.has('contract')) {
-        setError('Upload the RSO Agreement or request it via email.');
-        return;
-      }
-      if (!form.w9File && !isEditing && !requestedDocTypes.has('w9')) {
-        setError('Upload the W-9 or request it via email.');
-        return;
-      }
-      if (form.isIndividualVendor) {
+      // Type-specific validation
+      if (form.type === 'Debit card purchase') {
+        const hasExistingReceipt = isEditing && !!existingTransaction?.receiptFileUrl;
         if (
-          !form.contractedServicesFile &&
-          !isEditing &&
-          !requestedDocTypes.has('contractedServices')
+          !form.receiptFile &&
+          !hasExistingReceipt &&
+          !form.noReceiptAcknowledged &&
+          !requestedDocTypes.has('receipt')
         ) {
-          setError('Upload the Contracted Services Form or request it via email.');
-          return;
-        }
-        if (
-          !form.conflictOfInterestFile &&
-          !isEditing &&
-          !requestedDocTypes.has('conflictOfInterest')
-        ) {
-          setError('Upload the Conflict of Interest Form or request it via email.');
+          setError(
+            'Upload a receipt, request one via email, or check "I don\'t have a receipt".',
+          );
           return;
         }
       }
+
+      if (form.type === 'Direct payment') {
+        if (!form.contractFile && !isEditing && !requestedDocTypes.has('contract')) {
+          setError('Upload the RSO Agreement or request it via email.');
+          return;
+        }
+        if (!form.w9File && !isEditing && !requestedDocTypes.has('w9')) {
+          setError('Upload the W-9 or request it via email.');
+          return;
+        }
+        if (form.isIndividualVendor) {
+          if (
+            !form.contractedServicesFile &&
+            !isEditing &&
+            !requestedDocTypes.has('contractedServices')
+          ) {
+            setError('Upload the Contracted Services Form or request it via email.');
+            return;
+          }
+          if (
+            !form.conflictOfInterestFile &&
+            !isEditing &&
+            !requestedDocTypes.has('conflictOfInterest')
+          ) {
+            setError('Upload the Conflict of Interest Form or request it via email.');
+            return;
+          }
+        }
+      }
+
+      if (form.type === 'Reimbursement') {
+        if (!form.receiptFile && !isEditing && !requestedDocTypes.has('receipt')) {
+          setError('Upload a receipt photo or request one via email.');
+          return;
+        }
+        if (!form.zelleInfo.trim()) {
+          setError('Zelle information (email or phone number) is required.');
+          return;
+        }
+        if (!ZELLE_REGEX.test(form.zelleInfo.trim())) {
+          setError('Enter a valid Zelle email address or US phone number.');
+          return;
+        }
+      }
+
+      const budgetLine = deriveBudgetLine(form.type, form.funding);
+      const direction = deriveDirection(form.type);
+
+      // Files must be stored under a known transaction ID, so generate one up
+      // front if a document-request-by-email hasn't already pre-generated it.
+      const txnId = preGeneratedId ?? generateTransactionId();
+      if (!preGeneratedId) setPreGeneratedId(txnId);
+
+      // Upload any new files to Storage and get their object paths.
+      // If editing and no new file was selected, preserve the existing path.
+      const receiptFileUrl = form.receiptFile
+        ? await uploadFile(form.receiptFile, 'receipt', txnId)
+        : existingTransaction?.receiptFileUrl;
+      const contractFileUrl = form.contractFile
+        ? await uploadFile(form.contractFile, 'contract', txnId)
+        : existingTransaction?.contractFileUrl;
+      const w9FileUrl = form.w9File
+        ? await uploadFile(form.w9File, 'w9', txnId)
+        : existingTransaction?.w9FileUrl;
+      const contractedServicesFileUrl = form.contractedServicesFile
+        ? await uploadFile(form.contractedServicesFile, 'contractedServices', txnId)
+        : existingTransaction?.contractedServicesFileUrl;
+      const conflictOfInterestFileUrl = form.conflictOfInterestFile
+        ? await uploadFile(form.conflictOfInterestFile, 'conflictOfInterest', txnId)
+        : existingTransaction?.conflictOfInterestFileUrl;
+
+      const newTransaction: Omit<Transaction, 'id'> = {
+        title: form.title.trim(),
+        date: form.date || todayISO(),
+        amount,
+        direction,
+        type: form.type,
+        funding: form.type !== 'Debit card purchase' ? form.funding : undefined,
+        budgetLine,
+        notes: form.notes.trim(),
+        zelleInfo: form.type === 'Reimbursement' ? form.zelleInfo.trim() : undefined,
+        isIndividualVendor:
+          form.type === 'Direct payment' ? form.isIndividualVendor : undefined,
+        noReceiptAcknowledged:
+          form.type === 'Debit card purchase' ? form.noReceiptAcknowledged : undefined,
+        receiptFileUrl,
+        contractFileUrl,
+        w9FileUrl,
+        contractedServicesFileUrl,
+        conflictOfInterestFileUrl,
+      };
+
+      if (direction === 'Outflow') {
+        const lineSummary = budgetLineSummaries.find((s) => s.line === budgetLine);
+        if (lineSummary && amount > lineSummary.balance) {
+          setPendingTransaction({
+            transaction: newTransaction,
+            id: txnId,
+          });
+          setOverdraftWarning(
+            `This outflow of $${amount.toFixed(2)} exceeds the current ${budgetLine} balance of $${lineSummary.balance.toFixed(2)}. The account will go negative. Do you want to proceed anyway?`,
+          );
+          return;
+        }
+      }
+
+      await submitTransaction(newTransaction, txnId, uploadTokens);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to save transaction. Please try again.',
+      );
+    } finally {
+      submitGuard.current = false;
     }
-
-    if (form.type === 'Reimbursement') {
-      if (!form.receiptFile && !isEditing && !requestedDocTypes.has('receipt')) {
-        setError('Upload a receipt photo or request one via email.');
-        return;
-      }
-      if (!form.zelleInfo.trim()) {
-        setError('Zelle information (email or phone number) is required.');
-        return;
-      }
-      if (!ZELLE_REGEX.test(form.zelleInfo.trim())) {
-        setError('Enter a valid Zelle email address or US phone number.');
-        return;
-      }
-    }
-
-    const budgetLine = deriveBudgetLine(form.type, form.funding);
-    const direction = deriveDirection(form.type);
-
-    // Upload any new files to Firebase Storage and get their download URLs.
-    // If editing and no new file was selected, preserve the existing URL.
-    const receiptFileUrl = form.receiptFile
-      ? await uploadFile(form.receiptFile)
-      : existingTransaction?.receiptFileUrl;
-    const contractFileUrl = form.contractFile
-      ? await uploadFile(form.contractFile)
-      : existingTransaction?.contractFileUrl;
-    const w9FileUrl = form.w9File
-      ? await uploadFile(form.w9File)
-      : existingTransaction?.w9FileUrl;
-    const contractedServicesFileUrl = form.contractedServicesFile
-      ? await uploadFile(form.contractedServicesFile)
-      : existingTransaction?.contractedServicesFileUrl;
-    const conflictOfInterestFileUrl = form.conflictOfInterestFile
-      ? await uploadFile(form.conflictOfInterestFile)
-      : existingTransaction?.conflictOfInterestFileUrl;
-
-    const newTransaction: Omit<Transaction, 'id'> = {
-      title: form.title.trim(),
-      date: form.date || todayISO(),
-      amount,
-      direction,
-      type: form.type,
-      funding: form.type !== 'Debit card purchase' ? form.funding : undefined,
-      budgetLine,
-      notes: form.notes.trim(),
-      zelleInfo: form.type === 'Reimbursement' ? form.zelleInfo.trim() : undefined,
-      isIndividualVendor:
-        form.type === 'Direct payment' ? form.isIndividualVendor : undefined,
-      noReceiptAcknowledged:
-        form.type === 'Debit card purchase' ? form.noReceiptAcknowledged : undefined,
-      receiptFileUrl,
-      contractFileUrl,
-      w9FileUrl,
-      contractedServicesFileUrl,
-      conflictOfInterestFileUrl,
-    };
-
-    if (direction === 'Outflow') {
-      const lineSummary = budgetLineSummaries.find((s) => s.line === budgetLine);
-      if (lineSummary && amount > lineSummary.balance) {
-        setPendingTransaction({
-          transaction: newTransaction,
-          id: preGeneratedId ?? undefined,
-        });
-        setOverdraftWarning(
-          `This outflow of $${amount.toFixed(2)} exceeds the current ${budgetLine} balance of $${lineSummary.balance.toFixed(2)}. The account will go negative. Do you want to proceed anyway?`,
-        );
-        return;
-      }
-    }
-
-    await submitTransaction(newTransaction, preGeneratedId ?? undefined);
   };
 
   const showFunding =
@@ -540,13 +588,7 @@ export const AddTransactionForm = ({
                 {isEditing && existingTransaction?.receiptFileUrl && (
                   <span className="wl-form-file-existing">
                     Current:{' '}
-                    <a
-                      href={existingTransaction.receiptFileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View file
-                    </a>
+                    <ExistingFileLink path={existingTransaction.receiptFileUrl} />
                   </span>
                 )}
               </div>
@@ -569,7 +611,11 @@ export const AddTransactionForm = ({
                     <span>⚠ This transaction will be flagged as missing a receipt. </span>
                     <span>
                       You&apos;ll need to submit a{' '}
-                      <a href={PERF_URL} target="_blank" rel="noreferrer">
+                      <a
+                        href={POLICY_EXEMPTION_FORM_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         Policy Exemption Request Form
                       </a>{' '}
                       and attach it before this transaction can be reconciled.
@@ -634,14 +680,7 @@ export const AddTransactionForm = ({
               </div>
               {isEditing && existingTransaction?.contractFileUrl && (
                 <span className="wl-form-file-existing">
-                  Current:{' '}
-                  <a
-                    href={existingTransaction.contractFileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View file
-                  </a>
+                  Current: <ExistingFileLink path={existingTransaction.contractFileUrl} />
                 </span>
               )}
             </div>
@@ -689,14 +728,7 @@ export const AddTransactionForm = ({
               </div>
               {isEditing && existingTransaction?.w9FileUrl && (
                 <span className="wl-form-file-existing">
-                  Current:{' '}
-                  <a
-                    href={existingTransaction.w9FileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View file
-                  </a>
+                  Current: <ExistingFileLink path={existingTransaction.w9FileUrl} />
                 </span>
               )}
             </div>
@@ -765,13 +797,9 @@ export const AddTransactionForm = ({
                   {isEditing && existingTransaction?.contractedServicesFileUrl && (
                     <span className="wl-form-file-existing">
                       Current:{' '}
-                      <a
-                        href={existingTransaction.contractedServicesFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View file
-                      </a>
+                      <ExistingFileLink
+                        path={existingTransaction.contractedServicesFileUrl}
+                      />
                     </span>
                   )}
                 </div>
@@ -804,13 +832,9 @@ export const AddTransactionForm = ({
                   {isEditing && existingTransaction?.conflictOfInterestFileUrl && (
                     <span className="wl-form-file-existing">
                       Current:{' '}
-                      <a
-                        href={existingTransaction.conflictOfInterestFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View file
-                      </a>
+                      <ExistingFileLink
+                        path={existingTransaction.conflictOfInterestFileUrl}
+                      />
                     </span>
                   )}
                 </div>
@@ -856,14 +880,7 @@ export const AddTransactionForm = ({
               </div>
               {isEditing && existingTransaction?.receiptFileUrl && (
                 <span className="wl-form-file-existing">
-                  Current:{' '}
-                  <a
-                    href={existingTransaction.receiptFileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    View file
-                  </a>
+                  Current: <ExistingFileLink path={existingTransaction.receiptFileUrl} />
                 </span>
               )}
             </div>
@@ -914,15 +931,21 @@ export const AddTransactionForm = ({
             <button
               type="button"
               className="wl-btn-warning"
+              disabled={submitting}
               onClick={() =>
-                submitTransaction(pendingTransaction.transaction, pendingTransaction.id)
+                submitTransaction(
+                  pendingTransaction.transaction,
+                  pendingTransaction.id,
+                  uploadTokens,
+                )
               }
             >
-              Proceed anyway
+              {submitting ? 'Saving…' : 'Proceed anyway'}
             </button>
             <button
               type="button"
               className="wl-btn-cancel"
+              disabled={submitting}
               onClick={() => {
                 setOverdraftWarning(null);
                 setPendingTransaction(null);

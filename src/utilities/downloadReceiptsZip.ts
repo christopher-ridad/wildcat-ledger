@@ -9,11 +9,10 @@
  *       receipt.{ext}
  */
 
-import { getBlob, ref } from 'firebase/storage';
 import JSZip from 'jszip';
 
-import { storage } from '../config/firebase';
 import { Transaction } from '../types';
+import { downloadDocument } from './storage';
 
 /** Turns a transaction title into a safe folder-name slug */
 function slugify(title: string): string {
@@ -22,24 +21,6 @@ function slugify(title: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 40);
-}
-
-/**
- * Extracts the Firebase Storage object path from a download URL.
- * Firebase Storage URLs look like:
- *   https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encoded-path}?alt=media&token=...
- * Returns null if the URL is not a Firebase Storage URL.
- */
-function storagePathFromUrl(url: string): string | null {
-  try {
-    const u = new URL(url);
-    if (!u.hostname.includes('firebasestorage.googleapis.com')) return null;
-    const match = u.pathname.match(/^\/v0\/b\/[^/]+\/o\/(.+)$/);
-    if (!match) return null;
-    return decodeURIComponent(match[1]);
-  } catch {
-    return null;
-  }
 }
 
 /** Returns a file extension from a blob's MIME type */
@@ -57,32 +38,12 @@ function extFromMimeType(mimeType: string): string {
   return map[mimeType.toLowerCase()] ?? 'bin';
 }
 
-/**
- * Downloads a file as a Blob using the Firebase Storage SDK (bypasses CORS).
- * Falls back to fetch() for non-Firebase URLs.
- * Both paths have a 30-second timeout to prevent hanging.
- */
-async function fetchBlob(url: string, timeoutMs = 30_000): Promise<Blob> {
-  const storagePath = storagePathFromUrl(url);
-
+/** Downloads a Storage object as a Blob, with a 30-second timeout to prevent hanging. */
+async function fetchBlob(path: string, timeoutMs = 30_000): Promise<Blob> {
   const timeout = new Promise<never>((_, reject) =>
     setTimeout(() => reject(new Error('Download timed out after 30 s')), timeoutMs),
   );
-
-  if (storagePath) {
-    return Promise.race([getBlob(ref(storage, storagePath)), timeout]);
-  }
-
-  // Fallback for non-Firebase URLs
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await Promise.race([fetch(url, { signal: controller.signal }), timeout]);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.blob();
-  } finally {
-    clearTimeout(timer);
-  }
+  return Promise.race([downloadDocument(path), timeout]);
 }
 
 export async function downloadReceiptsZip(
@@ -105,15 +66,15 @@ export async function downloadReceiptsZip(
       const folderName = `${date}_${slug}`;
       const folder = receiptsFolder.folder(folderName)!;
 
-      const files: { url: string; name: string }[] = [];
-      if (t.receiptFileUrl) files.push({ url: t.receiptFileUrl, name: 'receipt' });
+      const files: { path: string; name: string }[] = [];
+      if (t.receiptFileUrl) files.push({ path: t.receiptFileUrl, name: 'receipt' });
       if (t.exemptionFormUrl)
-        files.push({ url: t.exemptionFormUrl, name: 'exemption_form' });
+        files.push({ path: t.exemptionFormUrl, name: 'exemption_form' });
 
       await Promise.all(
-        files.map(async ({ url, name }) => {
+        files.map(async ({ path, name }) => {
           try {
-            const blob = await fetchBlob(url);
+            const blob = await fetchBlob(path);
             const ext = extFromMimeType(blob.type);
             folder.file(`${name}.${ext}`, blob);
           } catch (err) {

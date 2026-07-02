@@ -1,5 +1,5 @@
 {
-  "name": "vite-reactts-eslint-prettier",
+  "name": "wildcat-ledger",
   "version": "0.0.1",
   "type": "module",
   "engines": {
@@ -19,9 +19,9 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
-    "firebase": "^12.11.0",
     "jszip": "^3.10.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -32,8 +32,6 @@
     "@eslint/js": "^9.39.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
-    "@types/jszip": "^3.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.57.2",
@@ -48,6 +46,7 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "firebase-admin": "^14.1.0",
     "globals": "^17.4.0",
     "husky": "^9.1.7",
     "jsdom": "^29.0.1",
@@ -57,6 +56,5 @@
     "vite": "^8.0.2",
     "vitest": "^4.1.1"
   },
-  "pre-commit": "lint",
   "license": "MIT"
 }

@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { auth } from '../config/firebase';
+import { useAuth } from '../hooks/useAuth';
 import { useLedger } from '../hooks/useLedger';
 import { PendingChange, Transaction } from '../types';
 import { formatCurrency } from '../utilities/calculations';
+import { diffChangedKeys } from '../utilities/diff';
+import { getSignedFileUrl } from '../utilities/storage';
+import { TransactionModal } from './TransactionModal';
 
 const formatDate = (iso?: string) => {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
   return `${m}/${d}/${y}`;
 };
-import { TransactionModal } from './TransactionModal';
 
 const FILE_LABELS: { key: keyof Transaction; label: string }[] = [
   { key: 'receiptFileUrl', label: 'Receipt' },
@@ -26,15 +28,30 @@ const getTransactionFiles = (t: Transaction) =>
     return typeof url === 'string' ? [{ label, url }] : [];
   });
 
-const FilePreviewCard = ({ label, url }: { label: string; url: string }) => {
+const FilePreviewCard = ({ label, url: path }: { label: string; url: string }) => {
   const [imgFailed, setImgFailed] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSignedFileUrl(path)
+      .then((url) => {
+        if (!cancelled) setSignedUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setImgFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [path]);
 
   return (
     <div className="wl-file-card">
       <div className="wl-file-card-label">{label}</div>
-      {!imgFailed ? (
+      {!imgFailed && signedUrl ? (
         <img
-          src={url}
+          src={signedUrl}
           alt={label}
           className="wl-file-preview-img"
           onError={() => setImgFailed(true)}
@@ -61,9 +78,16 @@ const FilePreviewCard = ({ label, url }: { label: string; url: string }) => {
           <span>PDF Document</span>
         </div>
       )}
-      <a href={url} target="_blank" rel="noreferrer" className="wl-file-open-link">
-        Open in new tab ↗
-      </a>
+      {signedUrl && (
+        <a
+          href={signedUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="wl-file-open-link"
+        >
+          Open in new tab ↗
+        </a>
+      )}
     </div>
   );
 };
@@ -126,28 +150,30 @@ const TransactionRow = ({
   pending: PendingChange | undefined;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
-  onApprove: (pendingId: string) => void;
-  onReject: (pendingId: string) => void;
-  onCancel: (pendingId: string) => void;
+  onApprove: (pendingId: string) => Promise<void>;
+  onReject: (pendingId: string) => Promise<void>;
+  onCancel: (pendingId: string) => Promise<void>;
   onViewFiles: (t: Transaction) => void;
 }) => {
   const [showDetail, setShowDetail] = useState(false);
+  const [actioning, setActioning] = useState(false);
   const isInflow = t.direction === 'Inflow';
   const fileCount = getTransactionFiles(t).length;
-  const currentEmail = auth.currentUser?.email;
+  const { user } = useAuth();
+  const currentEmail = user?.email;
   const isMyPending = !!pending && pending.requestedBy === currentEmail;
   const canApprove = !!pending && !isMyPending && canEdit;
+
+  const handleAction = (fn: (id: string) => Promise<void>, id: string) => {
+    if (actioning) return;
+    setActioning(true);
+    fn(id).finally(() => setActioning(false));
+  };
   const colSpan = canEdit ? 6 : 5;
   const isReconciled = t.budgetLine === 'Debit Card' && t.reconciledAt != null;
 
   const changedKeys =
-    pending?.type === 'edit' && pending.before && pending.after
-      ? Object.keys(pending.after).filter(
-          (k) =>
-            (pending.before as Record<string, unknown>)[k] !==
-            (pending.after as Record<string, unknown>)[k],
-        )
-      : [];
+    pending?.type === 'edit' ? diffChangedKeys(pending.before, pending.after) : [];
 
   return (
     <>
@@ -181,9 +207,10 @@ const TransactionRow = ({
                   <button
                     type="button"
                     className="wl-btn-reject"
-                    onClick={() => onCancel(pending.id)}
+                    disabled={actioning}
+                    onClick={() => handleAction(onCancel, pending.id)}
                   >
-                    Cancel
+                    {actioning ? '…' : 'Cancel'}
                   </button>
                 </div>
               ) : canApprove ? (
@@ -200,16 +227,18 @@ const TransactionRow = ({
                   <button
                     type="button"
                     className="wl-btn-approve"
-                    onClick={() => onApprove(pending.id)}
+                    disabled={actioning}
+                    onClick={() => handleAction(onApprove, pending.id)}
                   >
-                    Approve
+                    {actioning ? '…' : 'Approve'}
                   </button>
                   <button
                     type="button"
                     className="wl-btn-reject"
-                    onClick={() => onReject(pending.id)}
+                    disabled={actioning}
+                    onClick={() => handleAction(onReject, pending.id)}
                   >
-                    Reject
+                    {actioning ? '…' : 'Reject'}
                   </button>
                 </div>
               ) : null
