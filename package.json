@@ -19,6 +19,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@sentry/react": "^10.63.0",
     "@supabase/supabase-js": "^2.49.0",
     "csv-parse": "^6.2.1",
     "dotenv": "^17.4.2",
