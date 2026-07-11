@@ -49,4 +49,4 @@ Before shipping changes, run `npm run type-check`, `npm test -- --run`, and `npm
 
 ## Author
 
-Built by [Christopher Ridad](https://linkedin.com/in/christopher-ridad) as part of a 6-person team.
+Built by [Christopher Ridad](https://linkedin.com/in/christopher-ridad) as part of a 5-person team.
