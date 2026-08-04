@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { supabase } from '../config/supabase';
-import { documentPath, uploadDocument } from '../utilities/storage';
+import { documentPath, uploadDocument } from '../features/ledger/services/storage';
 
 const FILE_TYPE_MAP: Record<string, { field: string; prefix: string; label: string }> = {
   receipt: { field: 'receiptFileUrl', prefix: 'receipt', label: 'Receipt' },

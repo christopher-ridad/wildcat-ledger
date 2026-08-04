@@ -1,0 +1,72 @@
+.wl-files-modal {
+  max-width: 660px;
+}
+
+.wl-files-empty {
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.wl-files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.wl-file-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fafafa;
+}
+
+.wl-file-card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 8px 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wl-file-preview-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  display: block;
+  background: #f3f4f6;
+}
+
+.wl-file-pdf-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 160px;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  background: #f3f4f6;
+}
+
+.wl-file-open-link {
+  display: block;
+  text-align: center;
+  padding: 7px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  border-top: 1px solid var(--color-border);
+  background: #fff;
+  transition: background 0.12s;
+}
+
+.wl-file-open-link:hover {
+  background: #f0f4ff;
+}
