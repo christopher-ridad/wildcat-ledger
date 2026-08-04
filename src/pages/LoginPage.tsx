@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../features/authentication/hooks/useAuth';
 
 export const LoginPage = () => {
   const { user, sendLoginLink } = useAuth();
