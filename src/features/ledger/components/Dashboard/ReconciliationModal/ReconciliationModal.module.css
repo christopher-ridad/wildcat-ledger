@@ -1,0 +1,226 @@
+.wl-recon-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  margin: 0 0 16px;
+}
+.wl-recon-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+.wl-recon-empty-icon {
+  font-size: 2rem;
+  color: var(--color-positive);
+}
+.wl-recon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+.wl-recon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+  user-select: none;
+}
+.wl-recon-row:hover {
+  background: #f5f3ff;
+}
+.wl-recon-row input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.wl-recon-row-title {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wl-recon-row-amount {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.wl-recon-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1.5px solid var(--color-border);
+  flex-wrap: wrap;
+}
+
+/* ─── Reconciliation item wrapper ───────────────────────────────── */
+.wl-recon-item {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.wl-recon-item--warning {
+  border: 1.5px solid #f59e0b;
+  background: #fffbeb;
+}
+.wl-recon-item--warning .wl-recon-row:hover {
+  background: #fef3c7;
+}
+.wl-recon-row--disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+.wl-recon-row--disabled input[type='checkbox'] {
+  cursor: not-allowed;
+}
+
+/* ─── Status badges inside row ──────────────────────────────────── */
+.wl-recon-badge {
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+.wl-recon-badge--warn {
+  color: #d97706;
+}
+
+/* ─── Missing receipt sub-panel ─────────────────────────────────── */
+.wl-recon-missing {
+  padding: 8px 12px 10px 40px;
+  border-top: 1px solid #fde68a;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.wl-recon-missing-msg {
+  font-size: 0.82rem;
+  color: #92400e;
+  margin: 0;
+}
+.wl-recon-exemption-link {
+  color: #7c3aed;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.wl-recon-exemption-link:hover {
+  color: #5b21b6;
+}
+.wl-recon-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.wl-btn-upload-exemption {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #d97706;
+  color: #92400e;
+  background: #fff;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.wl-btn-upload-exemption:hover:not(:disabled) {
+  background: #fef3c7;
+}
+.wl-btn-upload-exemption:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.wl-recon-upload-error {
+  font-size: 0.78rem;
+  color: var(--color-negative);
+}
+
+/* ─── Block warning banner ──────────────────────────────────────── */
+.wl-recon-block-warning {
+  font-size: 0.85rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-top: 12px;
+}
+
+/* ─── Download ZIP button ───────────────────────────────────────── */
+.wl-btn-download-zip {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--color-primary);
+  color: var(--color-primary);
+  background: #fff;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.wl-btn-download-zip:hover:not(:disabled) {
+  background: #f5f3ff;
+}
+.wl-btn-download-zip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Reconciliation success (step 2) ──────────────────────────── */
+.wl-recon-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 0 20px;
+  text-align: center;
+}
+.wl-recon-success-icon {
+  font-size: 2.4rem;
+  color: var(--color-positive);
+  line-height: 1;
+}
+.wl-recon-success-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+.wl-recon-success-stats {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.wl-recon-success-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.wl-recon-success-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.wl-recon-success-stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

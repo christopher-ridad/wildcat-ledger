@@ -1,0 +1,72 @@
+.wl-budget-allocation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.wl-budget-scan-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--color-text, #111827);
+}
+
+.wl-budget-allocation-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 120px;
+  align-items: center;
+  gap: 16px;
+}
+
+.wl-budget-allocation-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wl-budget-allocation-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.wl-budget-allocation-prefix {
+  position: absolute;
+  left: 10px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.wl-budget-allocation-input {
+  width: 100%;
+  padding-left: 24px !important;
+}
+
+.wl-budget-allocation-input::-webkit-outer-spin-button,
+.wl-budget-allocation-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.wl-budget-allocation-input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.wl-budget-allocation-input:disabled {
+  background: var(--color-surface-alt, #f3f4f6);
+  color: var(--color-text-muted, #9ca3af);
+  cursor: not-allowed;
+}
+
+.wl-budget-allocation-preview {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-align: right;
+}
+
+.wl-budget-allocation-fixed-label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #9ca3af);
+}
