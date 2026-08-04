@@ -3,10 +3,7 @@ export type BudgetLine = 'ASG' | 'Operating' | 'Gifts' | 'Debit Card';
 export type Funding = 'ASG' | 'Operating' | 'Gifts';
 
 export type TransactionType =
-  | 'Reimbursement'
-  | 'Debit card purchase'
-  | 'Direct payment'
-  | 'Deposit';
+  'Reimbursement' | 'Debit card purchase' | 'Direct payment' | 'Deposit';
 
 export type TransactionDirection = 'Inflow' | 'Outflow';
 
