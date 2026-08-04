@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 
-import { TopNav } from '../components/TopNav';
-import { useLedger } from '../hooks/useLedger';
-import { Organization } from '../types';
+import { useLedger } from '../features/ledger/hooks/useLedger';
+import { Organization } from '../features/ledger/types';
+import { TopNav } from '../layouts/TopNav';
 
 export const OrganizationsPage = () => {
   const { organizations, setActiveOrganizationId } = useLedger();

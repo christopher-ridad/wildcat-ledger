@@ -2,9 +2,9 @@ import './App.css';
 
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 
-import { AuthProvider } from './context/AuthContext';
-import { LedgerProvider } from './context/LedgerContext';
-import { useAuth } from './hooks/useAuth';
+import { useAuth } from './features/authentication/hooks/useAuth';
+import { AuthProvider } from './features/authentication/stores/AuthContext';
+import { LedgerProvider } from './features/ledger/stores/LedgerContext';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { CreateOrganization } from './pages/CreateOrganization';
 import { Dashboard } from './pages/Dashboard';
