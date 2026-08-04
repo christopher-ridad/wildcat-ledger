@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { ReconciliationModal } from '../components/ReconciliationModal';
-import { TransactionList } from '../components/TransactionList';
-import { TransactionModal } from '../components/TransactionModal';
-import { useLedger } from '../hooks/useLedger';
-import { BudgetLine } from '../types';
-import { formatCurrency } from '../utilities/calculations';
+import { ReconciliationModal } from '../features/ledger/components/Dashboard/ReconciliationModal';
+import { TransactionList } from '../features/ledger/components/Dashboard/TransactionList';
+import { TransactionModal } from '../features/ledger/components/Dashboard/TransactionModal';
+import { useLedger } from '../features/ledger/hooks/useLedger';
+import { BudgetLine } from '../features/ledger/types';
+import { formatCurrency } from '../features/ledger/utils/calculations';
 
 export const Dashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);

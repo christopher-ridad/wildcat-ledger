@@ -1,0 +1,165 @@
+.wl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wl-form-select,
+.wl-form-textarea {
+  padding: 8px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.wl-form-select:focus,
+.wl-form-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(78, 42, 132, 0.1);
+}
+
+.wl-form-textarea {
+  resize: vertical;
+}
+
+.wl-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.wl-form-checkbox input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.wl-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 16px;
+  background: var(--color-bg-subtle, #f8f7fb);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.wl-form-template-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wl-form-template-link:hover {
+  text-decoration: underline;
+}
+
+.wl-form-file-existing {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.wl-link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--color-accent, #2563eb);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.wl-form-no-receipt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+}
+.wl-form-no-receipt-notice {
+  font-size: 0.82rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+.wl-form-no-receipt-notice a {
+  color: #7c3aed;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.wl-form-no-receipt-notice a:hover {
+  color: #5b21b6;
+}
+
+.wl-form-required {
+  color: var(--color-flag-text, #b91c1c);
+  margin-left: 1px;
+}
+
+.wl-overdraft-warning {
+  background: #fff8e1;
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.wl-overdraft-warning p {
+  margin: 0 0 10px;
+}
+
+.wl-receipt-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wl-receipt-or {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wl-btn-request-receipt {
+  background: none;
+  border: 1.5px dashed var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+  font-family: inherit;
+}
+
+.wl-btn-request-receipt:hover {
+  background: #f3f0f8;
+}
+
+.wl-receipt-requested-note {
+  font-size: 0.78rem;
+  color: var(--color-positive);
+  font-weight: 500;
+}
