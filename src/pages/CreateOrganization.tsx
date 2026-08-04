@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { TopNav } from '../components/TopNav';
-import { useLedger } from '../hooks/useLedger';
-import { BudgetAllocations } from '../types';
-import { formatCurrency } from '../utilities/calculations';
-import { parseBudgetAllocation } from '../utilities/parseBudgetAllocation';
+import { BudgetAllocationForm } from '../features/ledger/components/CreateOrganization/BudgetAllocationForm';
+import {
+  BudgetUploadArea,
+  ScanState,
+} from '../features/ledger/components/CreateOrganization/BudgetUploadArea';
+import { useLedger } from '../features/ledger/hooks/useLedger';
+import { parseBudgetAllocation } from '../features/ledger/services/parseBudgetAllocation';
+import { BudgetAllocations } from '../features/ledger/types';
+import { TopNav } from '../layouts/TopNav';
 
 const EMPTY_ALLOCATIONS: BudgetAllocations = {
   ASG: 0,
@@ -13,8 +17,6 @@ const EMPTY_ALLOCATIONS: BudgetAllocations = {
   Gifts: 0,
   'Debit Card': 0,
 };
-
-type ScanState = 'idle' | 'scanning' | 'done' | 'error';
 
 export const CreateOrganization = () => {
   const { activeOrganization, initializeBudgetAllocations } = useLedger();
@@ -90,8 +92,6 @@ export const CreateOrganization = () => {
 
   if (!activeOrganization) return null;
 
-  const editableLines = ['ASG', 'Operating', 'Gifts'] as const;
-
   return (
     <div className="wl-register-root wl-topnav-offset">
       <TopNav />
@@ -101,111 +101,22 @@ export const CreateOrganization = () => {
           Upload your budget allocation document to get started.
         </p>
 
-        {/* ── Upload area ── */}
-        <div
-          className={`wl-budget-upload-area ${scanState === 'scanning' ? 'wl-budget-upload-scanning' : ''}`}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => e.key === 'Enter' && fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,application/pdf"
-            style={{ display: 'none' }}
-            onChange={handleFileChange}
-          />
+        <BudgetUploadArea
+          scanState={scanState}
+          scanError={scanError}
+          isPdf={isPdf}
+          previewUrl={previewUrl}
+          uploadedFileName={uploadedFileName}
+          fileInputRef={fileInputRef}
+          onFileChange={handleFileChange}
+        />
 
-          {scanState === 'scanning' ? (
-            <div className="wl-budget-upload-placeholder">
-              <span className="wl-budget-upload-icon">⏳</span>
-              <span className="wl-ocr-scanning">Scanning document…</span>
-            </div>
-          ) : previewUrl && !isPdf ? (
-            <img
-              src={previewUrl}
-              alt="Budget document"
-              className="wl-budget-upload-preview"
-            />
-          ) : isPdf && uploadedFileName && scanState !== 'idle' ? (
-            <div className="wl-budget-upload-placeholder">
-              <span className="wl-budget-upload-icon">📑</span>
-              <span className="wl-budget-upload-filename">{uploadedFileName}</span>
-            </div>
-          ) : (
-            <div className="wl-budget-upload-placeholder">
-              <span className="wl-budget-upload-icon">📄</span>
-              <span>Click to upload budget document</span>
-              <span className="wl-budget-upload-hint">Image or PDF</span>
-            </div>
-          )}
-        </div>
-
-        {scanState === 'error' && (
-          <div className="wl-form-error" style={{ marginTop: 8 }}>
-            {scanError} — you can enter amounts manually below.
-          </div>
-        )}
-
-        {/* ── Extracted values (editable) ── */}
         {(scanState === 'done' || scanState === 'error') && (
-          <div className="wl-budget-allocation-form" style={{ marginTop: 20 }}>
-            <p className="wl-budget-scan-label">
-              {scanState === 'done'
-                ? '✅ Review and confirm extracted amounts:'
-                : 'Enter amounts manually:'}
-            </p>
-            {editableLines.map((line) => (
-              <div key={line} className="wl-budget-allocation-row">
-                <label className="wl-budget-allocation-label" htmlFor={`budget-${line}`}>
-                  {line}
-                </label>
-                <div className="wl-budget-allocation-input-wrap">
-                  <span className="wl-budget-allocation-prefix">$</span>
-                  <input
-                    id={`budget-${line}`}
-                    type="text"
-                    inputMode="decimal"
-                    className="wl-form-input wl-budget-allocation-input"
-                    value={
-                      allocations[line] === 0
-                        ? ''
-                        : scanState === 'done'
-                          ? allocations[line].toFixed(2)
-                          : String(allocations[line])
-                    }
-                    placeholder="0.00"
-                    disabled={scanState === 'done'}
-                    onChange={(e) => updateLine(line, e.target.value)}
-                  />
-                </div>
-                <span className="wl-budget-allocation-preview">
-                  {formatCurrency(allocations[line])}
-                </span>
-              </div>
-            ))}
-
-            {/* Debit Card always $0 */}
-            <div className="wl-budget-allocation-row wl-budget-allocation-fixed">
-              <label className="wl-budget-allocation-label" htmlFor="budget-debit">
-                Debit Card
-              </label>
-              <div className="wl-budget-allocation-input-wrap">
-                <span className="wl-budget-allocation-prefix">$</span>
-                <input
-                  id="budget-debit"
-                  type="text"
-                  className="wl-form-input wl-budget-allocation-input"
-                  value="0.00"
-                  disabled
-                />
-              </div>
-              <span className="wl-budget-allocation-preview wl-budget-allocation-fixed-label">
-                Always $0.00
-              </span>
-            </div>
-          </div>
+          <BudgetAllocationForm
+            allocations={allocations}
+            isScanned={scanState === 'done'}
+            onLineChange={updateLine}
+          />
         )}
 
         {error && (

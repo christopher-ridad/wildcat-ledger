@@ -1,0 +1,77 @@
+.wl-card {
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.wl-table-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.wl-table-wrap {
+  overflow-x: auto;
+}
+
+.wl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.wl-th {
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1.5px solid var(--color-border);
+  white-space: nowrap;
+  background: #fafafa;
+}
+
+.wl-inline-confirm {
+  background: #fff8e1;
+  border: 1.5px solid #f59e0b;
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: 0.88rem;
+  color: #92400e;
+}
+
+.wl-inline-confirm p {
+  margin: 0 0 10px;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.wl-delete-confirm-row td {
+  padding: 0 !important;
+  border-top: none !important;
+}
+
+.wl-delete-confirm-cell {
+  padding: 0 !important;
+}
+
+.wl-inline-confirm--inline {
+  margin: 0;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  border-top: none;
+  animation: wl-slide-down 0.2s ease-out forwards;
+}
+
+.wl-empty-state {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 32px;
+  font-size: 0.9rem;
+}
+
+.wl-empty-state p {
+  margin: 0;
+}
