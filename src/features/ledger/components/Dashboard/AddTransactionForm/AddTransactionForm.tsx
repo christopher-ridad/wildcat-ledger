@@ -50,6 +50,8 @@ export const AddTransactionForm = ({
         isIndividualVendor: t.isIndividualVendor ?? false,
         contractedServicesFile: null,
         conflictOfInterestFile: null,
+        isNorthwesternEmployee: t.isNorthwesternEmployee ?? false,
+        specialPayFormFile: null,
         zelleInfo: t.zelleInfo ?? '',
         notes: t.notes ?? '',
       };
@@ -135,6 +137,8 @@ export const AddTransactionForm = ({
       isIndividualVendor: false,
       contractedServicesFile: null,
       conflictOfInterestFile: null,
+      isNorthwesternEmployee: false,
+      specialPayFormFile: null,
       zelleInfo: '',
     }));
     setRequestedDocTypes(new Set());
@@ -260,6 +264,9 @@ export const AddTransactionForm = ({
       const conflictOfInterestFileUrl = form.conflictOfInterestFile
         ? await uploadFile(form.conflictOfInterestFile, 'conflictOfInterest', txnId)
         : existingTransaction?.conflictOfInterestFileUrl;
+      const specialPayFormUrl = form.specialPayFormFile
+        ? await uploadFile(form.specialPayFormFile, 'specialPayForm', txnId)
+        : existingTransaction?.specialPayFormUrl;
 
       const newTransaction: Omit<Transaction, 'id'> = {
         title: form.title.trim(),
@@ -273,6 +280,8 @@ export const AddTransactionForm = ({
         zelleInfo: form.type === 'Reimbursement' ? form.zelleInfo.trim() : undefined,
         isIndividualVendor:
           form.type === 'Direct payment' ? form.isIndividualVendor : undefined,
+        isNorthwesternEmployee:
+          form.type === 'Direct payment' ? form.isNorthwesternEmployee : undefined,
         noReceiptAcknowledged:
           form.type === 'Debit card purchase' ? form.noReceiptAcknowledged : undefined,
         receiptFileUrl,
@@ -280,6 +289,7 @@ export const AddTransactionForm = ({
         w9FileUrl,
         contractedServicesFileUrl,
         conflictOfInterestFileUrl,
+        specialPayFormUrl,
       };
 
       if (direction === 'Outflow') {

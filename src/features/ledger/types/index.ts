@@ -21,12 +21,15 @@ export interface Transaction {
   zelleInfo?: string;
   // Direct payment
   isIndividualVendor?: boolean;
+  // Special Pay Form required when the payee is a Northwestern employee
+  isNorthwesternEmployee?: boolean;
   // Storage object paths (Supabase Storage, 'documents' bucket)
   receiptFileUrl?: string;
   contractFileUrl?: string;
   w9FileUrl?: string;
   contractedServicesFileUrl?: string;
   conflictOfInterestFileUrl?: string;
+  specialPayFormUrl?: string;
   // Reconciliation — Debit Card transactions only
   // null = not yet reconciled; number = epoch ms when reconciled
   reconciledAt?: number | null;

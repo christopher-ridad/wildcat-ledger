@@ -68,6 +68,15 @@ export const validateTransactionForm = (
         return 'Upload the Conflict of Interest Form or request it via email.';
       }
     }
+    if (form.isNorthwesternEmployee) {
+      if (
+        !form.specialPayFormFile &&
+        !isEditing &&
+        !requestedDocTypes.has('specialPayForm')
+      ) {
+        return 'Upload the Special Pay Form or request it via email.';
+      }
+    }
   }
 
   if (form.type === 'Reimbursement') {

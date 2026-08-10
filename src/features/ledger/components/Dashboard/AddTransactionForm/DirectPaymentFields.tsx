@@ -224,5 +224,72 @@ export const DirectPaymentFields = ({
         </div>
       </>
     )}
+
+    <label className={styles['wl-form-checkbox']}>
+      <input
+        type="checkbox"
+        name="isNorthwesternEmployee"
+        checked={form.isNorthwesternEmployee}
+        onChange={onChange}
+      />
+      <span>Is the payee a Northwestern employee?</span>
+    </label>
+
+    {form.isNorthwesternEmployee && (
+      <div className="wl-form-group">
+        <div className="wl-form-label-row">
+          <label className="wl-form-label" htmlFor="specialPayFormFile">
+            Special Pay Form{' '}
+            {!isEditing && <span className={styles['wl-form-required']}>*</span>}
+          </label>
+          <a
+            href="/forms/special-pay-request-form.pdf"
+            target="_blank"
+            rel="noreferrer"
+            className={styles['wl-form-template-link']}
+          >
+            ↓ Blank Special Pay Form
+          </a>
+        </div>
+        <div className={styles['wl-receipt-options']}>
+          <input
+            id="specialPayFormFile"
+            name="specialPayFormFile"
+            type="file"
+            accept="image/*,application/pdf"
+            className="wl-form-file"
+            onChange={onChange}
+          />
+          {!isEditing && (
+            <>
+              <div className={styles['wl-receipt-or']}>or</div>
+              <button
+                type="button"
+                className={styles['wl-btn-request-receipt']}
+                onClick={() =>
+                  onRequestDocument(
+                    'specialPayForm',
+                    'Special Pay Form',
+                    '/forms/special-pay-request-form.pdf',
+                  )
+                }
+              >
+                Request Special Pay Form via Email
+              </button>
+              {requestedDocTypes.has('specialPayForm') && (
+                <span className={styles['wl-receipt-requested-note']}>
+                  Special Pay Form requested — waiting for vendor to upload
+                </span>
+              )}
+            </>
+          )}
+        </div>
+        {isEditing && existingTransaction?.specialPayFormUrl && (
+          <span className={styles['wl-form-file-existing']}>
+            Current: <ExistingFileLink path={existingTransaction.specialPayFormUrl} />
+          </span>
+        )}
+      </div>
+    )}
   </>
 );

@@ -26,6 +26,13 @@ describe('getTransactionFiles', () => {
       { label: 'W-9 Form', url: 'orgs/1/w9.pdf' },
     ]);
   });
+
+  test('maps the Special Pay Form field', () => {
+    const t = buildMockTransaction({ specialPayFormUrl: 'orgs/1/special-pay.pdf' });
+    expect(getTransactionFiles(t)).toEqual([
+      { label: 'Special Pay Form', url: 'orgs/1/special-pay.pdf' },
+    ]);
+  });
 });
 
 describe('TransactionFilesModal', () => {
