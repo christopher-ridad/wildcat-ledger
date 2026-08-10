@@ -27,6 +27,8 @@ export interface FormState {
   isIndividualVendor: boolean;
   contractedServicesFile: File | null;
   conflictOfInterestFile: File | null;
+  isNorthwesternEmployee: boolean;
+  specialPayFormFile: File | null;
   // Reimbursement
   zelleInfo: string;
   reimbursedMemberName: string;
@@ -48,6 +50,8 @@ export const initialForm: FormState = {
   isIndividualVendor: false,
   contractedServicesFile: null,
   conflictOfInterestFile: null,
+  isNorthwesternEmployee: false,
+  specialPayFormFile: null,
   zelleInfo: '',
   reimbursedMemberName: '',
   notes: '',

@@ -149,6 +149,37 @@ describe('AddTransactionForm', () => {
     });
   });
 
+  test('submits a direct payment to a Northwestern employee with the Special Pay Form', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fireEvent.change(screen.getByLabelText(/Transaction Type/), {
+      target: { value: 'Direct payment' },
+    });
+    fillCommonFields('Guest speaker honorarium', '200.00');
+
+    const file = new File(['x'], 'doc.pdf', { type: 'application/pdf' });
+    fireEvent.change(document.getElementById('contractFile') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    fireEvent.change(document.getElementById('w9File') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByText('Is the payee a Northwestern employee?'));
+    fireEvent.change(document.getElementById('specialPayFormFile') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction).toMatchObject({
+      title: 'Guest speaker honorarium',
+      amount: 200,
+      isNorthwesternEmployee: true,
+      specialPayFormUrl: 'clubs/org-1/transactions/txn-1/specialPayForm_doc.pdf',
+    });
+  });
+
   test('warns before an outflow that would overdraw the budget line, and lets the user cancel', () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({
