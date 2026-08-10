@@ -65,7 +65,7 @@ export const TransactionRow = ({
     onUpdatePaymentStatus(t.id, status).finally(() => setStatusUpdating(false));
   };
 
-  const colSpan = canEdit ? 6 : 5;
+  const colSpan = canEdit ? 7 : 6;
   const isReconciled = t.budgetLine === 'Debit Card' && t.reconciledAt != null;
   const paymentStatus = PAYMENT_STATUS_TYPES.includes(t.type)
     ? (t.paymentStatus ?? 'Pending')
@@ -79,11 +79,27 @@ export const TransactionRow = ({
       <tr className={pending ? styles['wl-row--pending'] : ''}>
         <td className={`${styles['wl-td']} ${styles['wl-td-title']}`}>
           <span className={styles['wl-td-title-text']}>{t.title}</span>
-          {isReconciled && (
-            <span className={styles['wl-reconciled-badge']}>Reconciled</span>
+          {pending && (
+            <span className={styles['wl-pending-type-badge']}>
+              {pending.type === 'delete' ? 'Delete requested' : 'Edit requested'}
+            </span>
           )}
-          {paymentStatus &&
-            (canEdit && !pending ? (
+        </td>
+        <td className={`${styles['wl-td']} ${styles['wl-td-date']}`}>
+          {formatDate(t.date)}
+        </td>
+        <td
+          className={`${styles['wl-td']} ${styles['wl-td-amount']} ${isInflow ? 'wl-amount-positive' : 'wl-amount-negative'}`}
+        >
+          {isInflow ? '+' : '-'}
+          {formatCurrency(t.amount)}
+        </td>
+        <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
+        <td className={`${styles['wl-td']} ${styles['wl-td-status']}`}>
+          {isReconciled ? (
+            <span className={styles['wl-reconciled-badge']}>Reconciled</span>
+          ) : paymentStatus ? (
+            canEdit && !pending ? (
               <select
                 aria-label="Payment status"
                 className={`${styles['wl-status-select']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
@@ -101,23 +117,11 @@ export const TransactionRow = ({
               >
                 {paymentStatus}
               </span>
-            ))}
-          {pending && (
-            <span className={styles['wl-pending-type-badge']}>
-              {pending.type === 'delete' ? 'Delete requested' : 'Edit requested'}
-            </span>
+            )
+          ) : (
+            <span className={styles['wl-status-empty']}>—</span>
           )}
         </td>
-        <td className={`${styles['wl-td']} ${styles['wl-td-date']}`}>
-          {formatDate(t.date)}
-        </td>
-        <td
-          className={`${styles['wl-td']} ${styles['wl-td-amount']} ${isInflow ? 'wl-amount-positive' : 'wl-amount-negative'}`}
-        >
-          {isInflow ? '+' : '-'}
-          {formatCurrency(t.amount)}
-        </td>
-        <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
         <td className={`${styles['wl-td']} ${styles['wl-td-budget']}`}>
           <span className={styles['wl-budget-chip']}>{t.budgetLine}</span>
         </td>

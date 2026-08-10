@@ -51,6 +51,7 @@ export const TransactionList = () => {
                 <th className={styles['wl-th']}>Date</th>
                 <th className={styles['wl-th']}>Amount</th>
                 <th className={styles['wl-th']}>Type</th>
+                <th className={styles['wl-th']}>Status</th>
                 <th className={styles['wl-th']}>Budget Line</th>
                 {canEdit && <th className={styles['wl-th']}>Actions</th>}
               </tr>
@@ -73,7 +74,7 @@ export const TransactionList = () => {
                   {deletingTransaction?.id === t.id && (
                     <tr className={styles['wl-delete-confirm-row']}>
                       <td
-                        colSpan={canEdit ? 6 : 5}
+                        colSpan={canEdit ? 7 : 6}
                         className={styles['wl-delete-confirm-cell']}
                       >
                         <div
