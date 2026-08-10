@@ -245,6 +245,38 @@ describe('AddTransactionForm', () => {
     ).toBeInTheDocument();
   });
 
+  test('reminds the user to save after requesting a document via email', () => {
+    vi.spyOn(window, 'open').mockImplementation(() => null);
+    renderForm();
+    expect(
+      screen.queryByText(/won't work until this transaction/),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: 'Pizza' } });
+    fireEvent.click(screen.getByText('Request Receipt via Email'));
+
+    expect(screen.getByText(/won't work until this transaction/)).toBeInTheDocument();
+  });
+
+  test('the save reminder disappears once the transaction is actually saved', async () => {
+    vi.spyOn(window, 'open').mockImplementation(() => null);
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fillCommonFields('Pizza', '12.50');
+    fireEvent.click(screen.getByText('Request Receipt via Email'));
+    expect(screen.getByText(/won't work until this transaction/)).toBeInTheDocument();
+
+    // Requesting the receipt already satisfies the receipt requirement.
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() =>
+      expect(
+        screen.queryByText(/won't work until this transaction/),
+      ).not.toBeInTheDocument(),
+    );
+    expect(addTransaction).toHaveBeenCalled();
+  });
+
   test('pre-fills the form and shows "Save Changes" when editing an existing transaction', () => {
     const existingTransaction = buildMockTransaction({
       title: 'Existing Purchase',
