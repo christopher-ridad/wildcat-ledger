@@ -39,6 +39,7 @@ export const ReimbursementFields = ({
           name="receiptFile"
           type="file"
           accept="image/*,application/pdf"
+          capture="environment"
           className="wl-form-file"
           onChange={onReceiptChange}
         />

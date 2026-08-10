@@ -42,6 +42,7 @@ export const DebitCardFields = ({
           name="receiptFile"
           type="file"
           accept="image/*,application/pdf"
+          capture="environment"
           className="wl-form-file"
           disabled={form.noReceiptAcknowledged}
           onChange={onReceiptChange}

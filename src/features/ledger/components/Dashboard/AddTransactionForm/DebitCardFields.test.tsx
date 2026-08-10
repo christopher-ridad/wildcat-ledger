@@ -142,4 +142,22 @@ describe('DebitCardFields', () => {
     });
     expect(onReceiptChange).toHaveBeenCalled();
   });
+
+  test('opens the camera directly on mobile instead of a generic file picker', () => {
+    render(
+      <DebitCardFields
+        form={initialForm}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(document.getElementById('receiptFile')).toHaveAttribute(
+      'capture',
+      'environment',
+    );
+  });
 });
