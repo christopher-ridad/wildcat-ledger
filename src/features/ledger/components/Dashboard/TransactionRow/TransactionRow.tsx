@@ -66,7 +66,8 @@ export const TransactionRow = ({
   };
 
   const colSpan = canEdit ? 7 : 6;
-  const isReconciled = t.budgetLine === 'Debit Card' && t.reconciledAt != null;
+  const isDebitCard = t.budgetLine === 'Debit Card';
+  const isReconciled = isDebitCard && t.reconciledAt != null;
   const paymentStatus = PAYMENT_STATUS_TYPES.includes(t.type)
     ? (t.paymentStatus ?? 'Pending')
     : null;
@@ -96,8 +97,16 @@ export const TransactionRow = ({
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
         <td className={`${styles['wl-td']} ${styles['wl-td-status']}`}>
-          {isReconciled ? (
-            <span className={styles['wl-reconciled-badge']}>Reconciled</span>
+          {isDebitCard ? (
+            <span
+              className={
+                isReconciled
+                  ? styles['wl-reconciled-badge']
+                  : styles['wl-not-reconciled-badge']
+              }
+            >
+              {isReconciled ? 'Reconciled' : 'Not Reconciled'}
+            </span>
           ) : paymentStatus ? (
             canEdit && !pending ? (
               <select

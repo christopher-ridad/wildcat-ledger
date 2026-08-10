@@ -129,6 +129,7 @@ describe('TransactionList', () => {
         buildMockTransaction({
           id: 't1',
           type: 'Direct payment',
+          budgetLine: 'Operating',
           paymentStatus: 'Pending',
         }),
       ],
