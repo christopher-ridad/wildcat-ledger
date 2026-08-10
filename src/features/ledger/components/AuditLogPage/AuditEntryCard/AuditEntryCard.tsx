@@ -83,6 +83,12 @@ const ACTION_LABELS: Record<AuditAction, ActionDisplay> = {
     className: 'wl-audit-badge--create',
     entryClass: 'wl-audit-entry--create',
   },
+  payment_status_change: {
+    label: 'Payment Status Updated',
+    icon: '$',
+    className: 'wl-audit-badge--edit',
+    entryClass: 'wl-audit-entry--edit',
+  },
 };
 
 const actionLabel = (action: AuditAction, after: AuditEntry['after']): ActionDisplay => {
@@ -145,7 +151,8 @@ export const AuditEntryCard = ({ entry }: { entry: AuditEntry }) => {
   const changedKeys =
     entry.action === 'edit' ||
     entry.action === 'request_edit' ||
-    entry.action === 'approve'
+    entry.action === 'approve' ||
+    entry.action === 'payment_status_change'
       ? diffChangedKeys(entry.before, entry.after)
       : [];
 

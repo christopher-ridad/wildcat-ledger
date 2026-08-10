@@ -16,6 +16,7 @@ export const TransactionList = () => {
     approvePendingChange,
     rejectPendingChange,
     cancelPendingChange,
+    updatePaymentStatus,
   } = useLedger();
   const canEdit = userRole === 'treasurer' || userRole === 'president';
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -67,6 +68,7 @@ export const TransactionList = () => {
                     onReject={rejectPendingChange}
                     onCancel={cancelPendingChange}
                     onViewFiles={setViewingFilesTransaction}
+                    onUpdatePaymentStatus={updatePaymentStatus}
                   />
                   {deletingTransaction?.id === t.id && (
                     <tr className={styles['wl-delete-confirm-row']}>

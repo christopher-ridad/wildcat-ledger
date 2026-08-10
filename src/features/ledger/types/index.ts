@@ -7,6 +7,12 @@ export type TransactionType =
 
 export type TransactionDirection = 'Inflow' | 'Outflow';
 
+// Direct Payment / Reimbursement only — tracks real-world fulfillment,
+// distinct from PendingChange (which governs edits/deletes to the record
+// itself). Debit Card purchases use reconciledAt instead; Deposits don't
+// need a status.
+export type PaymentStatus = 'Pending' | 'Approved' | 'Paid';
+
 export interface Transaction {
   id: string;
   title: string;
@@ -20,6 +26,8 @@ export interface Transaction {
   // Reimbursement
   zelleInfo?: string;
   reimbursedMemberName?: string;
+  // Direct payment / Reimbursement
+  paymentStatus?: PaymentStatus;
   // Direct payment
   isIndividualVendor?: boolean;
   // Special Pay Form required when the payee is a Northwestern employee
@@ -50,7 +58,8 @@ export type AuditAction =
   | 'reject'
   | 'cancel'
   | 'reconcile'
-  | 'reload_request';
+  | 'reload_request'
+  | 'payment_status_change';
 
 export interface AuditEntry {
   id: string;
@@ -137,6 +146,7 @@ export interface LedgerContextValue {
   ) => Promise<void>;
   updateTransaction: (id: string, transaction: Omit<Transaction, 'id'>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  updatePaymentStatus: (transactionId: string, status: PaymentStatus) => Promise<void>;
   approvePendingChange: (pendingId: string) => Promise<void>;
   rejectPendingChange: (pendingId: string) => Promise<void>;
   cancelPendingChange: (pendingId: string) => Promise<void>;
