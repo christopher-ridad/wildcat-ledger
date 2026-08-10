@@ -131,6 +131,16 @@
   margin: 0 0 10px;
 }
 
+.wl-save-reminder {
+  background: #eff6ff;
+  border: 1.5px solid #60a5fa;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: #1e40af;
+  font-weight: 500;
+}
+
 .wl-receipt-options {
   display: flex;
   flex-direction: column;
