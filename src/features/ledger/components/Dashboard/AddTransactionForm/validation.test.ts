@@ -23,6 +23,8 @@ const baseForm: FormState = {
   isIndividualVendor: false,
   contractedServicesFile: null,
   conflictOfInterestFile: null,
+  isNorthwesternEmployee: false,
+  specialPayFormFile: null,
   zelleInfo: '',
   reimbursedMemberName: '',
   notes: '',
@@ -228,6 +230,35 @@ describe('validateTransactionForm', () => {
         isIndividualVendor: true,
         contractedServicesFile: csFile,
         conflictOfInterestFile: coiFile,
+      };
+      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+    });
+
+    test('Northwestern employees additionally require the Special Pay Form', () => {
+      const form = {
+        ...baseForm,
+        type: 'Direct payment' as const,
+        contractFile,
+        w9File,
+        isNorthwesternEmployee: true,
+        specialPayFormFile: null,
+      };
+      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+        /Special Pay Form/,
+      );
+    });
+
+    test('passes once the Special Pay Form is provided for a Northwestern employee', () => {
+      const specialPayFormFile = new File(['x'], 'special-pay.pdf', {
+        type: 'application/pdf',
+      });
+      const form = {
+        ...baseForm,
+        type: 'Direct payment' as const,
+        contractFile,
+        w9File,
+        isNorthwesternEmployee: true,
+        specialPayFormFile,
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
     });

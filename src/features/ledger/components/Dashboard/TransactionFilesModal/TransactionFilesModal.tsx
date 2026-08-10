@@ -10,6 +10,7 @@ const FILE_LABELS: { key: keyof Transaction; label: string }[] = [
   { key: 'w9FileUrl', label: 'W-9 Form' },
   { key: 'contractedServicesFileUrl', label: 'Contracted Services Form' },
   { key: 'conflictOfInterestFileUrl', label: 'Conflict of Interest Form' },
+  { key: 'specialPayFormUrl', label: 'Special Pay Form' },
 ];
 
 export const getTransactionFiles = (t: Transaction) =>
