@@ -522,6 +522,17 @@ export const AddTransactionForm = ({
         </div>
       )}
 
+      {/* Request-via-email is only offered while creating (see the `!isEditing &&`
+          guards in DebitCardFields/DirectPaymentFields/ReimbursementFields), so
+          requestedDocTypes can only be non-empty here when isEditing is false. */}
+      {requestedDocTypes.size > 0 && !overdraftWarning && (
+        <div className={styles['wl-save-reminder']} role="status">
+          📧 Email{requestedDocTypes.size !== 1 ? 's' : ''} sent, but the link
+          {requestedDocTypes.size !== 1 ? 's' : ''} won&apos;t work until this transaction
+          is saved — click &quot;Add Transaction&quot; below now.
+        </div>
+      )}
+
       {!overdraftWarning && (
         <button type="submit" className="wl-btn-primary" disabled={submitting}>
           {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Transaction'}
