@@ -71,6 +71,12 @@
   margin-top: 2px;
 }
 
+.wl-form-hint {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 2px 0 6px;
+}
+
 .wl-link-button {
   background: none;
   border: none;

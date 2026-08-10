@@ -20,6 +20,7 @@ export const rowToTransaction = (row: Record<string, unknown>): Transaction => (
   budgetLine: row.budget_line as Transaction['budgetLine'],
   notes: (row.notes as string) ?? '',
   zelleInfo: (row.zelle_info as string) ?? undefined,
+  reimbursedMemberName: (row.reimbursed_member_name as string) ?? undefined,
   isIndividualVendor: (row.is_individual_vendor as boolean) ?? undefined,
   receiptFileUrl: (row.receipt_file_url as string) ?? undefined,
   contractFileUrl: (row.contract_file_url as string) ?? undefined,

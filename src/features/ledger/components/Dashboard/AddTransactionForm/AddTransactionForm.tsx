@@ -51,6 +51,7 @@ export const AddTransactionForm = ({
         contractedServicesFile: null,
         conflictOfInterestFile: null,
         zelleInfo: t.zelleInfo ?? '',
+        reimbursedMemberName: t.reimbursedMemberName ?? '',
         notes: t.notes ?? '',
       };
     }
@@ -136,6 +137,7 @@ export const AddTransactionForm = ({
       contractedServicesFile: null,
       conflictOfInterestFile: null,
       zelleInfo: '',
+      reimbursedMemberName: '',
     }));
     setRequestedDocTypes(new Set());
     setUploadTokens({});
@@ -271,6 +273,8 @@ export const AddTransactionForm = ({
         budgetLine,
         notes: form.notes.trim(),
         zelleInfo: form.type === 'Reimbursement' ? form.zelleInfo.trim() : undefined,
+        reimbursedMemberName:
+          form.type === 'Reimbursement' ? form.reimbursedMemberName.trim() : undefined,
         isIndividualVendor:
           form.type === 'Direct payment' ? form.isIndividualVendor : undefined,
         noReceiptAcknowledged:

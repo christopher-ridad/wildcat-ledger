@@ -28,11 +28,28 @@ export const ReimbursementFields = ({
 }: ReimbursementFieldsProps) => (
   <>
     <div className="wl-form-group">
+      <label className="wl-form-label" htmlFor="reimbursedMemberName">
+        Name of Member Being Reimbursed{' '}
+        <span className={styles['wl-form-required']}>*</span>
+      </label>
+      <input
+        id="reimbursedMemberName"
+        name="reimbursedMemberName"
+        type="text"
+        className="wl-form-input"
+        value={form.reimbursedMemberName}
+        onChange={onChange}
+        placeholder="e.g. Jane Smith"
+      />
+    </div>
+
+    <div className="wl-form-group">
       <label className="wl-form-label" htmlFor="receiptFile">
         Receipt Photo{' '}
         {!isEditing && <span className={styles['wl-form-required']}>*</span>}
         {scanning && <span className="wl-ocr-scanning"> Scanning…</span>}
       </label>
+      <p className={styles['wl-form-hint']}>Tax cannot be reimbursed.</p>
       <div className={styles['wl-receipt-options']}>
         <input
           id="receiptFile"
