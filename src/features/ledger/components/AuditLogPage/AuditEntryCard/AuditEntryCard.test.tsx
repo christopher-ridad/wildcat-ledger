@@ -15,6 +15,7 @@ describe('AuditEntryCard', () => {
     ['cancel', 'Cancelled'],
     ['reconcile', 'Reconciled'],
     ['reload_request', 'Reload Requested'],
+    ['payment_status_change', 'Payment Status Updated'],
   ])('renders the %s badge as "%s"', (action, label) => {
     render(<AuditEntryCard entry={buildMockAuditEntry({ action })} />);
     expect(screen.getByText(label)).toBeInTheDocument();
@@ -59,6 +60,19 @@ describe('AuditEntryCard', () => {
     expect(screen.getByText('After')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
     expect(screen.getByText('20')).toBeInTheDocument();
+  });
+
+  test('renders a before/after diff for a payment status change', () => {
+    const before = buildMockTransaction({ paymentStatus: 'Pending' });
+    const after = buildMockTransaction({ paymentStatus: 'Approved' });
+    render(
+      <AuditEntryCard
+        entry={buildMockAuditEntry({ action: 'payment_status_change', before, after })}
+      />,
+    );
+    expect(screen.getByText('Before')).toBeInTheDocument();
+    expect(screen.getByText('Pending')).toBeInTheDocument();
+    expect(screen.getByText('Approved')).toBeInTheDocument();
   });
 
   test('does not render a diff for edits with no changed fields', () => {

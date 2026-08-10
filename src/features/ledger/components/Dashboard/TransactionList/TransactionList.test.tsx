@@ -28,6 +28,7 @@ const baseLedger = {
   approvePendingChange: vi.fn().mockResolvedValue(undefined),
   rejectPendingChange: vi.fn().mockResolvedValue(undefined),
   cancelPendingChange: vi.fn().mockResolvedValue(undefined),
+  updatePaymentStatus: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('TransactionList', () => {
@@ -116,5 +117,28 @@ describe('TransactionList', () => {
     expect(screen.queryByTestId('transaction-modal')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Edit transaction'));
     expect(screen.getByTestId('transaction-modal')).toBeInTheDocument();
+  });
+
+  test("changing a row's payment status calls updatePaymentStatus", () => {
+    const updatePaymentStatus = vi.fn().mockResolvedValue(undefined);
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      userRole: 'treasurer',
+      updatePaymentStatus,
+      filteredTransactions: [
+        buildMockTransaction({
+          id: 't1',
+          type: 'Direct payment',
+          budgetLine: 'Operating',
+          paymentStatus: 'Pending',
+        }),
+      ],
+    } as never);
+    render(<TransactionList />);
+
+    fireEvent.change(screen.getByLabelText('Payment status'), {
+      target: { value: 'Approved' },
+    });
+    expect(updatePaymentStatus).toHaveBeenCalledWith('t1', 'Approved');
   });
 });

@@ -30,6 +30,7 @@ const renderRow = (props: Partial<ComponentProps<typeof TransactionRow>> = {}) =
           onReject={asyncNoop}
           onCancel={asyncNoop}
           onViewFiles={noop}
+          onUpdatePaymentStatus={asyncNoop}
           {...props}
         />
       </tbody>
@@ -101,6 +102,107 @@ describe('TransactionRow', () => {
     renderRow({ canEdit: true, onDelete, t });
     fireEvent.click(screen.getByLabelText('Delete transaction'));
     expect(onDelete).toHaveBeenCalledWith(t);
+  });
+
+  describe('debit card reconciliation status', () => {
+    test('shows "Not Reconciled" by default for a Debit Card transaction', () => {
+      renderRow({
+        t: buildMockTransaction({ budgetLine: 'Debit Card', reconciledAt: null }),
+      });
+      expect(screen.getByText('Not Reconciled')).toBeInTheDocument();
+    });
+
+    test('shows "Reconciled" once reconciledAt is set', () => {
+      renderRow({
+        t: buildMockTransaction({ budgetLine: 'Debit Card', reconciledAt: Date.now() }),
+      });
+      expect(screen.getByText('Reconciled')).toBeInTheDocument();
+      expect(screen.queryByText('Not Reconciled')).not.toBeInTheDocument();
+    });
+
+    test('shows an empty dash for a transaction outside the Debit Card budget line with no payment status', () => {
+      renderRow({
+        t: buildMockTransaction({ type: 'Deposit', budgetLine: 'Operating' }),
+      });
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+  });
+
+  describe('payment status', () => {
+    test('does not show a payment-status control for Debit Card transactions', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({ type: 'Debit card purchase' }),
+      });
+      expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
+      expect(screen.queryByText('Pending')).not.toBeInTheDocument();
+    });
+
+    test('defaults to Pending when a Direct Payment transaction has no status set', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({
+          type: 'Direct payment',
+          budgetLine: 'Operating',
+          paymentStatus: undefined,
+        }),
+      });
+      expect(screen.getByText('Pending')).toBeInTheDocument();
+    });
+
+    test('shows a read-only badge (not a select) when the viewer cannot edit', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({
+          type: 'Reimbursement',
+          budgetLine: 'Operating',
+          paymentStatus: 'Approved',
+        }),
+      });
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
+    });
+
+    test('shows an editable select for Treasurer/President with no pending change', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({
+          type: 'Reimbursement',
+          budgetLine: 'Operating',
+          paymentStatus: 'Paid',
+        }),
+      });
+      expect(screen.getByLabelText('Payment status')).toHaveValue('Paid');
+    });
+
+    test('falls back to a read-only badge while a pending edit/delete exists', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({
+          type: 'Direct payment',
+          budgetLine: 'Operating',
+          paymentStatus: 'Pending',
+        }),
+        pending: buildMockPendingChange(),
+      });
+      expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
+      expect(screen.getByText('Pending')).toBeInTheDocument();
+    });
+
+    test('changing the select calls onUpdatePaymentStatus with the transaction id and new status', () => {
+      const onUpdatePaymentStatus = vi.fn().mockResolvedValue(undefined);
+      const t = buildMockTransaction({
+        id: 'txn-42',
+        type: 'Direct payment',
+        budgetLine: 'Operating',
+        paymentStatus: 'Pending',
+      });
+      renderRow({ canEdit: true, t, onUpdatePaymentStatus });
+      fireEvent.change(screen.getByLabelText('Payment status'), {
+        target: { value: 'Approved' },
+      });
+      expect(onUpdatePaymentStatus).toHaveBeenCalledWith('txn-42', 'Approved');
+    });
   });
 
   describe('pending changes', () => {
