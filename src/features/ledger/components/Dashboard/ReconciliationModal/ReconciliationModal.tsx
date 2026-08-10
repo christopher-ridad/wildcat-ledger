@@ -22,7 +22,13 @@ const formatDate = (ts: number) =>
 type Step = 'review' | 'reload';
 
 export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProps) => {
-  const { activeOrganization, reconcileTransactions, uploadExemptionForm } = useLedger();
+  const {
+    activeOrganization,
+    reconcileTransactions,
+    uploadExemptionForm,
+    auditLog,
+    requestReload,
+  } = useLedger();
 
   // Unreconciled debit card transactions
   const unreconciledTxns: Transaction[] = (activeOrganization?.transactions ?? []).filter(
@@ -46,6 +52,10 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [snapshotTxnsWithReceipts, setSnapshotTxnsWithReceipts] = useState<Transaction[]>(
     [],
   );
+  const [reloadAmountInput, setReloadAmountInput] = useState('');
+  const [requestingReload, setRequestingReload] = useState(false);
+  const [reloadRequested, setReloadRequested] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
   // A transaction is "covered" if it has a receipt or an attached exemption form
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
 
@@ -67,6 +77,10 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setUploadError({});
       setStep('review');
       setReconSummary(null);
+      setReloadAmountInput('');
+      setRequestingReload(false);
+      setReloadRequested(false);
+      setReloadError(null);
     }
   }, [isOpen, coveredIds, uncoveredCount]);
 
@@ -130,15 +144,46 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setSnapshotTxnsWithReceipts(
         reconciledTxns.filter((t) => t.receiptFileUrl || t.exemptionFormUrl),
       );
+      const priorTotals = auditLog
+        .filter((e) => e.action === 'reconcile' && e.reconciliationSummary)
+        .map((e) => e.reconciliationSummary!.totalAmount);
+      const suggested =
+        [...priorTotals, totalAmount].reduce((sum, n) => sum + n, 0) /
+        (priorTotals.length + 1);
+
       await reconcileTransactions([...selected]);
 
       const summary = { transactionCount: selected.size, totalAmount, exemptionCount };
       setReconSummary(summary);
+      setReloadAmountInput(suggested.toFixed(2));
       setStep('reload');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reconciliation failed.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRequestReload = async () => {
+    if (!reconSummary) return;
+    const amount = parseFloat(reloadAmountInput);
+    if (Number.isNaN(amount) || amount <= 0) {
+      setReloadError('Enter a valid reload amount.');
+      return;
+    }
+    setRequestingReload(true);
+    setReloadError(null);
+    try {
+      await requestReload(
+        amount,
+        reconSummary.totalAmount,
+        reconSummary.transactionCount,
+      );
+      setReloadRequested(true);
+    } catch (err) {
+      setReloadError(err instanceof Error ? err.message : 'Reload request failed.');
+    } finally {
+      setRequestingReload(false);
     }
   };
 
@@ -376,6 +421,49 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className={styles['wl-recon-reload']}>
+                <h3 className={styles['wl-recon-reload-title']}>
+                  Request a Debit Card Reload
+                </h3>
+                {reloadRequested ? (
+                  <p className={styles['wl-recon-reload-confirm']}>
+                    ✓ Reload request for {formatCurrency(parseFloat(reloadAmountInput))}{' '}
+                    submitted.
+                  </p>
+                ) : (
+                  <>
+                    <p className={styles['wl-recon-reload-hint']}>
+                      Suggested based on the average of past reconciliations — adjust if
+                      needed.
+                    </p>
+                    <div className={styles['wl-recon-reload-row']}>
+                      <div className="wl-form-group">
+                        <label className="wl-form-label" htmlFor="reload-amount">
+                          Amount
+                        </label>
+                        <input
+                          id="reload-amount"
+                          type="text"
+                          inputMode="decimal"
+                          className="wl-form-input"
+                          value={reloadAmountInput}
+                          onChange={(e) => setReloadAmountInput(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        className="wl-btn-primary"
+                        onClick={handleRequestReload}
+                        disabled={requestingReload}
+                      >
+                        {requestingReload ? 'Submitting…' : 'Request Reload'}
+                      </button>
+                    </div>
+                    {reloadError && <div className="wl-form-error">{reloadError}</div>}
+                  </>
+                )}
               </div>
 
               <div className={styles['wl-recon-actions']}>

@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
+  buildMockAuditEntry,
   buildMockOrganization,
   buildMockTransaction,
   MockLedgerProvider,
@@ -180,6 +181,110 @@ describe('ReconciliationModal', () => {
     await screen.findByText('Reconciliation complete!');
     fireEvent.click(screen.getByText('Done'));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  test('pre-fills the reload amount with the current total when there is no reconciliation history', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    expect(screen.getByLabelText('Amount')).toHaveValue('50.00');
+  });
+
+  test('averages the current total with past reconciliations for the suggested reload amount', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    const auditLog = [
+      buildMockAuditEntry({
+        action: 'reconcile',
+        reconciliationSummary: {
+          transactionCount: 2,
+          totalAmount: 100,
+          exemptionCount: 0,
+          transactionIds: ['a', 'b'],
+        },
+      }),
+    ];
+    renderModal({ activeOrganization: org, reconcileTransactions, auditLog });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    expect(screen.getByLabelText('Amount')).toHaveValue('75.00');
+  });
+
+  test('lets the user override the amount, and submitting calls requestReload', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const requestReload = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions, requestReload });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
+
+    await vi.waitFor(() => expect(requestReload).toHaveBeenCalledWith(200, 50, 1));
+    expect(
+      await screen.findByText(/Reload request for \$200\.00 submitted/),
+    ).toBeInTheDocument();
+  });
+
+  test('shows an error message when the reload request fails', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const requestReload = vi.fn().mockRejectedValue(new Error('Reload rejected'));
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions, requestReload });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+    fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
+
+    expect(await screen.findByText('Reload rejected')).toBeInTheDocument();
   });
 
   test('pressing Escape calls onClose', () => {

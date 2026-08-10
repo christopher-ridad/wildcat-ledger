@@ -224,3 +224,36 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* ─── Reload request (step 2) ───────────────────────────────────── */
+.wl-recon-reload {
+  border-top: 1.5px solid var(--color-border);
+  padding-top: 16px;
+  margin-top: 4px;
+}
+.wl-recon-reload-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 4px;
+}
+.wl-recon-reload-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+}
+.wl-recon-reload-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.wl-recon-reload-row .wl-form-group {
+  flex: 1;
+  max-width: 160px;
+}
+.wl-recon-reload-confirm {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-positive);
+  margin: 0;
+}
