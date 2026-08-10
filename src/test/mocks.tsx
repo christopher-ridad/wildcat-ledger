@@ -62,6 +62,7 @@ export const buildMockLedgerContext = (
   addTransaction: vi.fn().mockResolvedValue(undefined),
   updateTransaction: vi.fn().mockResolvedValue(undefined),
   deleteTransaction: vi.fn().mockResolvedValue(undefined),
+  updatePaymentStatus: vi.fn().mockResolvedValue(undefined),
   approvePendingChange: vi.fn().mockResolvedValue(undefined),
   rejectPendingChange: vi.fn().mockResolvedValue(undefined),
   cancelPendingChange: vi.fn().mockResolvedValue(undefined),

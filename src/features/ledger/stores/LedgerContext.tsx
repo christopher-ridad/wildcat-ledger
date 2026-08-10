@@ -16,6 +16,7 @@ import {
   BudgetLine,
   LedgerContextValue,
   Organization,
+  PaymentStatus,
   PendingChange,
   ReloadRequest,
   Transaction,
@@ -255,6 +256,16 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
+  const updatePaymentStatus = async (transactionId: string, status: PaymentStatus) => {
+    if (!activeOrganizationId) return;
+    const { error } = await supabase.rpc('update_payment_status_with_audit', {
+      p_org_id: activeOrganizationId,
+      p_transaction_id: transactionId,
+      p_status: status,
+    });
+    if (error) throw error;
+  };
+
   const approvePendingChange = async (pendingId: string) => {
     if (!activeOrganizationId) return;
     const { error } = await supabase.rpc('resolve_pending_change_with_audit', {
@@ -380,6 +391,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    updatePaymentStatus,
     approvePendingChange,
     rejectPendingChange,
     cancelPendingChange,

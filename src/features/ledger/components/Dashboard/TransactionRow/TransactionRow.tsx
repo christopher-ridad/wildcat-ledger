@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { useAuth } from '../../../../authentication/hooks/useAuth';
-import { PendingChange, Transaction } from '../../../types';
+import { PaymentStatus, PendingChange, Transaction } from '../../../types';
 import { formatCurrency } from '../../../utils/calculations';
 import { diffChangedKeys } from '../../../utils/diff';
 import { getTransactionFiles } from '../TransactionFilesModal';
@@ -13,6 +13,14 @@ const formatDate = (iso?: string) => {
   return `${m}/${d}/${y}`;
 };
 
+const STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
+  Pending: styles['wl-status-badge--pending'],
+  Approved: styles['wl-status-badge--approved'],
+  Paid: styles['wl-status-badge--paid'],
+};
+
+const PAYMENT_STATUS_TYPES: Transaction['type'][] = ['Direct payment', 'Reimbursement'];
+
 export const TransactionRow = ({
   t,
   canEdit,
@@ -23,6 +31,7 @@ export const TransactionRow = ({
   onReject,
   onCancel,
   onViewFiles,
+  onUpdatePaymentStatus,
 }: {
   t: Transaction;
   canEdit: boolean;
@@ -33,9 +42,11 @@ export const TransactionRow = ({
   onReject: (pendingId: string) => Promise<void>;
   onCancel: (pendingId: string) => Promise<void>;
   onViewFiles: (t: Transaction) => void;
+  onUpdatePaymentStatus: (transactionId: string, status: PaymentStatus) => Promise<void>;
 }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [actioning, setActioning] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const isInflow = t.direction === 'Inflow';
   const fileCount = getTransactionFiles(t).length;
   const { user } = useAuth();
@@ -48,8 +59,18 @@ export const TransactionRow = ({
     setActioning(true);
     fn(id).finally(() => setActioning(false));
   };
-  const colSpan = canEdit ? 6 : 5;
-  const isReconciled = t.budgetLine === 'Debit Card' && t.reconciledAt != null;
+
+  const handleStatusChange = (status: PaymentStatus) => {
+    setStatusUpdating(true);
+    onUpdatePaymentStatus(t.id, status).finally(() => setStatusUpdating(false));
+  };
+
+  const colSpan = canEdit ? 7 : 6;
+  const isDebitCard = t.budgetLine === 'Debit Card';
+  const isReconciled = isDebitCard && t.reconciledAt != null;
+  const paymentStatus = PAYMENT_STATUS_TYPES.includes(t.type)
+    ? (t.paymentStatus ?? 'Pending')
+    : null;
 
   const changedKeys =
     pending?.type === 'edit' ? diffChangedKeys(pending.before, pending.after) : [];
@@ -59,9 +80,6 @@ export const TransactionRow = ({
       <tr className={pending ? styles['wl-row--pending'] : ''}>
         <td className={`${styles['wl-td']} ${styles['wl-td-title']}`}>
           <span className={styles['wl-td-title-text']}>{t.title}</span>
-          {isReconciled && (
-            <span className={styles['wl-reconciled-badge']}>Reconciled</span>
-          )}
           {pending && (
             <span className={styles['wl-pending-type-badge']}>
               {pending.type === 'delete' ? 'Delete requested' : 'Edit requested'}
@@ -78,6 +96,41 @@ export const TransactionRow = ({
           {formatCurrency(t.amount)}
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
+        <td className={`${styles['wl-td']} ${styles['wl-td-status']}`}>
+          {isDebitCard ? (
+            <span
+              className={
+                isReconciled
+                  ? styles['wl-reconciled-badge']
+                  : styles['wl-not-reconciled-badge']
+              }
+            >
+              {isReconciled ? 'Reconciled' : 'Not Reconciled'}
+            </span>
+          ) : paymentStatus ? (
+            canEdit && !pending ? (
+              <select
+                aria-label="Payment status"
+                className={`${styles['wl-status-select']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
+                value={paymentStatus}
+                disabled={statusUpdating}
+                onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
+              >
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Paid">Paid</option>
+              </select>
+            ) : (
+              <span
+                className={`${styles['wl-status-badge']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
+              >
+                {paymentStatus}
+              </span>
+            )
+          ) : (
+            <span className={styles['wl-status-empty']}>—</span>
+          )}
+        </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-budget']}`}>
           <span className={styles['wl-budget-chip']}>{t.budgetLine}</span>
         </td>
