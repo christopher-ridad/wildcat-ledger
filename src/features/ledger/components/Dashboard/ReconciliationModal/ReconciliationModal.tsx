@@ -446,18 +446,21 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                         <label className="wl-form-label" htmlFor="reload-amount">
                           Amount
                         </label>
-                        <input
-                          id="reload-amount"
-                          type="text"
-                          inputMode="decimal"
-                          className="wl-form-input"
-                          value={reloadAmountInput}
-                          onChange={(e) => setReloadAmountInput(e.target.value)}
-                        />
+                        <div className={styles['wl-amount-input-wrap']}>
+                          <span className={styles['wl-amount-input-prefix']}>$</span>
+                          <input
+                            id="reload-amount"
+                            type="text"
+                            inputMode="decimal"
+                            className={`wl-form-input ${styles['wl-amount-input']}`}
+                            value={reloadAmountInput}
+                            onChange={(e) => setReloadAmountInput(e.target.value)}
+                          />
+                        </div>
                       </div>
                       <button
                         type="button"
-                        className="wl-btn-primary"
+                        className={styles['wl-btn-download-zip']}
                         onClick={handleRequestReload}
                         disabled={requestingReload}
                       >

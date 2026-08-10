@@ -227,8 +227,10 @@
 
 /* ─── Reload request (step 2) ───────────────────────────────────── */
 .wl-recon-reload {
-  border-top: 1.5px solid var(--color-border);
-  padding-top: 16px;
+  background: #f8f7fc;
+  border: 1px solid #e5e0f5;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
   margin-top: 4px;
 }
 .wl-recon-reload-title {
@@ -250,6 +252,22 @@
 .wl-recon-reload-row .wl-form-group {
   flex: 1;
   max-width: 160px;
+}
+.wl-amount-input-wrap {
+  position: relative;
+}
+.wl-amount-input-prefix {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  pointer-events: none;
+}
+.wl-amount-input {
+  width: 100%;
+  padding-left: 20px;
 }
 .wl-recon-reload-confirm {
   font-size: 0.88rem;
