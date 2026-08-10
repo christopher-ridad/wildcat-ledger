@@ -59,16 +59,18 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // A transaction is "covered" if it has a receipt or an attached exemption form
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
 
-  // Reset selection whenever modal opens.
-  // Only pre-select covered transactions when there are no uncovered ones;
-  // if any transaction is missing a receipt, start with nothing selected.
+  // Reset selection whenever the modal opens (the false→true transition only —
+  // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
+  // open, since reconciling flips those via Realtime a moment later and would
+  // otherwise reset `step` back to 'review' right under the success screen).
   const coveredIds = unreconciledTxns
     .filter(isCovered)
     .map((t) => t.id)
     .join(',');
   const uncoveredCount = unreconciledTxns.filter((t) => !isCovered(t)).length;
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       setSelected(
         uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
       );
@@ -82,6 +84,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setReloadRequested(false);
       setReloadError(null);
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, coveredIds, uncoveredCount]);
 
   useEffect(() => {
