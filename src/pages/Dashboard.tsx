@@ -18,14 +18,15 @@ export const Dashboard = () => {
     setSelectedBudgetLine,
     activeOrganization,
     userRole,
+    loading,
   } = useLedger();
   const canEdit = userRole === 'treasurer' || userRole === 'president';
 
   useEffect(() => {
-    if (activeOrganization === null) {
+    if (!loading && activeOrganization === null) {
       navigate('/organizations', { replace: true });
     }
-  }, [activeOrganization, navigate]);
+  }, [loading, activeOrganization, navigate]);
 
   return (
     <div className="wl-app">

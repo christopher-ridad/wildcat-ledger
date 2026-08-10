@@ -37,6 +37,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const userEmail = user?.email ?? null;
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState(true);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
   const [reloadRequests, setReloadRequests] = useState<ReloadRequest[]>([]);
@@ -55,10 +56,12 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!userEmail) {
       setOrganizations([]);
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
+    setLoading(true);
 
     const loadOrganizations = async () => {
       const { data: orgRows, error: orgError } = await supabase
@@ -66,9 +69,13 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
         .select('*');
       if (orgError) {
         console.error('Failed to load organizations:', orgError);
+        if (!cancelled) setLoading(false);
         return;
       }
-      if (!orgRows) return;
+      if (!orgRows) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
       const orgs: Organization[] = await Promise.all(
         orgRows.map(async (row) => {
@@ -81,7 +88,10 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
         }),
       );
 
-      if (!cancelled) setOrganizations(orgs);
+      if (!cancelled) {
+        setOrganizations(orgs);
+        setLoading(false);
+      }
     };
 
     loadOrganizations();
@@ -361,6 +371,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     auditLog,
     pendingChanges,
     organizations,
+    loading,
     activeOrganizationId,
     setActiveOrganizationId,
     activeOrganization,

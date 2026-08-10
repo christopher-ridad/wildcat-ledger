@@ -36,15 +36,27 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: null,
       initializeBudgetAllocations: vi.fn(),
+      loading: false,
     } as never);
     renderPage();
     expect(navigateMock).toHaveBeenCalledWith('/organizations', { replace: true });
+  });
+
+  test('does not redirect while the ledger is still loading, even with no active organization yet', () => {
+    mockUseLedger.mockReturnValue({
+      activeOrganization: null,
+      initializeBudgetAllocations: vi.fn(),
+      loading: true,
+    } as never);
+    renderPage();
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   test('redirects to /dashboard when budget lines are already set', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: true }),
       initializeBudgetAllocations: vi.fn(),
+      loading: false,
     } as never);
     renderPage();
     expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });

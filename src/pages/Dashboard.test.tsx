@@ -35,6 +35,7 @@ const baseLedger = {
   setSelectedBudgetLine: vi.fn(),
   activeOrganization: buildMockOrganization({ name: 'Wildcat Club' }),
   userRole: 'treasurer' as const,
+  loading: false,
 };
 
 describe('Dashboard', () => {
@@ -44,6 +45,16 @@ describe('Dashboard', () => {
     mockUseLedger.mockReturnValue({ ...baseLedger, activeOrganization: null } as never);
     render(<Dashboard />);
     expect(navigateMock).toHaveBeenCalledWith('/organizations', { replace: true });
+  });
+
+  test('does not redirect while the ledger is still loading, even with no active organization yet', () => {
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      activeOrganization: null,
+      loading: true,
+    } as never);
+    render(<Dashboard />);
+    expect(navigateMock).not.toHaveBeenCalled();
   });
 
   test('renders the organization name and budget line summaries', () => {
