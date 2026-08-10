@@ -76,4 +76,22 @@ describe('ReimbursementFields', () => {
     );
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
   });
+
+  test('opens the camera directly on mobile instead of a generic file picker', () => {
+    render(
+      <ReimbursementFields
+        form={initialForm}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(document.getElementById('receiptFile')).toHaveAttribute(
+      'capture',
+      'environment',
+    );
+  });
 });
