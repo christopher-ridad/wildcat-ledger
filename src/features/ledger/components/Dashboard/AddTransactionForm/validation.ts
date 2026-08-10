@@ -71,6 +71,9 @@ export const validateTransactionForm = (
   }
 
   if (form.type === 'Reimbursement') {
+    if (!form.reimbursedMemberName.trim()) {
+      return 'Name of the member being reimbursed is required.';
+    }
     if (!form.receiptFile && !isEditing && !requestedDocTypes.has('receipt')) {
       return 'Upload a receipt photo or request one via email.';
     }

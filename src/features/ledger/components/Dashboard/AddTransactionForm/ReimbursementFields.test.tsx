@@ -18,7 +18,8 @@ describe('ReimbursementFields', () => {
         onRequestDocument={vi.fn()}
       />,
     );
-    expect(screen.getAllByText('*')).toHaveLength(2);
+    // Member name, receipt, and Zelle info are all required when creating.
+    expect(screen.getAllByText('*')).toHaveLength(3);
     expect(screen.getByText('Request Receipt via Email')).toBeInTheDocument();
   });
 
@@ -37,8 +38,8 @@ describe('ReimbursementFields', () => {
         onRequestDocument={vi.fn()}
       />,
     );
-    // The Zelle field is always required, but the receipt asterisk should disappear.
-    expect(screen.getAllByText('*')).toHaveLength(1);
+    // Member name and Zelle info are always required, but the receipt asterisk disappears.
+    expect(screen.getAllByText('*')).toHaveLength(2);
     expect(screen.queryByText('Request Receipt via Email')).not.toBeInTheDocument();
     expect(screen.getByText('View file')).toBeInTheDocument();
   });
@@ -75,5 +76,39 @@ describe('ReimbursementFields', () => {
       />,
     );
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
+  });
+
+  test('typing the reimbursed member name calls onChange', () => {
+    const onChange = vi.fn();
+    render(
+      <ReimbursementFields
+        form={initialForm}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={onChange}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
+      target: { value: 'Jane Doe' },
+    });
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  test('shows a note that tax cannot be reimbursed', () => {
+    render(
+      <ReimbursementFields
+        form={initialForm}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('Tax cannot be reimbursed.')).toBeInTheDocument();
   });
 });

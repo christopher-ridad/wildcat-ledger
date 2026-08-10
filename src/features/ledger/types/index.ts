@@ -19,6 +19,7 @@ export interface Transaction {
   notes: string;
   // Reimbursement
   zelleInfo?: string;
+  reimbursedMemberName?: string;
   // Direct payment
   isIndividualVendor?: boolean;
   // Storage object paths (Supabase Storage, 'documents' bucket)
