@@ -29,6 +29,7 @@ export interface FormState {
   conflictOfInterestFile: File | null;
   // Reimbursement
   zelleInfo: string;
+  reimbursedMemberName: string;
   notes: string;
 }
 
@@ -48,5 +49,6 @@ export const initialForm: FormState = {
   contractedServicesFile: null,
   conflictOfInterestFile: null,
   zelleInfo: '',
+  reimbursedMemberName: '',
   notes: '',
 };
