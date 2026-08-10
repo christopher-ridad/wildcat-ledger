@@ -36,6 +36,7 @@ export const DebitCardFields = ({
         )}
         {scanning && <span className="wl-ocr-scanning"> Scanning…</span>}
       </label>
+      <p className={styles['wl-form-hint']}>Tax cannot be paid by the debit card.</p>
       <div className={styles['wl-receipt-options']}>
         <input
           id="receiptFile"

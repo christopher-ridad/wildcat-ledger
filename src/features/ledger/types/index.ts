@@ -19,6 +19,7 @@ export interface Transaction {
   notes: string;
   // Reimbursement
   zelleInfo?: string;
+  reimbursedMemberName?: string;
   // Direct payment
   isIndividualVendor?: boolean;
   // Special Pay Form required when the payee is a Northwestern employee
@@ -120,6 +121,10 @@ export interface LedgerContextValue {
   auditLog: AuditEntry[];
   pendingChanges: PendingChange[];
   organizations: Organization[];
+  // True until the initial organizations fetch for the current user resolves.
+  // Distinguishes "still loading" from "genuinely no active org" so pages
+  // don't redirect away before data has a chance to arrive.
+  loading: boolean;
   activeOrganizationId: string | null;
   setActiveOrganizationId: (id: string) => void;
   activeOrganization: Organization | null;

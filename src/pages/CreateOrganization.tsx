@@ -19,7 +19,7 @@ const EMPTY_ALLOCATIONS: BudgetAllocations = {
 };
 
 export const CreateOrganization = () => {
-  const { activeOrganization, initializeBudgetAllocations } = useLedger();
+  const { activeOrganization, initializeBudgetAllocations, loading } = useLedger();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,6 +33,7 @@ export const CreateOrganization = () => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (loading) return;
     if (!activeOrganization) {
       navigate('/organizations', { replace: true });
       return;
@@ -40,7 +41,7 @@ export const CreateOrganization = () => {
     if (activeOrganization.isBudgetLinesSet) {
       navigate('/dashboard', { replace: true });
     }
-  }, [activeOrganization, navigate]);
+  }, [loading, activeOrganization, navigate]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

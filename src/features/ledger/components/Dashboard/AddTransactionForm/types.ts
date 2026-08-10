@@ -31,6 +31,7 @@ export interface FormState {
   specialPayFormFile: File | null;
   // Reimbursement
   zelleInfo: string;
+  reimbursedMemberName: string;
   notes: string;
 }
 
@@ -52,5 +53,6 @@ export const initialForm: FormState = {
   isNorthwesternEmployee: false,
   specialPayFormFile: null,
   zelleInfo: '',
+  reimbursedMemberName: '',
   notes: '',
 };

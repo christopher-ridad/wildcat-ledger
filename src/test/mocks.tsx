@@ -53,6 +53,7 @@ export const buildMockLedgerContext = (
   auditLog: [],
   pendingChanges: [],
   organizations: [],
+  loading: false,
   activeOrganizationId: null,
   setActiveOrganizationId: vi.fn(),
   activeOrganization: null,

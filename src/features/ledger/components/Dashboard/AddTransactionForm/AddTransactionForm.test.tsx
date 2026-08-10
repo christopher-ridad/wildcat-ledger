@@ -120,6 +120,35 @@ describe('AddTransactionForm', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 
+  test('submits a reimbursement with the member name and Zelle info included', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fireEvent.change(screen.getByLabelText(/Transaction Type/), {
+      target: { value: 'Reimbursement' },
+    });
+    fillCommonFields('Team dinner', '25.00');
+    fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
+      target: { value: 'Jane Doe' },
+    });
+    fireEvent.change(screen.getByLabelText(/Zelle Email or Phone Number/), {
+      target: { value: 'jane@example.com' },
+    });
+    const file = new File(['x'], 'receipt.png', { type: 'image/png' });
+    fireEvent.change(document.getElementById('receiptFile') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction).toMatchObject({
+      title: 'Team dinner',
+      amount: 25,
+      reimbursedMemberName: 'Jane Doe',
+      zelleInfo: 'jane@example.com',
+    });
+  });
+
   test('submits a direct payment to a Northwestern employee with the Special Pay Form', async () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({ addTransaction });

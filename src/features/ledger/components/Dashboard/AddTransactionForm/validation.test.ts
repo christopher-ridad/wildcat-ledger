@@ -26,6 +26,7 @@ const baseForm: FormState = {
   isNorthwesternEmployee: false,
   specialPayFormFile: null,
   zelleInfo: '',
+  reimbursedMemberName: '',
   notes: '',
 };
 
@@ -264,12 +265,26 @@ describe('validateTransactionForm', () => {
   });
 
   describe('Reimbursement', () => {
+    test('requires the name of the member being reimbursed', () => {
+      const form = {
+        ...baseForm,
+        type: 'Reimbursement' as const,
+        receiptFile,
+        zelleInfo: 'person@example.com',
+        reimbursedMemberName: '  ',
+      };
+      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+        /member being reimbursed/,
+      );
+    });
+
     test('requires a receipt when creating', () => {
       const form = {
         ...baseForm,
         type: 'Reimbursement' as const,
         receiptFile: null,
         zelleInfo: 'person@example.com',
+        reimbursedMemberName: 'Jane Doe',
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
         /Upload a receipt photo/,
@@ -282,6 +297,7 @@ describe('validateTransactionForm', () => {
         type: 'Reimbursement' as const,
         receiptFile,
         zelleInfo: '',
+        reimbursedMemberName: 'Jane Doe',
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
         /Zelle information/,
@@ -294,18 +310,20 @@ describe('validateTransactionForm', () => {
         type: 'Reimbursement' as const,
         receiptFile,
         zelleInfo: 'not valid',
+        reimbursedMemberName: 'Jane Doe',
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
         /valid Zelle/,
       );
     });
 
-    test('passes with a receipt and valid Zelle email', () => {
+    test('passes with a member name, a receipt, and a valid Zelle email', () => {
       const form = {
         ...baseForm,
         type: 'Reimbursement' as const,
         receiptFile,
         zelleInfo: 'person@example.com',
+        reimbursedMemberName: 'Jane Doe',
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
     });
