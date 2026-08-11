@@ -1,14 +1,14 @@
 name: CI
 
 on:
-  push:
-    branches: [dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  ci:
-    name: Type Check, Lint, Test, Build
+  integration:
+    name: Integration
     runs-on: ubuntu-latest
 
     steps:
@@ -30,8 +30,24 @@ jobs:
           npx prettier --check "./**/*.{js,jsx,ts,tsx,css,md,json}"
           npx eslint src vite.config.ts --quiet
 
-      - name: Test
+      - name: Unit & component tests
         run: npx vitest run
+
+  dev:
+    name: Dev
+    needs: integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Build
         run: npm run build
@@ -39,3 +55,8 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
+
+      # End-to-end (Playwright) tests land here once set up as a follow-up --
+      # this job is the natural home for them: it only runs once Integration
+      # has already passed, and it's what gates the merge button on main
+      # alongside Integration.
