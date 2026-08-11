@@ -39,16 +39,15 @@ jobs:
         if: always()
         run: |
           if [ ! -f vitest-report.json ]; then
-            echo "### ⚠️ Integration: tests did not run (an earlier step failed)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Test Files: not run (an earlier step failed) ⚠️" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          PASSED=$(jq '.numPassedTests' vitest-report.json)
-          TOTAL=$(jq '.numTotalTests' vitest-report.json)
-          FAILED=$(jq '.numFailedTests' vitest-report.json)
-          if [ "$FAILED" = "0" ]; then
-            echo "### ✅ Integration: $PASSED/$TOTAL tests passed" >> "$GITHUB_STEP_SUMMARY"
+          TOTAL=$(jq '.testResults | length' vitest-report.json)
+          PASSED=$(jq '[.testResults[] | select(.status == "passed")] | length' vitest-report.json)
+          if [ "$PASSED" = "$TOTAL" ]; then
+            echo "Test Files: $PASSED/$TOTAL pass ✅" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### ❌ Integration: $PASSED/$TOTAL tests passed ($FAILED failed)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Test Files: $PASSED/$TOTAL pass ❌" >> "$GITHUB_STEP_SUMMARY"
           fi
 
   dev:
@@ -86,19 +85,15 @@ jobs:
         if: always()
         run: |
           if [ ! -f playwright-report.json ]; then
-            echo "### ⚠️ Dev (e2e): tests did not run (an earlier step failed)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Test Files: not run (an earlier step failed) ⚠️" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          EXPECTED=$(jq '.stats.expected' playwright-report.json)
-          UNEXPECTED=$(jq '.stats.unexpected' playwright-report.json)
-          FLAKY=$(jq '.stats.flaky' playwright-report.json)
-          SKIPPED=$(jq '.stats.skipped' playwright-report.json)
-          PASSED=$((EXPECTED + FLAKY))
-          TOTAL=$((EXPECTED + UNEXPECTED + FLAKY + SKIPPED))
-          if [ "$UNEXPECTED" = "0" ]; then
-            echo "### ✅ Dev (e2e): $PASSED/$TOTAL tests passed" >> "$GITHUB_STEP_SUMMARY"
+          TOTAL=$(jq '.suites | length' playwright-report.json)
+          PASSED=$(jq '[.suites[] | select([.specs[].ok] | all)] | length' playwright-report.json)
+          if [ "$PASSED" = "$TOTAL" ]; then
+            echo "Test Files: $PASSED/$TOTAL pass ✅" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### ❌ Dev (e2e): $PASSED/$TOTAL tests passed ($UNEXPECTED failed)" >> "$GITHUB_STEP_SUMMARY"
+            echo "Test Files: $PASSED/$TOTAL pass ❌" >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # Mirrors whatever just passed onto the dev branch, so its Vercel
