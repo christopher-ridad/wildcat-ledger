@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
-// DEMO: intentionally failing to verify the Integration check actually
-// blocks the merge button on a real failure. Delete this file once you've
-// seen it go red on the PR.
+// DEMO: was deliberately wrong to prove Integration blocks the merge on a
+// real failure -- confirmed (see PR history). Fixed now so Integration
+// passes and the e2e failure in Dev can be observed in isolation. Delete
+// this whole file once that's confirmed too.
 describe('demo failing test', () => {
   test('deliberately wrong assertion', () => {
-    expect(1 + 1).toBe(3);
+    expect(1 + 1).toBe(2);
   });
 });
