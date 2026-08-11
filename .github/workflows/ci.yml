@@ -31,9 +31,7 @@ jobs:
           npx eslint src vite.config.ts --quiet
 
       - name: Unit & component tests
-        run: |
-          npx vitest run --reporter=default --reporter=github-actions \
-            --reporter=json --outputFile.json=vitest-report.json
+        run: npx vitest run
 
       - name: Write test summary
         if: always()
