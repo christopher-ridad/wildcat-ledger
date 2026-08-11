@@ -5,6 +5,11 @@ dist-ssr
 *.local
 node_modules/*
 coverage
+test-results
+playwright-report
+playwright-report.json
+blob-report
+vitest-report.json
 CLAUDE.md
 .env
 .env

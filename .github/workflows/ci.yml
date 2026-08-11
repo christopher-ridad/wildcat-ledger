@@ -1,14 +1,14 @@
 name: CI
 
 on:
-  push:
-    branches: [dev]
   pull_request:
-    branches: [main, dev]
+    branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-  ci:
-    name: Type Check, Lint, Test, Build
+  integration:
+    name: Integration
     runs-on: ubuntu-latest
 
     steps:
@@ -30,8 +30,42 @@ jobs:
           npx prettier --check "./**/*.{js,jsx,ts,tsx,css,md,json}"
           npx eslint src vite.config.ts --quiet
 
-      - name: Test
+      - name: Unit & component tests
         run: npx vitest run
+
+      - name: Write test summary
+        if: always()
+        run: |
+          if [ ! -f vitest-report.json ]; then
+            echo "Test Files: not run (an earlier step failed) ⚠️" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          FILES_TOTAL=$(jq '.testResults | length' vitest-report.json)
+          FILES_PASSED=$(jq '[.testResults[] | select(.status == "passed")] | length' vitest-report.json)
+          TESTS_TOTAL=$(jq '.numTotalTests' vitest-report.json)
+          TESTS_PASSED=$(jq '.numPassedTests' vitest-report.json)
+          FILES_MARK=✅; [ "$FILES_PASSED" = "$FILES_TOTAL" ] || FILES_MARK=❌
+          TESTS_MARK=✅; [ "$TESTS_PASSED" = "$TESTS_TOTAL" ] || TESTS_MARK=❌
+          echo "Test Files: $FILES_PASSED/$FILES_TOTAL pass $FILES_MARK" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tests: $TESTS_PASSED/$TESTS_TOTAL pass $TESTS_MARK" >> "$GITHUB_STEP_SUMMARY"
+
+  dev:
+    name: Dev
+    needs: integration
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Build
         run: npm run build
@@ -39,3 +73,37 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npx playwright test
+
+      - name: Write e2e summary
+        if: always()
+        run: |
+          if [ ! -f playwright-report.json ]; then
+            echo "Test Files: not run (an earlier step failed) ⚠️" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          FILES_TOTAL=$(jq '.suites | length' playwright-report.json)
+          FILES_PASSED=$(jq '[.suites[] | select([.specs[].ok] | all)] | length' playwright-report.json)
+          EXPECTED=$(jq '.stats.expected' playwright-report.json)
+          UNEXPECTED=$(jq '.stats.unexpected' playwright-report.json)
+          FLAKY=$(jq '.stats.flaky' playwright-report.json)
+          SKIPPED=$(jq '.stats.skipped' playwright-report.json)
+          TESTS_PASSED=$((EXPECTED + FLAKY))
+          TESTS_TOTAL=$((EXPECTED + UNEXPECTED + FLAKY + SKIPPED))
+          FILES_MARK=✅; [ "$FILES_PASSED" = "$FILES_TOTAL" ] || FILES_MARK=❌
+          TESTS_MARK=✅; [ "$UNEXPECTED" = "0" ] || TESTS_MARK=❌
+          echo "Test Files: $FILES_PASSED/$FILES_TOTAL pass $FILES_MARK" >> "$GITHUB_STEP_SUMMARY"
+          echo "Tests: $TESTS_PASSED/$TESTS_TOTAL pass $TESTS_MARK" >> "$GITHUB_STEP_SUMMARY"
+
+      # Mirrors whatever just passed onto the dev branch, so its Vercel
+      # branch deployment (a stable URL, unlike the per-PR preview) always
+      # reflects either the PR currently under review or, once merged,
+      # main itself. Force-push because dev has no independent history of
+      # its own -- it's a pointer, not a branch anyone commits to directly.
+      - name: Deploy this build to the dev environment
+        run: git push origin HEAD:dev --force
