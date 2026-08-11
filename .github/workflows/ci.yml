@@ -31,7 +31,25 @@ jobs:
           npx eslint src vite.config.ts --quiet
 
       - name: Unit & component tests
-        run: npx vitest run --reporter=default --reporter=github-actions
+        run: |
+          npx vitest run --reporter=default --reporter=github-actions \
+            --reporter=json --outputFile.json=vitest-report.json
+
+      - name: Write test summary
+        if: always()
+        run: |
+          if [ ! -f vitest-report.json ]; then
+            echo "### ⚠️ Integration: tests did not run (an earlier step failed)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          PASSED=$(jq '.numPassedTests' vitest-report.json)
+          TOTAL=$(jq '.numTotalTests' vitest-report.json)
+          FAILED=$(jq '.numFailedTests' vitest-report.json)
+          if [ "$FAILED" = "0" ]; then
+            echo "### ✅ Integration: $PASSED/$TOTAL tests passed" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Integration: $PASSED/$TOTAL tests passed ($FAILED failed)" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
   dev:
     name: Dev
@@ -63,6 +81,25 @@ jobs:
 
       - name: End-to-end tests
         run: npx playwright test
+
+      - name: Write e2e summary
+        if: always()
+        run: |
+          if [ ! -f playwright-report.json ]; then
+            echo "### ⚠️ Dev (e2e): tests did not run (an earlier step failed)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          EXPECTED=$(jq '.stats.expected' playwright-report.json)
+          UNEXPECTED=$(jq '.stats.unexpected' playwright-report.json)
+          FLAKY=$(jq '.stats.flaky' playwright-report.json)
+          SKIPPED=$(jq '.stats.skipped' playwright-report.json)
+          PASSED=$((EXPECTED + FLAKY))
+          TOTAL=$((EXPECTED + UNEXPECTED + FLAKY + SKIPPED))
+          if [ "$UNEXPECTED" = "0" ]; then
+            echo "### ✅ Dev (e2e): $PASSED/$TOTAL tests passed" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Dev (e2e): $PASSED/$TOTAL tests passed ($UNEXPECTED failed)" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       # Mirrors whatever just passed onto the dev branch, so its Vercel
       # branch deployment (a stable URL, unlike the per-PR preview) always
