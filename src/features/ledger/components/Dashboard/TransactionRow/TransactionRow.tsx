@@ -66,11 +66,16 @@ export const TransactionRow = ({
   };
 
   const colSpan = canEdit ? 7 : 6;
-  const isDebitCard = t.budgetLine === 'Debit Card';
-  const isReconciled = isDebitCard && t.reconciledAt != null;
-  const paymentStatus = PAYMENT_STATUS_TYPES.includes(t.type)
-    ? (t.paymentStatus ?? 'Pending')
-    : null;
+  // A Deposit on the Debit Card line is a reload — it goes through the same
+  // payment-status lifecycle as Direct Payment/Reimbursement, not
+  // reconciliation (that's only for purchases needing a receipt).
+  const isReloadDeposit = t.budgetLine === 'Debit Card' && t.type === 'Deposit';
+  const isDebitCardPurchase = t.budgetLine === 'Debit Card' && !isReloadDeposit;
+  const isReconciled = isDebitCardPurchase && t.reconciledAt != null;
+  const paymentStatus =
+    PAYMENT_STATUS_TYPES.includes(t.type) || isReloadDeposit
+      ? (t.paymentStatus ?? 'Pending')
+      : null;
 
   const changedKeys =
     pending?.type === 'edit' ? diffChangedKeys(pending.before, pending.after) : [];
@@ -97,7 +102,7 @@ export const TransactionRow = ({
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
         <td className={`${styles['wl-td']} ${styles['wl-td-status']}`}>
-          {isDebitCard ? (
+          {isDebitCardPurchase ? (
             <span
               className={
                 isReconciled

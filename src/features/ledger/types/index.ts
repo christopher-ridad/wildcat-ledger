@@ -7,10 +7,10 @@ export type TransactionType =
 
 export type TransactionDirection = 'Inflow' | 'Outflow';
 
-// Direct Payment / Reimbursement only — tracks real-world fulfillment,
-// distinct from PendingChange (which governs edits/deletes to the record
-// itself). Debit Card purchases use reconciledAt instead; Deposits don't
-// need a status.
+// Direct Payment / Reimbursement, plus Deposits onto the Debit Card line
+// (reloads) — tracks real-world fulfillment, distinct from PendingChange
+// (which governs edits/deletes to the record itself). Debit Card purchases
+// use reconciledAt instead; other Deposits don't need a status.
 export type PaymentStatus = 'Pending' | 'Approved' | 'Paid';
 
 export interface Transaction {
@@ -58,7 +58,6 @@ export type AuditAction =
   | 'reject'
   | 'cancel'
   | 'reconcile'
-  | 'reload_request'
   | 'payment_status_change';
 
 export interface AuditEntry {
@@ -76,16 +75,6 @@ export interface AuditEntry {
     exemptionCount: number;
     transactionIds: string[];
   };
-  reloadAmount?: number;
-}
-
-export interface ReloadRequest {
-  id: string;
-  amount: number;
-  requestedBy: string;
-  requestedAt: number;
-  reconciledTotal: number;
-  transactionCount: number;
 }
 
 export interface BudgetLineSummaryData {
@@ -154,12 +143,6 @@ export interface LedgerContextValue {
   initializeBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   reconcileTransactions: (transactionIds: string[]) => Promise<void>;
   uploadExemptionForm: (transactionId: string, file: File) => Promise<void>;
-  reloadRequests: ReloadRequest[];
-  requestReload: (
-    amount: number,
-    reconciledTotal: number,
-    transactionCount: number,
-  ) => Promise<void>;
   selectedBudgetLine: BudgetLine | null;
   setSelectedBudgetLine: (line: BudgetLine | null) => void;
   filteredTransactions: Transaction[];

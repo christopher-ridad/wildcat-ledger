@@ -2,7 +2,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
-  buildMockAuditEntry,
   buildMockOrganization,
   buildMockTransaction,
   MockLedgerProvider,
@@ -183,7 +182,7 @@ describe('ReconciliationModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  test('pre-fills the reload amount with the current total when there is no reconciliation history', async () => {
+  test('the reload amount starts blank', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
       transactions: [
@@ -201,11 +200,13 @@ describe('ReconciliationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
 
-    expect(screen.getByLabelText('Amount')).toHaveValue('50.00');
+    expect(screen.getByLabelText('Amount')).toHaveValue('');
   });
 
-  test('averages the current total with past reconciliations for the suggested reload amount', async () => {
+  test('submitting a reload amount creates a Deposit transaction on the Debit Card line', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    const generateTransactionId = vi.fn(() => 'reload-id');
     const org = buildMockOrganization({
       transactions: [
         buildMockTransaction({
@@ -217,40 +218,12 @@ describe('ReconciliationModal', () => {
         }),
       ],
     });
-    const auditLog = [
-      buildMockAuditEntry({
-        action: 'reconcile',
-        reconciliationSummary: {
-          transactionCount: 2,
-          totalAmount: 100,
-          exemptionCount: 0,
-          transactionIds: ['a', 'b'],
-        },
-      }),
-    ];
-    renderModal({ activeOrganization: org, reconcileTransactions, auditLog });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
-    await screen.findByText('Reconciliation complete!');
-
-    expect(screen.getByLabelText('Amount')).toHaveValue('75.00');
-  });
-
-  test('lets the user override the amount, and submitting calls requestReload', async () => {
-    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
-    const requestReload = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
-      transactions: [
-        buildMockTransaction({
-          id: 't1',
-          budgetLine: 'Debit Card',
-          receiptFileUrl: 'r1',
-          amount: 50,
-          direction: 'Outflow',
-        }),
-      ],
+    renderModal({
+      activeOrganization: org,
+      reconcileTransactions,
+      addTransaction,
+      generateTransactionId,
     });
-    renderModal({ activeOrganization: org, reconcileTransactions, requestReload });
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
@@ -258,15 +231,25 @@ describe('ReconciliationModal', () => {
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
-    await vi.waitFor(() => expect(requestReload).toHaveBeenCalledWith(200, 50, 1));
+    await vi.waitFor(() =>
+      expect(addTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 200,
+          direction: 'Inflow',
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+        }),
+        'reload-id',
+      ),
+    );
     expect(
-      await screen.findByText(/Reload request for \$200\.00 submitted/),
+      await screen.findByText(/Reload of \$200\.00 added — pending approval/),
     ).toBeInTheDocument();
   });
 
   test('shows an error message when the reload request fails', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
-    const requestReload = vi.fn().mockRejectedValue(new Error('Reload rejected'));
+    const addTransaction = vi.fn().mockRejectedValue(new Error('Reload rejected'));
     const org = buildMockOrganization({
       transactions: [
         buildMockTransaction({
@@ -278,13 +261,32 @@ describe('ReconciliationModal', () => {
         }),
       ],
     });
-    renderModal({ activeOrganization: org, reconcileTransactions, requestReload });
+    renderModal({ activeOrganization: org, reconcileTransactions, addTransaction });
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
     expect(await screen.findByText('Reload rejected')).toBeInTheDocument();
+  });
+
+  test('reload deposits do not show up in the unreconciled transactions list', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          type: 'Deposit',
+          direction: 'Inflow',
+          amount: 200,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(
+      screen.getByText('All debit card transactions are already reconciled.'),
+    ).toBeInTheDocument();
   });
 
   test('pressing Escape calls onClose', () => {

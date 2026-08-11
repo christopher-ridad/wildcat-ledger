@@ -70,8 +70,6 @@ export const buildMockLedgerContext = (
   initializeBudgetAllocations: vi.fn().mockResolvedValue(undefined),
   reconcileTransactions: vi.fn().mockResolvedValue(undefined),
   uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
-  reloadRequests: [],
-  requestReload: vi.fn().mockResolvedValue(undefined),
   selectedBudgetLine: null,
   setSelectedBudgetLine: vi.fn(),
   filteredTransactions: [],

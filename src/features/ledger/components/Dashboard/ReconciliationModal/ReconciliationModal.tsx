@@ -26,13 +26,17 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     activeOrganization,
     reconcileTransactions,
     uploadExemptionForm,
-    auditLog,
-    requestReload,
+    addTransaction,
+    generateTransactionId,
   } = useLedger();
 
-  // Unreconciled debit card transactions
+  // Unreconciled debit card *purchases* needing a receipt before they can be
+  // reconciled. Reload deposits also live on the Debit Card budget line but
+  // don't need reconciliation — they're tracked via their own payment
+  // status instead (see TransactionRow).
   const unreconciledTxns: Transaction[] = (activeOrganization?.transactions ?? []).filter(
-    (t) => t.budgetLine === 'Debit Card' && t.reconciledAt == null,
+    (t) =>
+      t.budgetLine === 'Debit Card' && t.type !== 'Deposit' && t.reconciledAt == null,
   );
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -147,18 +151,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setSnapshotTxnsWithReceipts(
         reconciledTxns.filter((t) => t.receiptFileUrl || t.exemptionFormUrl),
       );
-      const priorTotals = auditLog
-        .filter((e) => e.action === 'reconcile' && e.reconciliationSummary)
-        .map((e) => e.reconciliationSummary!.totalAmount);
-      const suggested =
-        [...priorTotals, totalAmount].reduce((sum, n) => sum + n, 0) /
-        (priorTotals.length + 1);
 
       await reconcileTransactions([...selected]);
 
       const summary = { transactionCount: selected.size, totalAmount, exemptionCount };
       setReconSummary(summary);
-      setReloadAmountInput(suggested.toFixed(2));
       setStep('reload');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reconciliation failed.');
@@ -177,10 +174,17 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     setRequestingReload(true);
     setReloadError(null);
     try {
-      await requestReload(
-        amount,
-        reconSummary.totalAmount,
-        reconSummary.transactionCount,
+      await addTransaction(
+        {
+          title: 'Debit Card Reload',
+          date: new Date().toISOString().slice(0, 10),
+          amount,
+          direction: 'Inflow',
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+          notes: `Requested after reconciling ${reconSummary.transactionCount} transaction${reconSummary.transactionCount !== 1 ? 's' : ''} (${formatCurrency(reconSummary.totalAmount)} total).`,
+        },
+        generateTransactionId(),
       );
       setReloadRequested(true);
     } catch (err) {
@@ -432,14 +436,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                 </h3>
                 {reloadRequested ? (
                   <p className={styles['wl-recon-reload-confirm']}>
-                    ✓ Reload request for {formatCurrency(parseFloat(reloadAmountInput))}{' '}
-                    submitted.
+                    ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added —
+                    pending approval.
                   </p>
                 ) : (
                   <>
                     <p className={styles['wl-recon-reload-hint']}>
-                      Suggested based on the average of past reconciliations — adjust if
-                      needed.
+                      Creates a Deposit transaction on the Debit Card line, which counts
+                      toward the balance once approved and paid.
                     </p>
                     <div className={styles['wl-recon-reload-row']}>
                       <div className="wl-form-group">
@@ -453,6 +457,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                             type="text"
                             inputMode="decimal"
                             className={`wl-form-input ${styles['wl-amount-input']}`}
+                            placeholder="0.00"
                             value={reloadAmountInput}
                             onChange={(e) => setReloadAmountInput(e.target.value)}
                           />

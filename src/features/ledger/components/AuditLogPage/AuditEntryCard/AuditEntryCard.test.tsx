@@ -14,7 +14,6 @@ describe('AuditEntryCard', () => {
     ['reject', 'Rejected'],
     ['cancel', 'Cancelled'],
     ['reconcile', 'Reconciled'],
-    ['reload_request', 'Reload Requested'],
     ['payment_status_change', 'Payment Status Updated'],
   ])('renders the %s badge as "%s"', (action, label) => {
     render(<AuditEntryCard entry={buildMockAuditEntry({ action })} />);
@@ -149,14 +148,5 @@ describe('AuditEntryCard', () => {
       />,
     );
     expect(screen.queryByText(/exemption/)).not.toBeInTheDocument();
-  });
-
-  test('shows the requested reload amount', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({ action: 'reload_request', reloadAmount: 100 })}
-      />,
-    );
-    expect(screen.getByText('Amount requested: $100.00')).toBeInTheDocument();
   });
 });
