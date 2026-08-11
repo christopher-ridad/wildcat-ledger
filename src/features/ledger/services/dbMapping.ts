@@ -1,13 +1,7 @@
 // Converts between the app's camelCase types (src/types/index.ts) and the
 // snake_case columns used by the Postgres schema in supabase/migrations.
 
-import {
-  AuditEntry,
-  Organization,
-  PendingChange,
-  ReloadRequest,
-  Transaction,
-} from '../types';
+import { AuditEntry, Organization, PendingChange, Transaction } from '../types';
 
 export const rowToTransaction = (row: Record<string, unknown>): Transaction => ({
   id: row.id as string,
@@ -62,7 +56,6 @@ export const rowToAuditEntry = (row: Record<string, unknown>): AuditEntry => ({
   after: row.after as AuditEntry['after'],
   reconciliationSummary:
     row.reconciliation_summary as AuditEntry['reconciliationSummary'],
-  reloadAmount: (row.reload_amount as number) ?? undefined,
 });
 
 export const rowToPendingChange = (row: Record<string, unknown>): PendingChange => ({
@@ -75,13 +68,4 @@ export const rowToPendingChange = (row: Record<string, unknown>): PendingChange 
   requestedAt: row.requested_at as number,
   before: row.before as PendingChange['before'],
   after: row.after as PendingChange['after'],
-});
-
-export const rowToReloadRequest = (row: Record<string, unknown>): ReloadRequest => ({
-  id: row.id as string,
-  amount: Number(row.amount),
-  requestedBy: row.requested_by as string,
-  requestedAt: row.requested_at as number,
-  reconciledTotal: Number(row.reconciled_total),
-  transactionCount: row.transaction_count as number,
 });

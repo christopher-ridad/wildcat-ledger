@@ -77,12 +77,6 @@ const ACTION_LABELS: Record<AuditAction, ActionDisplay> = {
     className: 'wl-audit-badge--approve',
     entryClass: 'wl-audit-entry--approve',
   },
-  reload_request: {
-    label: 'Reload Requested',
-    icon: '↻',
-    className: 'wl-audit-badge--create',
-    entryClass: 'wl-audit-entry--create',
-  },
   payment_status_change: {
     label: 'Payment Status Updated',
     icon: '$',
@@ -193,11 +187,6 @@ export const AuditEntryCard = ({ entry }: { entry: AuditEntry }) => {
               </span>
             </>
           )}
-        </div>
-      )}
-      {entry.action === 'reload_request' && entry.reloadAmount != null && (
-        <div className={styles['wl-audit-recon-summary']}>
-          <span>Amount requested: ${entry.reloadAmount.toFixed(2)}</span>
         </div>
       )}
     </div>

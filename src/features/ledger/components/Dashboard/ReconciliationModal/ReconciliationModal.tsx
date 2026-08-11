@@ -22,11 +22,21 @@ const formatDate = (ts: number) =>
 type Step = 'review' | 'reload';
 
 export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProps) => {
-  const { activeOrganization, reconcileTransactions, uploadExemptionForm } = useLedger();
+  const {
+    activeOrganization,
+    reconcileTransactions,
+    uploadExemptionForm,
+    addTransaction,
+    generateTransactionId,
+  } = useLedger();
 
-  // Unreconciled debit card transactions
+  // Unreconciled debit card *purchases* needing a receipt before they can be
+  // reconciled. Reload deposits also live on the Debit Card budget line but
+  // don't need reconciliation — they're tracked via their own payment
+  // status instead (see TransactionRow).
   const unreconciledTxns: Transaction[] = (activeOrganization?.transactions ?? []).filter(
-    (t) => t.budgetLine === 'Debit Card' && t.reconciledAt == null,
+    (t) =>
+      t.budgetLine === 'Debit Card' && t.type !== 'Deposit' && t.reconciledAt == null,
   );
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -46,19 +56,25 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [snapshotTxnsWithReceipts, setSnapshotTxnsWithReceipts] = useState<Transaction[]>(
     [],
   );
+  const [reloadAmountInput, setReloadAmountInput] = useState('');
+  const [requestingReload, setRequestingReload] = useState(false);
+  const [reloadRequested, setReloadRequested] = useState(false);
+  const [reloadError, setReloadError] = useState<string | null>(null);
   // A transaction is "covered" if it has a receipt or an attached exemption form
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
 
-  // Reset selection whenever modal opens.
-  // Only pre-select covered transactions when there are no uncovered ones;
-  // if any transaction is missing a receipt, start with nothing selected.
+  // Reset selection whenever the modal opens (the false→true transition only —
+  // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
+  // open, since reconciling flips those via Realtime a moment later and would
+  // otherwise reset `step` back to 'review' right under the success screen).
   const coveredIds = unreconciledTxns
     .filter(isCovered)
     .map((t) => t.id)
     .join(',');
   const uncoveredCount = unreconciledTxns.filter((t) => !isCovered(t)).length;
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       setSelected(
         uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
       );
@@ -67,7 +83,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setUploadError({});
       setStep('review');
       setReconSummary(null);
+      setReloadAmountInput('');
+      setRequestingReload(false);
+      setReloadRequested(false);
+      setReloadError(null);
     }
+    wasOpenRef.current = isOpen;
   }, [isOpen, coveredIds, uncoveredCount]);
 
   useEffect(() => {
@@ -130,6 +151,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setSnapshotTxnsWithReceipts(
         reconciledTxns.filter((t) => t.receiptFileUrl || t.exemptionFormUrl),
       );
+
       await reconcileTransactions([...selected]);
 
       const summary = { transactionCount: selected.size, totalAmount, exemptionCount };
@@ -139,6 +161,36 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setError(err instanceof Error ? err.message : 'Reconciliation failed.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRequestReload = async () => {
+    if (!reconSummary) return;
+    const amount = parseFloat(reloadAmountInput);
+    if (Number.isNaN(amount) || amount <= 0) {
+      setReloadError('Enter a valid reload amount.');
+      return;
+    }
+    setRequestingReload(true);
+    setReloadError(null);
+    try {
+      await addTransaction(
+        {
+          title: 'Debit Card Reload',
+          date: new Date().toISOString().slice(0, 10),
+          amount,
+          direction: 'Inflow',
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+          notes: `Requested after reconciling ${reconSummary.transactionCount} transaction${reconSummary.transactionCount !== 1 ? 's' : ''} (${formatCurrency(reconSummary.totalAmount)} total).`,
+        },
+        generateTransactionId(),
+      );
+      setReloadRequested(true);
+    } catch (err) {
+      setReloadError(err instanceof Error ? err.message : 'Reload request failed.');
+    } finally {
+      setRequestingReload(false);
     }
   };
 
@@ -376,6 +428,53 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className={styles['wl-recon-reload']}>
+                <h3 className={styles['wl-recon-reload-title']}>
+                  Request a Debit Card Reload
+                </h3>
+                {reloadRequested ? (
+                  <p className={styles['wl-recon-reload-confirm']}>
+                    ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added —
+                    pending approval.
+                  </p>
+                ) : (
+                  <>
+                    <p className={styles['wl-recon-reload-hint']}>
+                      Creates a Deposit transaction on the Debit Card line, which counts
+                      toward the balance once approved and paid.
+                    </p>
+                    <div className={styles['wl-recon-reload-row']}>
+                      <div className="wl-form-group">
+                        <label className="wl-form-label" htmlFor="reload-amount">
+                          Amount
+                        </label>
+                        <div className={styles['wl-amount-input-wrap']}>
+                          <span className={styles['wl-amount-input-prefix']}>$</span>
+                          <input
+                            id="reload-amount"
+                            type="text"
+                            inputMode="decimal"
+                            className={`wl-form-input ${styles['wl-amount-input']}`}
+                            placeholder="0.00"
+                            value={reloadAmountInput}
+                            onChange={(e) => setReloadAmountInput(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles['wl-btn-download-zip']}
+                        onClick={handleRequestReload}
+                        disabled={requestingReload}
+                      >
+                        {requestingReload ? 'Submitting…' : 'Request Reload'}
+                      </button>
+                    </div>
+                    {reloadError && <div className="wl-form-error">{reloadError}</div>}
+                  </>
+                )}
               </div>
 
               <div className={styles['wl-recon-actions']}>
