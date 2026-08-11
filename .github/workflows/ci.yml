@@ -58,10 +58,11 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
 
-      # End-to-end (Playwright) tests land here once set up as a follow-up --
-      # this job is the natural home for them: it only runs once Integration
-      # has already passed, and it's what gates the merge button on main
-      # alongside Integration.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npx playwright test
 
       # Mirrors whatever just passed onto the dev branch, so its Vercel
       # branch deployment (a stable URL, unlike the per-PR preview) always
