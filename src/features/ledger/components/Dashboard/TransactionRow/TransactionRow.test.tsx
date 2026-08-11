@@ -189,7 +189,7 @@ describe('TransactionRow', () => {
       expect(screen.getByLabelText('Payment status')).toHaveValue('Paid');
     });
 
-    test('shows an editable select for a Debit Card reload deposit', () => {
+    test('shows an editable select for a Debit Card reload deposit, with no Approved option', () => {
       renderRow({
         canEdit: true,
         t: buildMockTransaction({
@@ -198,7 +198,23 @@ describe('TransactionRow', () => {
           paymentStatus: 'Pending',
         }),
       });
-      expect(screen.getByLabelText('Payment status')).toHaveValue('Pending');
+      const select = screen.getByLabelText('Payment status');
+      expect(select).toHaveValue('Pending');
+      expect(screen.queryByText('Approved')).not.toBeInTheDocument();
+      expect(screen.getByText('Reloaded')).toBeInTheDocument();
+    });
+
+    test('labels a Paid reload deposit as "Reloaded" rather than "Paid"', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+          paymentStatus: 'Paid',
+        }),
+      });
+      expect(screen.getByText('Reloaded')).toBeInTheDocument();
+      expect(screen.queryByText('Paid')).not.toBeInTheDocument();
     });
 
     test('falls back to a read-only badge while a pending edit/delete exists', () => {

@@ -21,6 +21,12 @@ const STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
 
 const PAYMENT_STATUS_TYPES: Transaction['type'][] = ['Direct payment', 'Reimbursement'];
 
+// Reload deposits skip the "Approved" middle state — approving a reload IS
+// reloading it, there's no separate paid-out step — so they only ever go
+// Pending -> Paid, and "Paid" reads as "Reloaded" for that transaction type.
+const statusLabel = (status: PaymentStatus, isReloadDeposit: boolean) =>
+  isReloadDeposit && status === 'Paid' ? 'Reloaded' : status;
+
 export const TransactionRow = ({
   t,
   canEdit,
@@ -122,14 +128,14 @@ export const TransactionRow = ({
                 onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
               >
                 <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Paid">Paid</option>
+                {!isReloadDeposit && <option value="Approved">Approved</option>}
+                <option value="Paid">{statusLabel('Paid', isReloadDeposit)}</option>
               </select>
             ) : (
               <span
                 className={`${styles['wl-status-badge']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
               >
-                {paymentStatus}
+                {statusLabel(paymentStatus, isReloadDeposit)}
               </span>
             )
           ) : (
