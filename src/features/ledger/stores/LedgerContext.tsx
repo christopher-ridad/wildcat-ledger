@@ -6,7 +6,6 @@ import {
   rowToAuditEntry,
   rowToOrganization,
   rowToPendingChange,
-  rowToReloadRequest,
   rowToTransaction,
 } from '../services/dbMapping';
 import { documentPath, uploadDocument } from '../services/storage';
@@ -18,7 +17,6 @@ import {
   Organization,
   PaymentStatus,
   PendingChange,
-  ReloadRequest,
   Transaction,
   UserRole,
 } from '../types';
@@ -41,7 +39,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
-  const [reloadRequests, setReloadRequests] = useState<ReloadRequest[]>([]);
   const [activeOrganizationId, setActiveOrganizationIdState] = useState<string | null>(
     () => localStorage.getItem('activeOrganizationId'),
   );
@@ -113,7 +110,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   }, [userEmail]);
 
   // When the active org changes, keep its transactions/audit log/pending
-  // changes/reload requests live via Realtime.
+  // changes live via Realtime.
   useEffect(() => {
     if (!activeOrganizationId) return;
 
@@ -146,19 +143,9 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
       setPendingChanges((data ?? []).map(rowToPendingChange));
     };
 
-    const loadReloadRequests = async () => {
-      const { data } = await supabase
-        .from('reload_requests')
-        .select('*')
-        .eq('org_id', activeOrganizationId)
-        .order('requested_at', { ascending: false });
-      setReloadRequests((data ?? []).map(rowToReloadRequest));
-    };
-
     loadTransactions();
     loadAuditLog();
     loadPendingChanges();
-    loadReloadRequests();
 
     const channel = supabase
       .channel(`org-${activeOrganizationId}-changes`)
@@ -191,16 +178,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
           filter: `org_id=eq.${activeOrganizationId}`,
         },
         loadPendingChanges,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'reload_requests',
-          filter: `org_id=eq.${activeOrganizationId}`,
-        },
-        loadReloadRequests,
       )
       .subscribe();
 
@@ -322,21 +299,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
-  const requestReload = async (
-    amount: number,
-    reconciledTotal: number,
-    transactionCount: number,
-  ) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('request_reload_with_audit', {
-      p_org_id: activeOrganizationId,
-      p_amount: amount,
-      p_reconciled_total: reconciledTotal,
-      p_transaction_count: transactionCount,
-    });
-    if (error) throw error;
-  };
-
   const uploadExemptionForm = async (transactionId: string, file: File) => {
     if (!activeOrganizationId) return;
     const path = documentPath(
@@ -399,8 +361,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     initializeBudgetAllocations,
     reconcileTransactions,
     uploadExemptionForm,
-    reloadRequests,
-    requestReload,
     selectedBudgetLine,
     setSelectedBudgetLine,
     filteredTransactions,

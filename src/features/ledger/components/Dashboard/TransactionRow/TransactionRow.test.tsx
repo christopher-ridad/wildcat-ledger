@@ -126,6 +126,20 @@ describe('TransactionRow', () => {
       });
       expect(screen.getByText('—')).toBeInTheDocument();
     });
+
+    test('a Deposit (reload) on the Debit Card line shows payment status, not a reconciliation badge', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+          paymentStatus: 'Approved',
+        }),
+      });
+      expect(screen.getByText('Approved')).toBeInTheDocument();
+      expect(screen.queryByText('Not Reconciled')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reconciled')).not.toBeInTheDocument();
+    });
   });
 
   describe('payment status', () => {
@@ -173,6 +187,34 @@ describe('TransactionRow', () => {
         }),
       });
       expect(screen.getByLabelText('Payment status')).toHaveValue('Paid');
+    });
+
+    test('shows an editable select for a Debit Card reload deposit, with no Approved option', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+          paymentStatus: 'Pending',
+        }),
+      });
+      const select = screen.getByLabelText('Payment status');
+      expect(select).toHaveValue('Pending');
+      expect(screen.queryByText('Approved')).not.toBeInTheDocument();
+      expect(screen.getByText('Reloaded')).toBeInTheDocument();
+    });
+
+    test('labels a Paid reload deposit as "Reloaded" rather than "Paid"', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({
+          type: 'Deposit',
+          budgetLine: 'Debit Card',
+          paymentStatus: 'Paid',
+        }),
+      });
+      expect(screen.getByText('Reloaded')).toBeInTheDocument();
+      expect(screen.queryByText('Paid')).not.toBeInTheDocument();
     });
 
     test('falls back to a read-only badge while a pending edit/delete exists', () => {

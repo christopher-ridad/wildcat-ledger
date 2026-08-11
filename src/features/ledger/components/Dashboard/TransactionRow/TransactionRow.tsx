@@ -21,6 +21,12 @@ const STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
 
 const PAYMENT_STATUS_TYPES: Transaction['type'][] = ['Direct payment', 'Reimbursement'];
 
+// Reload deposits skip the "Approved" middle state — approving a reload IS
+// reloading it, there's no separate paid-out step — so they only ever go
+// Pending -> Paid, and "Paid" reads as "Reloaded" for that transaction type.
+const statusLabel = (status: PaymentStatus, isReloadDeposit: boolean) =>
+  isReloadDeposit && status === 'Paid' ? 'Reloaded' : status;
+
 export const TransactionRow = ({
   t,
   canEdit,
@@ -66,11 +72,16 @@ export const TransactionRow = ({
   };
 
   const colSpan = canEdit ? 7 : 6;
-  const isDebitCard = t.budgetLine === 'Debit Card';
-  const isReconciled = isDebitCard && t.reconciledAt != null;
-  const paymentStatus = PAYMENT_STATUS_TYPES.includes(t.type)
-    ? (t.paymentStatus ?? 'Pending')
-    : null;
+  // A Deposit on the Debit Card line is a reload — it goes through the same
+  // payment-status lifecycle as Direct Payment/Reimbursement, not
+  // reconciliation (that's only for purchases needing a receipt).
+  const isReloadDeposit = t.budgetLine === 'Debit Card' && t.type === 'Deposit';
+  const isDebitCardPurchase = t.budgetLine === 'Debit Card' && !isReloadDeposit;
+  const isReconciled = isDebitCardPurchase && t.reconciledAt != null;
+  const paymentStatus =
+    PAYMENT_STATUS_TYPES.includes(t.type) || isReloadDeposit
+      ? (t.paymentStatus ?? 'Pending')
+      : null;
 
   const changedKeys =
     pending?.type === 'edit' ? diffChangedKeys(pending.before, pending.after) : [];
@@ -97,7 +108,7 @@ export const TransactionRow = ({
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
         <td className={`${styles['wl-td']} ${styles['wl-td-status']}`}>
-          {isDebitCard ? (
+          {isDebitCardPurchase ? (
             <span
               className={
                 isReconciled
@@ -117,14 +128,14 @@ export const TransactionRow = ({
                 onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
               >
                 <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Paid">Paid</option>
+                {!isReloadDeposit && <option value="Approved">Approved</option>}
+                <option value="Paid">{statusLabel('Paid', isReloadDeposit)}</option>
               </select>
             ) : (
               <span
                 className={`${styles['wl-status-badge']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
               >
-                {paymentStatus}
+                {statusLabel(paymentStatus, isReloadDeposit)}
               </span>
             )
           ) : (
