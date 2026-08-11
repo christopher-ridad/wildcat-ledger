@@ -37,6 +37,8 @@ jobs:
     name: Dev
     needs: integration
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -60,3 +62,11 @@ jobs:
       # this job is the natural home for them: it only runs once Integration
       # has already passed, and it's what gates the merge button on main
       # alongside Integration.
+
+      # Mirrors whatever just passed onto the dev branch, so its Vercel
+      # branch deployment (a stable URL, unlike the per-PR preview) always
+      # reflects either the PR currently under review or, once merged,
+      # main itself. Force-push because dev has no independent history of
+      # its own -- it's a pointer, not a branch anyone commits to directly.
+      - name: Deploy this build to the dev environment
+        run: git push origin HEAD:dev --force
