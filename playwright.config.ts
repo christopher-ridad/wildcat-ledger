@@ -5,7 +5,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: 'list',
+  // 'github' adds inline PR annotations on failing lines, on top of the
+  // usual terminal output -- only useful (and only auto-detected) in CI.
+  reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: {
     baseURL: 'http://localhost:4173',
     trace: 'on-first-retry',

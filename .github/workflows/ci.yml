@@ -31,7 +31,7 @@ jobs:
           npx eslint src vite.config.ts --quiet
 
       - name: Unit & component tests
-        run: npx vitest run
+        run: npx vitest run --reporter=default --reporter=github-actions
 
   dev:
     name: Dev
