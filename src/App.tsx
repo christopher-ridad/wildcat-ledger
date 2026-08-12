@@ -10,7 +10,7 @@ import { CreateOrganization } from './pages/CreateOrganization';
 import { Dashboard } from './pages/Dashboard';
 import { LoginPage } from './pages/LoginPage';
 import { OrganizationsPage } from './pages/OrganizationsPage';
-import { UploadReceiptPage } from './pages/UploadReceiptPage';
+import { UploadDocumentPage } from './pages/UploadDocumentPage';
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -27,7 +27,9 @@ const App = () => (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/upload-receipt" element={<UploadReceiptPage />} />
+        <Route path="/upload-document" element={<UploadDocumentPage />} />
+        {/* Old path, kept working for any request emails already sent before the rename */}
+        <Route path="/upload-receipt" element={<UploadDocumentPage />} />
         <Route element={<ProtectedLayout />}>
           <Route path="/organizations" element={<OrganizationsPage />} />
           <Route path="/budget-setup" element={<CreateOrganization />} />

@@ -5,6 +5,7 @@ import { PaymentStatus, PendingChange, Transaction } from '../../../types';
 import { formatCurrency } from '../../../utils/calculations';
 import { SOFO_SALES_TAX_REIMBURSEMENT_URL } from '../../../utils/constants';
 import { diffChangedKeys } from '../../../utils/diff';
+import { getMissingDocuments } from '../../../utils/documentRequirements';
 import { getTransactionFiles } from '../TransactionFilesModal';
 import styles from './TransactionRow.module.css';
 
@@ -60,9 +61,11 @@ export const TransactionRow = ({
   const [showDetail, setShowDetail] = useState(false);
   const [actioning, setActioning] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [reimbursing, setReimbursing] = useState(false);
   const isInflow = t.direction === 'Inflow';
   const fileCount = getTransactionFiles(t).length;
+  const missingDocs = getMissingDocuments(t);
   const { user } = useAuth();
   const currentEmail = user?.email;
   const isMyPending = !!pending && pending.requestedBy === currentEmail;
@@ -76,7 +79,12 @@ export const TransactionRow = ({
 
   const handleStatusChange = (status: PaymentStatus) => {
     setStatusUpdating(true);
-    onUpdatePaymentStatus(t.id, status).finally(() => setStatusUpdating(false));
+    setStatusError(null);
+    onUpdatePaymentStatus(t.id, status)
+      .catch((err) => {
+        setStatusError(err instanceof Error ? err.message : 'Failed to update status.');
+      })
+      .finally(() => setStatusUpdating(false));
   };
 
   const handleMarkReimbursed = () => {
@@ -118,6 +126,20 @@ export const TransactionRow = ({
               {pending.type === 'delete' ? 'Delete requested' : 'Edit requested'}
             </span>
           )}
+          {missingDocs.length > 0 &&
+            (canEdit ? (
+              <button
+                type="button"
+                className={styles['wl-missing-docs-badge']}
+                onClick={() => onViewFiles(t)}
+              >
+                ⚠ Missing: {missingDocs.map((d) => d.label).join(', ')}
+              </button>
+            ) : (
+              <div className={styles['wl-missing-docs-badge']}>
+                ⚠ Missing: {missingDocs.map((d) => d.label).join(', ')}
+              </div>
+            ))}
           {needsTaxReimbursement && (
             <div className={styles['wl-tax-owed']}>
               <span className={styles['wl-tax-owed-badge']}>
@@ -169,17 +191,24 @@ export const TransactionRow = ({
             </span>
           ) : paymentStatus ? (
             canEdit && !pending ? (
-              <select
-                aria-label="Payment status"
-                className={`${styles['wl-status-select']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
-                value={paymentStatus}
-                disabled={statusUpdating}
-                onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
-              >
-                <option value="Pending">Pending</option>
-                {!isReloadDeposit && <option value="Approved">Approved</option>}
-                <option value="Paid">{statusLabel('Paid', isReloadDeposit)}</option>
-              </select>
+              <>
+                <select
+                  aria-label="Payment status"
+                  className={`${styles['wl-status-select']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
+                  value={paymentStatus}
+                  disabled={statusUpdating}
+                  onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
+                >
+                  <option value="Pending">Pending</option>
+                  {!isReloadDeposit && <option value="Approved">Approved</option>}
+                  <option value="Paid">{statusLabel('Paid', isReloadDeposit)}</option>
+                </select>
+                {statusError && (
+                  <div className={styles['wl-status-error']} role="alert">
+                    {statusError}
+                  </div>
+                )}
+              </>
             ) : (
               <span
                 className={`${styles['wl-status-badge']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
@@ -240,13 +269,19 @@ export const TransactionRow = ({
               ) : null
             ) : (
               <>
-                {fileCount > 0 && (
+                {(fileCount > 0 || missingDocs.length > 0) && (
                   <button
                     type="button"
-                    className={styles['wl-action-btn']}
+                    className={`${styles['wl-action-btn']} ${missingDocs.length > 0 ? styles['wl-action-btn--warning'] : ''}`}
                     onClick={() => onViewFiles(t)}
-                    aria-label={`View ${fileCount} attached file${fileCount !== 1 ? 's' : ''}`}
-                    title="View attached files"
+                    aria-label={
+                      missingDocs.length > 0
+                        ? 'View missing documents'
+                        : `View ${fileCount} attached file${fileCount !== 1 ? 's' : ''}`
+                    }
+                    title={
+                      missingDocs.length > 0 ? 'Missing documents' : 'View documents'
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

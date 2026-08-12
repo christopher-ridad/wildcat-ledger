@@ -21,11 +21,16 @@ const baseForm: FormState = {
   taxExemptFormSubmitted: false,
   taxAmount: '',
   contractFile: null,
+  contractAcknowledgedMissing: false,
   w9File: null,
+  w9AcknowledgedMissing: false,
   isIndividualVendor: false,
   contractedServicesFile: null,
+  contractedServicesAcknowledgedMissing: false,
   conflictOfInterestFile: null,
+  conflictOfInterestAcknowledgedMissing: false,
   specialPayFormFile: null,
+  specialPayFormAcknowledgedMissing: false,
   zelleInfo: '',
   reimbursedMemberName: '',
   notes: '',
@@ -96,40 +101,36 @@ describe('deriveDirection', () => {
 describe('validateTransactionForm', () => {
   test('requires a title', () => {
     const form = { ...baseForm, title: '  ', receiptFile };
-    expect(validateTransactionForm(form, false, undefined, new Set())).toBe(
-      'Title is required.',
-    );
+    expect(validateTransactionForm(form, false, undefined)).toBe('Title is required.');
   });
 
   test('requires a valid positive amount', () => {
     const form = { ...baseForm, amount: '0', receiptFile };
-    expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+    expect(validateTransactionForm(form, false, undefined)).toMatch(
       /valid dollar amount/,
     );
   });
 
   test('rejects negative and malformed amounts', () => {
     const form = { ...baseForm, amount: '-5', receiptFile };
-    expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+    expect(validateTransactionForm(form, false, undefined)).toMatch(
       /valid dollar amount/,
     );
   });
 
   describe('Debit Card', () => {
-    test('requires a receipt, request, or acknowledgment', () => {
+    test('requires a receipt or an acknowledgment', () => {
       const form = {
         ...baseForm,
         type: 'Debit Card' as const,
         receiptFile: null,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
-        /Upload a receipt/,
-      );
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/Upload a receipt/);
     });
 
     test('passes with a receipt file', () => {
       const form = { ...baseForm, type: 'Debit Card' as const, receiptFile };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('passes with noReceiptAcknowledged', () => {
@@ -139,18 +140,7 @@ describe('validateTransactionForm', () => {
         receiptFile: null,
         noReceiptAcknowledged: true,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
-    });
-
-    test('passes when receipt was requested via email', () => {
-      const form = {
-        ...baseForm,
-        type: 'Debit Card' as const,
-        receiptFile: null,
-      };
-      expect(
-        validateTransactionForm(form, false, undefined, new Set(['receipt'])),
-      ).toBeNull();
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('passes when editing and an existing receipt is already attached', () => {
@@ -169,7 +159,7 @@ describe('validateTransactionForm', () => {
         notes: '',
         receiptFileUrl: 'orgs/org-1/txn-1/receipt.png',
       };
-      expect(validateTransactionForm(form, true, existing, new Set())).toBeNull();
+      expect(validateTransactionForm(form, true, existing)).toBeNull();
     });
   });
 
@@ -184,9 +174,18 @@ describe('validateTransactionForm', () => {
         contractFile: null,
         w9File,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
-        /RSO Agreement/,
-      );
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/RSO Agreement/);
+    });
+
+    test('passes when the contract is acknowledged missing', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment Request' as const,
+        contractFile: null,
+        contractAcknowledgedMissing: true,
+        w9File,
+      };
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('requires a W-9 when creating', () => {
@@ -196,7 +195,7 @@ describe('validateTransactionForm', () => {
         contractFile,
         w9File: null,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(/W-9/);
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/W-9/);
     });
 
     test('does not require contract/W-9 when editing', () => {
@@ -206,7 +205,7 @@ describe('validateTransactionForm', () => {
         contractFile: null,
         w9File: null,
       };
-      expect(validateTransactionForm(form, true, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, true, undefined)).toBeNull();
     });
 
     test('individual vendors additionally require contracted services and conflict of interest forms', () => {
@@ -219,9 +218,24 @@ describe('validateTransactionForm', () => {
         contractedServicesFile: null,
         conflictOfInterestFile: null,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+      expect(validateTransactionForm(form, false, undefined)).toMatch(
         /Contracted Services Form/,
       );
+    });
+
+    test('individual-vendor requirements can be acknowledged missing', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment Request' as const,
+        contractFile,
+        w9File,
+        isIndividualVendor: true,
+        contractedServicesFile: null,
+        contractedServicesAcknowledgedMissing: true,
+        conflictOfInterestFile: null,
+        conflictOfInterestAcknowledgedMissing: true,
+      };
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('passes once all individual-vendor documents are provided', () => {
@@ -236,7 +250,7 @@ describe('validateTransactionForm', () => {
         contractedServicesFile: csFile,
         conflictOfInterestFile: coiFile,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('passes for a non-individual vendor with contract and W-9', () => {
@@ -246,7 +260,7 @@ describe('validateTransactionForm', () => {
         contractFile,
         w9File,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
   });
 
@@ -265,9 +279,7 @@ describe('validateTransactionForm', () => {
         w9File,
         specialPayFormFile,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
-        /RSO Agreement/,
-      );
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/RSO Agreement/);
     });
 
     test('requires a W-9 when creating', () => {
@@ -278,7 +290,7 @@ describe('validateTransactionForm', () => {
         w9File: null,
         specialPayFormFile,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(/W-9/);
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/W-9/);
     });
 
     test('requires the Special Pay Form when creating', () => {
@@ -289,9 +301,21 @@ describe('validateTransactionForm', () => {
         w9File,
         specialPayFormFile: null,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
-        /Special Pay Form/,
-      );
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/Special Pay Form/);
+    });
+
+    test('passes once all three are acknowledged missing', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment to NU Employee' as const,
+        contractFile: null,
+        contractAcknowledgedMissing: true,
+        w9File: null,
+        w9AcknowledgedMissing: true,
+        specialPayFormFile: null,
+        specialPayFormAcknowledgedMissing: true,
+      };
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('does not require documents when editing', () => {
@@ -302,7 +326,7 @@ describe('validateTransactionForm', () => {
         w9File: null,
         specialPayFormFile: null,
       };
-      expect(validateTransactionForm(form, true, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, true, undefined)).toBeNull();
     });
 
     test('passes once contract, W-9, and Special Pay Form are all provided', () => {
@@ -313,7 +337,7 @@ describe('validateTransactionForm', () => {
         w9File,
         specialPayFormFile,
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
   });
 
@@ -326,12 +350,12 @@ describe('validateTransactionForm', () => {
         zelleInfo: 'person@example.com',
         reimbursedMemberName: '  ',
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+      expect(validateTransactionForm(form, false, undefined)).toMatch(
         /member being reimbursed/,
       );
     });
 
-    test('requires a receipt when creating', () => {
+    test('requires a receipt or an acknowledgment when creating', () => {
       const form = {
         ...baseForm,
         type: 'Non-Officer Reimbursement' as const,
@@ -339,9 +363,21 @@ describe('validateTransactionForm', () => {
         zelleInfo: 'person@example.com',
         reimbursedMemberName: 'Jane Doe',
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+      expect(validateTransactionForm(form, false, undefined)).toMatch(
         /Upload a receipt photo/,
       );
+    });
+
+    test('passes when the receipt is acknowledged missing', () => {
+      const form = {
+        ...baseForm,
+        type: 'Non-Officer Reimbursement' as const,
+        receiptFile: null,
+        noReceiptAcknowledged: true,
+        zelleInfo: 'person@example.com',
+        reimbursedMemberName: 'Jane Doe',
+      };
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
     test('requires Zelle info', () => {
@@ -352,7 +388,7 @@ describe('validateTransactionForm', () => {
         zelleInfo: '',
         reimbursedMemberName: 'Jane Doe',
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+      expect(validateTransactionForm(form, false, undefined)).toMatch(
         /Zelle information/,
       );
     });
@@ -365,9 +401,7 @@ describe('validateTransactionForm', () => {
         zelleInfo: 'not valid',
         reimbursedMemberName: 'Jane Doe',
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
-        /valid Zelle/,
-      );
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/valid Zelle/);
     });
 
     test('passes with a member name, a receipt, and a valid Zelle email', () => {
@@ -378,12 +412,12 @@ describe('validateTransactionForm', () => {
         zelleInfo: 'person@example.com',
         reimbursedMemberName: 'Jane Doe',
       };
-      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
   });
 
   test('Deposit requires only title and amount', () => {
     const form = { ...baseForm, type: 'Deposit' as const, receiptFile: null };
-    expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+    expect(validateTransactionForm(form, false, undefined)).toBeNull();
   });
 });

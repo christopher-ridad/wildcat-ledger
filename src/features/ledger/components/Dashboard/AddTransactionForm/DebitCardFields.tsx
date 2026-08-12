@@ -11,10 +11,8 @@ interface DebitCardFieldsProps {
   isEditing: boolean;
   existingTransaction?: Transaction;
   scanning: boolean;
-  requestedDocTypes: Set<string>;
   onReceiptChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  onRequestDocument: (docType: string, label: string, templatePath?: string) => void;
 }
 
 export const DebitCardFields = ({
@@ -22,10 +20,8 @@ export const DebitCardFields = ({
   isEditing,
   existingTransaction,
   scanning,
-  requestedDocTypes,
   onReceiptChange,
   onChange,
-  onRequestDocument,
 }: DebitCardFieldsProps) => (
   <>
     <div className="wl-form-group">
@@ -47,23 +43,6 @@ export const DebitCardFields = ({
           disabled={form.noReceiptAcknowledged}
           onChange={onReceiptChange}
         />
-        {!isEditing && !form.noReceiptAcknowledged && (
-          <>
-            <div className={styles['wl-receipt-or']}>or</div>
-            <button
-              type="button"
-              className={styles['wl-btn-request-receipt']}
-              onClick={() => onRequestDocument('receipt', 'Receipt')}
-            >
-              Request Receipt via Email
-            </button>
-            {requestedDocTypes.has('receipt') && (
-              <span className={styles['wl-receipt-requested-note']}>
-                Receipt requested — waiting for member to upload
-              </span>
-            )}
-          </>
-        )}
         {isEditing && existingTransaction?.receiptFileUrl && (
           <span className={styles['wl-form-file-existing']}>
             Current: <ExistingFileLink path={existingTransaction.receiptFileUrl} />

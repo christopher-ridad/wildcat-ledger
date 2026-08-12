@@ -72,6 +72,7 @@ export const buildMockLedgerContext = (
   reconcileTransactions: vi.fn().mockResolvedValue(undefined),
   uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
   markTaxReimbursed: vi.fn().mockResolvedValue(undefined),
+  requestTransactionDocument: vi.fn().mockResolvedValue('mock-token'),
   selectedBudgetLine: null,
   setSelectedBudgetLine: vi.fn(),
   filteredTransactions: [],

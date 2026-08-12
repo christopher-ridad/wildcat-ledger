@@ -29,11 +29,16 @@ export interface FormState {
   taxAmount: string;
   // Payment Request / Payment to NU Employee
   contractFile: File | null;
+  contractAcknowledgedMissing: boolean;
   w9File: File | null;
+  w9AcknowledgedMissing: boolean;
   isIndividualVendor: boolean;
   contractedServicesFile: File | null;
+  contractedServicesAcknowledgedMissing: boolean;
   conflictOfInterestFile: File | null;
+  conflictOfInterestAcknowledgedMissing: boolean;
   specialPayFormFile: File | null;
+  specialPayFormAcknowledgedMissing: boolean;
   // Non-Officer Reimbursement
   zelleInfo: string;
   reimbursedMemberName: string;
@@ -53,11 +58,16 @@ export const initialForm: FormState = {
   taxExemptFormSubmitted: false,
   taxAmount: '',
   contractFile: null,
+  contractAcknowledgedMissing: false,
   w9File: null,
+  w9AcknowledgedMissing: false,
   isIndividualVendor: false,
   contractedServicesFile: null,
+  contractedServicesAcknowledgedMissing: false,
   conflictOfInterestFile: null,
+  conflictOfInterestAcknowledgedMissing: false,
   specialPayFormFile: null,
+  specialPayFormAcknowledgedMissing: false,
   zelleInfo: '',
   reimbursedMemberName: '',
   notes: '',

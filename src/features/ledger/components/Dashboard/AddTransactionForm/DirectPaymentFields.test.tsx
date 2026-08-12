@@ -6,35 +6,24 @@ import { DirectPaymentFields } from './DirectPaymentFields';
 import { initialForm } from './types';
 
 describe('DirectPaymentFields', () => {
-  test('requires contract and W-9 with request-via-email options when creating', () => {
+  test('requires contract and W-9, each with an "I don\'t have this yet" checkbox, when creating', () => {
     render(
-      <DirectPaymentFields
-        form={initialForm}
-        isEditing={false}
-        requestedDocTypes={new Set()}
-        onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
-      />,
+      <DirectPaymentFields form={initialForm} isEditing={false} onChange={vi.fn()} />,
     );
-    expect(
-      screen.getByText('Request RSO Agreement Signature via Email'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Request W-9 via Email')).toBeInTheDocument();
+    expect(screen.getAllByText("I don't have this yet")).toHaveLength(2);
   });
 
-  test('hides request-via-email options while editing', () => {
+  test('hides the "I don\'t have this yet" checkbox once a file is attached', () => {
+    const file = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
     render(
       <DirectPaymentFields
-        form={initialForm}
-        isEditing
-        requestedDocTypes={new Set()}
+        form={{ ...initialForm, contractFile: file }}
+        isEditing={false}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
-    expect(
-      screen.queryByText('Request RSO Agreement Signature via Email'),
-    ).not.toBeInTheDocument();
+    // Only the W-9 checkbox remains since a contract file is now attached.
+    expect(screen.getAllByText("I don't have this yet")).toHaveLength(1);
   });
 
   test('shows existing file links when editing with existing documents', () => {
@@ -46,23 +35,39 @@ describe('DirectPaymentFields', () => {
           contractFileUrl: 'orgs/1/contract.pdf',
           w9FileUrl: 'orgs/1/w9.pdf',
         })}
-        requestedDocTypes={new Set()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getAllByText('View file')).toHaveLength(2);
+    expect(screen.queryByText("I don't have this yet")).not.toBeInTheDocument();
+  });
+
+  test('checking "contract missing" shows a warning notice and calls onChange', () => {
+    const onChange = vi.fn();
+    render(
+      <DirectPaymentFields form={initialForm} isEditing={false} onChange={onChange} />,
+    );
+    const [contractCheckbox] = screen.getAllByRole('checkbox', {
+      name: "I don't have this yet",
+    });
+    fireEvent.click(contractCheckbox);
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  test('shows a warning notice once the contract is acknowledged missing', () => {
+    render(
+      <DirectPaymentFields
+        form={{ ...initialForm, contractAcknowledgedMissing: true }}
+        isEditing={false}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/flagged as missing the RSO Agreement/)).toBeInTheDocument();
   });
 
   test('does not show individual-vendor fields by default', () => {
     render(
-      <DirectPaymentFields
-        form={initialForm}
-        isEditing={false}
-        requestedDocTypes={new Set()}
-        onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
-      />,
+      <DirectPaymentFields form={initialForm} isEditing={false} onChange={vi.fn()} />,
     );
     expect(screen.queryByText('Contracted Services Form')).not.toBeInTheDocument();
   });
@@ -72,60 +77,38 @@ describe('DirectPaymentFields', () => {
       <DirectPaymentFields
         form={{ ...initialForm, isIndividualVendor: true }}
         isEditing={false}
-        requestedDocTypes={new Set()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByLabelText(/Contracted Services Form/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Conflict of Interest Form/)).toBeInTheDocument();
+    // Contract, W-9, CSF, and COI all get their own "missing" checkbox.
+    expect(screen.getAllByText("I don't have this yet")).toHaveLength(4);
+  });
+
+  test('checking "conflict of interest missing" shows a warning notice', () => {
+    render(
+      <DirectPaymentFields
+        form={{
+          ...initialForm,
+          isIndividualVendor: true,
+          conflictOfInterestAcknowledgedMissing: true,
+        }}
+        isEditing={false}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(/flagged as missing the Conflict of Interest Form/),
+    ).toBeInTheDocument();
   });
 
   test('toggling the individual-vendor checkbox calls onChange', () => {
     const onChange = vi.fn();
     render(
-      <DirectPaymentFields
-        form={initialForm}
-        isEditing={false}
-        requestedDocTypes={new Set()}
-        onChange={onChange}
-        onRequestDocument={vi.fn()}
-      />,
+      <DirectPaymentFields form={initialForm} isEditing={false} onChange={onChange} />,
     );
     fireEvent.click(screen.getByText('Is this an individual vendor?'));
     expect(onChange).toHaveBeenCalled();
-  });
-
-  test('requesting the W-9 via email calls onRequestDocument with the template path', () => {
-    const onRequestDocument = vi.fn();
-    render(
-      <DirectPaymentFields
-        form={initialForm}
-        isEditing={false}
-        requestedDocTypes={new Set()}
-        onChange={vi.fn()}
-        onRequestDocument={onRequestDocument}
-      />,
-    );
-    fireEvent.click(screen.getByText('Request W-9 via Email'));
-    expect(onRequestDocument).toHaveBeenCalledWith('w9', 'W-9', '/forms/w9.pdf');
-  });
-
-  test('shows a requested note for each requested doc type', () => {
-    render(
-      <DirectPaymentFields
-        form={initialForm}
-        isEditing={false}
-        requestedDocTypes={new Set(['contract', 'w9'])}
-        onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
-      />,
-    );
-    expect(
-      screen.getByText('RSO Agreement requested — waiting for vendor to upload'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('W-9 requested — waiting for vendor to upload'),
-    ).toBeInTheDocument();
   });
 });

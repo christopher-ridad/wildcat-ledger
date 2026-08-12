@@ -95,7 +95,7 @@ describe('AddTransactionForm', () => {
     expect(addTransaction).not.toHaveBeenCalled();
   });
 
-  test('debit card purchases require a receipt, a request, or an acknowledgment', () => {
+  test('debit card purchases require a receipt or an acknowledgment', () => {
     const addTransaction = vi.fn();
     renderForm({ addTransaction });
     fillCommonFields();
@@ -189,6 +189,27 @@ describe('AddTransactionForm', () => {
     });
   });
 
+  test('submits a reimbursement missing its receipt when acknowledged', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fireEvent.change(screen.getByLabelText(/Transaction Type/), {
+      target: { value: 'Non-Officer Reimbursement' },
+    });
+    fillCommonFields('Team dinner', '25.00');
+    fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
+      target: { value: 'Jane Doe' },
+    });
+    fireEvent.change(screen.getByLabelText(/Zelle Email or Phone Number/), {
+      target: { value: 'jane@example.com' },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: "I don't have a receipt yet" }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction.noReceiptAcknowledged).toBe(true);
+  });
+
   test('submits a payment to a Northwestern employee with contract, W-9, and Special Pay Form', async () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({ addTransaction });
@@ -216,6 +237,34 @@ describe('AddTransactionForm', () => {
       amount: 200,
       type: 'Payment to NU Employee',
       specialPayFormUrl: 'clubs/org-1/transactions/txn-1/specialPayForm_doc.pdf',
+    });
+  });
+
+  test('submits a payment to a Northwestern employee missing all its documents when acknowledged', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fireEvent.change(screen.getByLabelText(/Transaction Type/), {
+      target: { value: 'Payment to NU Employee' },
+    });
+    fillCommonFields('Guest speaker honorarium', '200.00');
+
+    for (const name of [
+      'contractAcknowledgedMissing',
+      'w9AcknowledgedMissing',
+      'specialPayFormAcknowledgedMissing',
+    ]) {
+      fireEvent.click(
+        document.querySelector(`input[name="${name}"]`) as HTMLInputElement,
+      );
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction).toMatchObject({
+      contractAcknowledgedMissing: true,
+      w9AcknowledgedMissing: true,
+      specialPayFormAcknowledgedMissing: true,
     });
   });
 
@@ -260,60 +309,6 @@ describe('AddTransactionForm', () => {
     fireEvent.click(screen.getByText('Proceed anyway'));
 
     await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
-  });
-
-  test('requesting a document via email requires a title first', () => {
-    renderForm();
-    fireEvent.click(screen.getByText('Request Receipt via Email'));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Please enter a transaction title before requesting documents via email.',
-    );
-  });
-
-  test('requesting a document via email opens a Gmail compose window once titled', () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-    renderForm();
-    fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: 'Pizza' } });
-    fireEvent.click(screen.getByText('Request Receipt via Email'));
-
-    expect(openSpy).toHaveBeenCalled();
-    const [url] = openSpy.mock.calls[0];
-    expect(url).toContain('https://mail.google.com/mail/?view=cm');
-    expect(
-      screen.getByText('Receipt requested — waiting for member to upload'),
-    ).toBeInTheDocument();
-  });
-
-  test('reminds the user to save after requesting a document via email', () => {
-    vi.spyOn(window, 'open').mockImplementation(() => null);
-    renderForm();
-    expect(
-      screen.queryByText(/won't work until this transaction/),
-    ).not.toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText(/^Title/), { target: { value: 'Pizza' } });
-    fireEvent.click(screen.getByText('Request Receipt via Email'));
-
-    expect(screen.getByText(/won't work until this transaction/)).toBeInTheDocument();
-  });
-
-  test('the save reminder disappears once the transaction is actually saved', async () => {
-    vi.spyOn(window, 'open').mockImplementation(() => null);
-    const addTransaction = vi.fn().mockResolvedValue(undefined);
-    renderForm({ addTransaction });
-    fillCommonFields('Pizza', '12.50');
-    fireEvent.click(screen.getByText('Request Receipt via Email'));
-    expect(screen.getByText(/won't work until this transaction/)).toBeInTheDocument();
-
-    // Requesting the receipt already satisfies the receipt requirement.
-    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
-
-    await vi.waitFor(() =>
-      expect(
-        screen.queryByText(/won't work until this transaction/),
-      ).not.toBeInTheDocument(),
-    );
-    expect(addTransaction).toHaveBeenCalled();
   });
 
   test('pre-fills the form and shows "Save Changes" when editing an existing transaction', () => {

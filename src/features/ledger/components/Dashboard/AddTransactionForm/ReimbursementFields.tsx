@@ -10,10 +10,8 @@ interface ReimbursementFieldsProps {
   isEditing: boolean;
   existingTransaction?: Transaction;
   scanning: boolean;
-  requestedDocTypes: Set<string>;
   onReceiptChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  onRequestDocument: (docType: string, label: string, templatePath?: string) => void;
 }
 
 export const ReimbursementFields = ({
@@ -21,10 +19,8 @@ export const ReimbursementFields = ({
   isEditing,
   existingTransaction,
   scanning,
-  requestedDocTypes,
   onReceiptChange,
   onChange,
-  onRequestDocument,
 }: ReimbursementFieldsProps) => (
   <>
     <div className="wl-form-group">
@@ -46,7 +42,9 @@ export const ReimbursementFields = ({
     <div className="wl-form-group">
       <label className="wl-form-label" htmlFor="receiptFile">
         Receipt Photo{' '}
-        {!isEditing && <span className={styles['wl-form-required']}>*</span>}
+        {!isEditing && !form.noReceiptAcknowledged && (
+          <span className={styles['wl-form-required']}>*</span>
+        )}
         {scanning && <span className="wl-ocr-scanning"> Scanning…</span>}
       </label>
       <p className={styles['wl-form-hint']}>Tax cannot be reimbursed.</p>
@@ -57,25 +55,9 @@ export const ReimbursementFields = ({
           type="file"
           accept="image/*,application/pdf"
           className="wl-form-file"
+          disabled={form.noReceiptAcknowledged}
           onChange={onReceiptChange}
         />
-        {!isEditing && (
-          <>
-            <div className={styles['wl-receipt-or']}>or</div>
-            <button
-              type="button"
-              className={styles['wl-btn-request-receipt']}
-              onClick={() => onRequestDocument('receipt', 'Receipt')}
-            >
-              Request Receipt via Email
-            </button>
-            {requestedDocTypes.has('receipt') && (
-              <span className={styles['wl-receipt-requested-note']}>
-                Receipt requested — waiting for member to upload
-              </span>
-            )}
-          </>
-        )}
       </div>
       {isEditing && existingTransaction?.receiptFileUrl && (
         <span className={styles['wl-form-file-existing']}>
@@ -83,6 +65,27 @@ export const ReimbursementFields = ({
         </span>
       )}
     </div>
+
+    {/* Only show "no receipt" option when there's no receipt on file */}
+    {!form.receiptFile && !(isEditing && existingTransaction?.receiptFileUrl) && (
+      <div className={styles['wl-form-no-receipt']}>
+        <label className={styles['wl-form-checkbox']}>
+          <input
+            type="checkbox"
+            name="noReceiptAcknowledged"
+            checked={form.noReceiptAcknowledged}
+            onChange={onChange}
+          />
+          <span>I don&apos;t have a receipt yet</span>
+        </label>
+        {form.noReceiptAcknowledged && (
+          <div className={styles['wl-form-no-receipt-notice']}>
+            ⚠ This transaction will be flagged as missing a receipt. You can request one
+            via email from the transaction&apos;s Files panel once it&apos;s saved.
+          </div>
+        )}
+      </div>
+    )}
 
     <div className="wl-form-group">
       <label className="wl-form-label" htmlFor="zelleInfo">

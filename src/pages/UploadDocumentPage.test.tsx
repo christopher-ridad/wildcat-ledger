@@ -4,7 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { supabase } from '../config/supabase';
 import { uploadDocument } from '../features/ledger/services/storage';
-import { UploadReceiptPage } from './UploadReceiptPage';
+import { UploadDocumentPage } from './UploadDocumentPage';
 
 vi.mock('../config/supabase', () => ({
   supabase: { rpc: vi.fn() },
@@ -20,14 +20,14 @@ const mockUploadDocument = vi.mocked(uploadDocument);
 
 const renderAtUrl = (search: string) =>
   render(
-    <MemoryRouter initialEntries={[`/upload-receipt${search}`]}>
-      <UploadReceiptPage />
+    <MemoryRouter initialEntries={[`/upload-document${search}`]}>
+      <UploadDocumentPage />
     </MemoryRouter>,
   );
 
 const validSearch = '?transactionId=txn-1&orgId=org-1&token=tok-1&fileType=receipt';
 
-describe('UploadReceiptPage', () => {
+describe('UploadDocumentPage', () => {
   test('shows an error for a link missing required parameters, without calling supabase', () => {
     renderAtUrl('');
     expect(
@@ -54,6 +54,14 @@ describe('UploadReceiptPage', () => {
     renderAtUrl('?transactionId=txn-1&orgId=org-1&token=tok-1&fileType=bogus');
     expect(
       await screen.findByRole('heading', { name: 'Upload Receipt' }),
+    ).toBeInTheDocument();
+  });
+
+  test('recognizes the specialPayForm file type', async () => {
+    mockRpc.mockResolvedValue({ data: 'Guest speaker honorarium', error: null } as never);
+    renderAtUrl('?transactionId=txn-1&orgId=org-1&token=tok-1&fileType=specialPayForm');
+    expect(
+      await screen.findByRole('heading', { name: 'Upload Special Pay Form' }),
     ).toBeInTheDocument();
   });
 

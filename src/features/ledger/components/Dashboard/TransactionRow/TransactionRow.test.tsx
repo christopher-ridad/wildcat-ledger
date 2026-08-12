@@ -105,6 +105,63 @@ describe('TransactionRow', () => {
     expect(onDelete).toHaveBeenCalledWith(t);
   });
 
+  describe('missing documents', () => {
+    test('shows a "Missing" badge listing required documents that have no file', () => {
+      renderRow({
+        t: buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      });
+      expect(screen.getByText('⚠ Missing: RSO Agreement, W-9')).toBeInTheDocument();
+    });
+
+    test('does not show a "Missing" badge once the required documents are attached', () => {
+      renderRow({
+        t: buildMockTransaction({
+          type: 'Payment Request',
+          budgetLine: 'Operating',
+          contractFileUrl: 'orgs/1/contract.pdf',
+          w9FileUrl: 'orgs/1/w9.pdf',
+        }),
+      });
+      expect(screen.queryByText(/Missing:/)).not.toBeInTheDocument();
+    });
+
+    test('shows the view-documents button for a canEdit viewer even with no files attached', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      });
+      expect(screen.getByLabelText('View missing documents')).toBeInTheDocument();
+    });
+
+    test('hides the view-documents button when nothing is required or attached', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({ type: 'Deposit', budgetLine: 'Operating' }),
+      });
+      expect(screen.queryByLabelText('View missing documents')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/View \d+ attached file/)).not.toBeInTheDocument();
+    });
+
+    test('clicking the "Missing" badge opens the files modal for a canEdit viewer', () => {
+      const onViewFiles = vi.fn();
+      const t = buildMockTransaction({
+        type: 'Payment Request',
+        budgetLine: 'Operating',
+      });
+      renderRow({ canEdit: true, t, onViewFiles });
+      fireEvent.click(screen.getByText('⚠ Missing: RSO Agreement, W-9'));
+      expect(onViewFiles).toHaveBeenCalledWith(t);
+    });
+
+    test('the "Missing" badge is not clickable for a viewer who cannot edit', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      });
+      expect(screen.queryByRole('button', { name: /Missing:/ })).not.toBeInTheDocument();
+    });
+  });
+
   describe('tax reimbursement', () => {
     test('shows a tax-owed badge when tax was charged and no exemption form was submitted', () => {
       renderRow({
@@ -322,6 +379,27 @@ describe('TransactionRow', () => {
         target: { value: 'Approved' },
       });
       expect(onUpdatePaymentStatus).toHaveBeenCalledWith('txn-42', 'Approved');
+    });
+
+    test('shows an error message when the status update is rejected (e.g. missing documents)', async () => {
+      const onUpdatePaymentStatus = vi
+        .fn()
+        .mockRejectedValue(
+          new Error('Cannot mark as Approved — missing required documents: W-9'),
+        );
+      const t = buildMockTransaction({
+        id: 'txn-42',
+        type: 'Payment Request',
+        budgetLine: 'Operating',
+        paymentStatus: 'Pending',
+      });
+      renderRow({ canEdit: true, t, onUpdatePaymentStatus });
+      fireEvent.change(screen.getByLabelText('Payment status'), {
+        target: { value: 'Approved' },
+      });
+      expect(
+        await screen.findByText(/Cannot mark as Approved — missing required documents/),
+      ).toBeInTheDocument();
     });
   });
 

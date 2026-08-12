@@ -3,93 +3,70 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { buildMockTransaction } from '../../../../../test/mocks';
 import { NUEmployeePaymentFields } from './NUEmployeePaymentFields';
+import { initialForm } from './types';
 
 describe('NUEmployeePaymentFields', () => {
-  test('requires contract, W-9, and Special Pay Form with request-via-email options when creating', () => {
+  test('requires contract, W-9, and Special Pay Form, each with an "I don\'t have this yet" checkbox, when creating', () => {
     render(
-      <NUEmployeePaymentFields
-        isEditing={false}
-        requestedDocTypes={new Set()}
-        onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
-      />,
+      <NUEmployeePaymentFields form={initialForm} isEditing={false} onChange={vi.fn()} />,
     );
-    expect(
-      screen.getByText('Request RSO Agreement Signature via Email'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Request W-9 via Email')).toBeInTheDocument();
-    expect(screen.getByText('Request Special Pay Form via Email')).toBeInTheDocument();
+    expect(screen.getAllByText("I don't have this yet")).toHaveLength(3);
   });
 
-  test('hides request-via-email options while editing', () => {
+  test('hides the "I don\'t have this yet" checkbox once a file is attached', () => {
+    const file = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
     render(
       <NUEmployeePaymentFields
-        isEditing
-        requestedDocTypes={new Set()}
+        form={{ ...initialForm, contractFile: file }}
+        isEditing={false}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
-    expect(
-      screen.queryByText('Request RSO Agreement Signature via Email'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText('Request Special Pay Form via Email'),
-    ).not.toBeInTheDocument();
+    // Only W-9 and Special Pay Form checkboxes remain.
+    expect(screen.getAllByText("I don't have this yet")).toHaveLength(2);
   });
 
   test('shows existing file links when editing with existing documents', () => {
     render(
       <NUEmployeePaymentFields
+        form={initialForm}
         isEditing
         existingTransaction={buildMockTransaction({
           contractFileUrl: 'orgs/1/contract.pdf',
           w9FileUrl: 'orgs/1/w9.pdf',
           specialPayFormUrl: 'orgs/1/special-pay.pdf',
         })}
-        requestedDocTypes={new Set()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getAllByText('View file')).toHaveLength(3);
+    expect(screen.queryByText("I don't have this yet")).not.toBeInTheDocument();
   });
 
-  test('requesting the Special Pay Form via email calls onRequestDocument with the template path', () => {
-    const onRequestDocument = vi.fn();
+  test('checking "Special Pay Form missing" shows a warning notice and calls onChange', () => {
+    const onChange = vi.fn();
     render(
       <NUEmployeePaymentFields
+        form={initialForm}
         isEditing={false}
-        requestedDocTypes={new Set()}
-        onChange={vi.fn()}
-        onRequestDocument={onRequestDocument}
+        onChange={onChange}
       />,
     );
-    fireEvent.click(screen.getByText('Request Special Pay Form via Email'));
-    expect(onRequestDocument).toHaveBeenCalledWith(
-      'specialPayForm',
-      'Special Pay Form',
-      '/forms/special-pay-request-form.pdf',
-    );
+    const checkboxes = screen.getAllByRole('checkbox', { name: "I don't have this yet" });
+    fireEvent.click(checkboxes[2]);
+    expect(onChange).toHaveBeenCalled();
   });
 
-  test('shows a requested note for each requested doc type', () => {
+  test('shows a warning notice once the Special Pay Form is acknowledged missing', () => {
     render(
       <NUEmployeePaymentFields
+        form={{ ...initialForm, specialPayFormAcknowledgedMissing: true }}
         isEditing={false}
-        requestedDocTypes={new Set(['contract', 'w9', 'specialPayForm'])}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(
-      screen.getByText('RSO Agreement requested — waiting for vendor to upload'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('W-9 requested — waiting for vendor to upload'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Special Pay Form requested — waiting for vendor to upload'),
+      screen.getByText(/flagged as missing the Special Pay Form/),
     ).toBeInTheDocument();
   });
 });

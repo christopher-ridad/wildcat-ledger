@@ -6,24 +6,24 @@ import { ReimbursementFields } from './ReimbursementFields';
 import { initialForm } from './types';
 
 describe('ReimbursementFields', () => {
-  test('shows the required asterisk and request option when creating', () => {
+  test('shows the required asterisk and "no receipt" checkbox when creating', () => {
     render(
       <ReimbursementFields
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     // Member name, receipt, and Zelle info are all required when creating.
     expect(screen.getAllByText('*')).toHaveLength(3);
-    expect(screen.getByText('Request Receipt via Email')).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', { name: "I don't have a receipt yet" }),
+    ).toBeInTheDocument();
   });
 
-  test('hides the request option and receipt asterisk while editing, and shows the existing file', () => {
+  test('hides the "no receipt" checkbox and receipt asterisk while editing, and shows the existing file', () => {
     render(
       <ReimbursementFields
         form={initialForm}
@@ -32,16 +32,44 @@ describe('ReimbursementFields', () => {
           receiptFileUrl: 'orgs/1/receipt.png',
         })}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     // Member name and Zelle info are always required, but the receipt asterisk disappears.
     expect(screen.getAllByText('*')).toHaveLength(2);
-    expect(screen.queryByText('Request Receipt via Email')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', { name: "I don't have a receipt yet" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('View file')).toBeInTheDocument();
+  });
+
+  test('checking "I don\'t have a receipt yet" shows a warning notice and calls onChange', () => {
+    const onChange = vi.fn();
+    render(
+      <ReimbursementFields
+        form={initialForm}
+        isEditing={false}
+        scanning={false}
+        onReceiptChange={vi.fn()}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: "I don't have a receipt yet" }));
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  test('shows a warning notice once "no receipt" is acknowledged', () => {
+    render(
+      <ReimbursementFields
+        form={{ ...initialForm, noReceiptAcknowledged: true }}
+        isEditing={false}
+        scanning={false}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText(/flagged as missing a receipt/)).toBeInTheDocument();
   });
 
   test('typing Zelle info calls onChange', () => {
@@ -51,10 +79,8 @@ describe('ReimbursementFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={onChange}
-        onRequestDocument={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/Zelle Email or Phone Number/), {
@@ -69,10 +95,8 @@ describe('ReimbursementFields', () => {
         form={initialForm}
         isEditing={false}
         scanning
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
@@ -85,10 +109,8 @@ describe('ReimbursementFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={onChange}
-        onRequestDocument={vi.fn()}
       />,
     );
     fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
@@ -103,10 +125,8 @@ describe('ReimbursementFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByText('Tax cannot be reimbursed.')).toBeInTheDocument();
