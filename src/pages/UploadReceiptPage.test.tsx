@@ -57,6 +57,14 @@ describe('UploadReceiptPage', () => {
     ).toBeInTheDocument();
   });
 
+  test('recognizes the specialPayForm file type', async () => {
+    mockRpc.mockResolvedValue({ data: 'Guest speaker honorarium', error: null } as never);
+    renderAtUrl('?transactionId=txn-1&orgId=org-1&token=tok-1&fileType=specialPayForm');
+    expect(
+      await screen.findByRole('heading', { name: 'Upload Special Pay Form' }),
+    ).toBeInTheDocument();
+  });
+
   test('the upload button stays disabled until a file is selected', async () => {
     mockRpc.mockResolvedValue({ data: 'Pizza for meeting', error: null } as never);
     renderAtUrl(validSearch);

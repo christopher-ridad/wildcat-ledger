@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 
+import { useLedger } from '../../../hooks/useLedger';
 import { getSignedFileUrl } from '../../../services/storage';
 import { Transaction } from '../../../types';
+import { getMissingDocuments } from '../../../utils/documentRequirements';
 import styles from './TransactionFilesModal.module.css';
 
 const FILE_LABELS: { key: keyof Transaction; label: string }[] = [
@@ -90,7 +92,44 @@ export const TransactionFilesModal = ({
   transaction: Transaction;
   onClose: () => void;
 }) => {
+  const { activeOrganizationId, requestTransactionDocument } = useLedger();
   const files = getTransactionFiles(transaction);
+  const missingDocs = getMissingDocuments(transaction);
+  const [justRequested, setJustRequested] = useState<Set<string>>(new Set());
+  const [requesting, setRequesting] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  const isRequested = (key: string) =>
+    justRequested.has(key) || !!transaction.uploadTokens?.[key];
+
+  const handleRequest = async (docType: string, label: string, templatePath?: string) => {
+    setRequesting(docType);
+    setRequestError(null);
+    try {
+      const token = await requestTransactionDocument(transaction.id, docType);
+      const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${docType}&token=${token}`;
+      const templateLine = templatePath
+        ? `\n\nYou can download a blank ${label} here:\n${window.location.origin}${templatePath}`
+        : '';
+      const subject = encodeURIComponent(
+        `Document Request — ${label} for "${transaction.title}"`,
+      );
+      const body = encodeURIComponent(
+        `Hi,\n\nPlease upload the ${label} for "${transaction.title}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
+      );
+      window.open(
+        `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,
+        '_blank',
+      );
+      setJustRequested((prev) => new Set(prev).add(docType));
+    } catch (err) {
+      setRequestError(
+        err instanceof Error ? err.message : 'Failed to send the document request.',
+      );
+    } finally {
+      setRequesting(null);
+    }
+  };
 
   return (
     <div className="wl-modal-root" role="dialog" aria-modal="true">
@@ -104,22 +143,62 @@ export const TransactionFilesModal = ({
       />
       <div className={`wl-modal ${styles['wl-files-modal']}`}>
         <div className="wl-modal-header">
-          <h2 className="wl-modal-title">Attachments — {transaction.title}</h2>
+          <h2 className="wl-modal-title">Documents — {transaction.title}</h2>
           <button className="wl-modal-close" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
         <div className="wl-modal-body">
+          {missingDocs.length > 0 && (
+            <div className={styles['wl-missing-docs-section']}>
+              <h3 className={styles['wl-files-section-title']}>Missing</h3>
+              {requestError && (
+                <div className="wl-form-error" role="alert">
+                  {requestError}
+                </div>
+              )}
+              <ul className={styles['wl-missing-docs-list']}>
+                {missingDocs.map((doc) => (
+                  <li key={doc.key} className={styles['wl-missing-doc-item']}>
+                    <span className={styles['wl-missing-doc-label']}>{doc.label}</span>
+                    <div className={styles['wl-missing-doc-actions']}>
+                      <button
+                        type="button"
+                        className={styles['wl-btn-request-doc']}
+                        disabled={requesting === doc.key}
+                        onClick={() =>
+                          handleRequest(doc.key, doc.label, doc.templatePath)
+                        }
+                      >
+                        {requesting === doc.key ? 'Sending…' : 'Request via Email'}
+                      </button>
+                      {isRequested(doc.key) && (
+                        <span className={styles['wl-missing-doc-requested-note']}>
+                          Requested — waiting for upload
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {files.length === 0 ? (
             <p className={styles['wl-files-empty']}>
               No files attached to this transaction.
             </p>
           ) : (
-            <div className={styles['wl-files-grid']}>
-              {files.map(({ label, url }) => (
-                <FilePreviewCard key={label} label={label} url={url} />
-              ))}
-            </div>
+            <>
+              {missingDocs.length > 0 && (
+                <h3 className={styles['wl-files-section-title']}>Attached</h3>
+              )}
+              <div className={styles['wl-files-grid']}>
+                {files.map(({ label, url }) => (
+                  <FilePreviewCard key={label} label={label} url={url} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -18,6 +18,11 @@ const FILE_TYPE_MAP: Record<string, { field: string; prefix: string; label: stri
     prefix: 'conflictOfInterest',
     label: 'Conflict of Interest Form',
   },
+  specialPayForm: {
+    field: 'specialPayFormUrl',
+    prefix: 'specialPayForm',
+    label: 'Special Pay Form',
+  },
 };
 
 export const UploadReceiptPage = () => {

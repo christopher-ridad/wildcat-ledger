@@ -339,6 +339,18 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
+  const requestTransactionDocument = async (transactionId: string, docType: string) => {
+    if (!activeOrganizationId) throw new Error('No active organization');
+    const token = crypto.randomUUID();
+    const { error } = await supabase.rpc('add_transaction_upload_tokens', {
+      p_org_id: activeOrganizationId,
+      p_transaction_id: transactionId,
+      p_tokens: { [docType]: token },
+    });
+    if (error) throw error;
+    return token;
+  };
+
   const activeOrganization =
     organizations.find((o: Organization) => o.id === activeOrganizationId) ?? null;
 
@@ -387,6 +399,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     reconcileTransactions,
     uploadExemptionForm,
     markTaxReimbursed,
+    requestTransactionDocument,
     selectedBudgetLine,
     setSelectedBudgetLine,
     filteredTransactions,

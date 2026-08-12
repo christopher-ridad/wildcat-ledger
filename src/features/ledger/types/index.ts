@@ -58,6 +58,22 @@ export interface Transaction {
   noReceiptAcknowledged?: boolean;
   // Uploaded when the transaction has no receipt (satisfies receipt requirement for reconciliation)
   exemptionFormUrl?: string;
+  // Explicitly acknowledged as not yet available when the transaction was
+  // created/edited (see documentRequirements.ts) -- lets the transaction
+  // save without the file, but keeps it out of getMissingDocuments() until
+  // the file actually shows up. Payment Request / Payment to NU Employee.
+  contractAcknowledgedMissing?: boolean;
+  w9AcknowledgedMissing?: boolean;
+  // Payment Request, individual vendor only
+  contractedServicesAcknowledgedMissing?: boolean;
+  conflictOfInterestAcknowledgedMissing?: boolean;
+  // Payment to NU Employee
+  specialPayFormAcknowledgedMissing?: boolean;
+  // Single-use tokens keyed by document type (receipt/contract/w9/...),
+  // minted when a document is requested via email; cleared once that
+  // document is uploaded through the link. Lets the Files modal show
+  // "requested, waiting on upload" instead of a stale Request button.
+  uploadTokens?: Record<string, string>;
   // Debit Card purchase — orgs are tax-exempt when the exemption form is
   // presented at purchase, so tax should never legitimately show up. When
   // it does (no exemption form submitted, tax on the receipt), the full
@@ -178,6 +194,10 @@ export interface LedgerContextValue {
   reconcileTransactions: (transactionIds: string[]) => Promise<void>;
   uploadExemptionForm: (transactionId: string, file: File) => Promise<void>;
   markTaxReimbursed: (transactionId: string) => Promise<void>;
+  // Mints an upload token for the given document type on an existing
+  // transaction and returns it, so the caller can build the emailed
+  // upload link (mirrors the token minted at creation time in addTransaction).
+  requestTransactionDocument: (transactionId: string, docType: string) => Promise<string>;
   selectedBudgetLine: BudgetLine | null;
   setSelectedBudgetLine: (line: BudgetLine | null) => void;
   filteredTransactions: Transaction[];

@@ -12,16 +12,14 @@ describe('DebitCardFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByText('*')).toBeInTheDocument();
   });
 
-  test('hides the asterisk and request/no-receipt options while editing', () => {
+  test('hides the asterisk while editing', () => {
     render(
       <DebitCardFields
         form={initialForm}
@@ -30,14 +28,11 @@ describe('DebitCardFields', () => {
           receiptFileUrl: 'orgs/1/receipt.png',
         })}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.queryByText('*')).not.toBeInTheDocument();
-    expect(screen.queryByText('Request Receipt via Email')).not.toBeInTheDocument();
     expect(screen.getByText('View file')).toBeInTheDocument();
   });
 
@@ -47,47 +42,11 @@ describe('DebitCardFields', () => {
         form={initialForm}
         isEditing={false}
         scanning
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
-  });
-
-  test('clicking "Request Receipt via Email" calls onRequestDocument', () => {
-    const onRequestDocument = vi.fn();
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning={false}
-        requestedDocTypes={new Set()}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-        onRequestDocument={onRequestDocument}
-      />,
-    );
-    fireEvent.click(screen.getByText('Request Receipt via Email'));
-    expect(onRequestDocument).toHaveBeenCalledWith('receipt', 'Receipt');
-  });
-
-  test('shows a "requested" note once the receipt has been requested', () => {
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning={false}
-        requestedDocTypes={new Set(['receipt'])}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
-      />,
-    );
-    expect(
-      screen.getByText('Receipt requested — waiting for member to upload'),
-    ).toBeInTheDocument();
   });
 
   test('shows the "no receipt" checkbox and warning notice when checked', () => {
@@ -97,10 +56,8 @@ describe('DebitCardFields', () => {
         form={{ ...initialForm, noReceiptAcknowledged: true }}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={onChange}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(
@@ -116,10 +73,8 @@ describe('DebitCardFields', () => {
         form={{ ...initialForm, receiptFile: file }}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.queryByText("I don't have a receipt")).not.toBeInTheDocument();
@@ -132,10 +87,8 @@ describe('DebitCardFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={onReceiptChange}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     const file = new File(['x'], 'receipt.png', { type: 'image/png' });
@@ -151,10 +104,8 @@ describe('DebitCardFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByText('Tax cannot be paid by the debit card.')).toBeInTheDocument();
@@ -166,10 +117,8 @@ describe('DebitCardFields', () => {
         form={{ ...initialForm, taxExemptFormSubmitted: false }}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(screen.getByLabelText('Tax Charged on Receipt (if any)')).toBeInTheDocument();
@@ -181,10 +130,8 @@ describe('DebitCardFields', () => {
         form={{ ...initialForm, taxExemptFormSubmitted: true }}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(
@@ -198,10 +145,8 @@ describe('DebitCardFields', () => {
         form={{ ...initialForm, taxExemptFormSubmitted: false, taxAmount: '2.50' }}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(
@@ -215,10 +160,8 @@ describe('DebitCardFields', () => {
         form={{ ...initialForm, taxExemptFormSubmitted: false, taxAmount: '' }}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={vi.fn()}
-        onRequestDocument={vi.fn()}
       />,
     );
     expect(
@@ -233,10 +176,8 @@ describe('DebitCardFields', () => {
         form={initialForm}
         isEditing={false}
         scanning={false}
-        requestedDocTypes={new Set()}
         onReceiptChange={vi.fn()}
         onChange={onChange}
-        onRequestDocument={vi.fn()}
       />,
     );
     fireEvent.click(

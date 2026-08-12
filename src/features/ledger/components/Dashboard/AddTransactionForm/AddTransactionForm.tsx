@@ -55,11 +55,18 @@ export const AddTransactionForm = ({
         taxExemptFormSubmitted: t.taxExemptFormSubmitted ?? false,
         taxAmount: t.taxAmount != null ? String(t.taxAmount) : '',
         contractFile: null,
+        contractAcknowledgedMissing: t.contractAcknowledgedMissing ?? false,
         w9File: null,
+        w9AcknowledgedMissing: t.w9AcknowledgedMissing ?? false,
         isIndividualVendor: t.isIndividualVendor ?? false,
         contractedServicesFile: null,
+        contractedServicesAcknowledgedMissing:
+          t.contractedServicesAcknowledgedMissing ?? false,
         conflictOfInterestFile: null,
+        conflictOfInterestAcknowledgedMissing:
+          t.conflictOfInterestAcknowledgedMissing ?? false,
         specialPayFormFile: null,
+        specialPayFormAcknowledgedMissing: t.specialPayFormAcknowledgedMissing ?? false,
         zelleInfo: t.zelleInfo ?? '',
         reimbursedMemberName: t.reimbursedMemberName ?? '',
         notes: t.notes ?? '',
@@ -78,8 +85,6 @@ export const AddTransactionForm = ({
     id?: string;
   } | null>(null);
   const [preGeneratedId, setPreGeneratedId] = useState<string | null>(null);
-  const [requestedDocTypes, setRequestedDocTypes] = useState<Set<string>>(new Set());
-  const [uploadTokens, setUploadTokens] = useState<Record<string, string>>({});
 
   const handleReceiptChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -144,36 +149,33 @@ export const AddTransactionForm = ({
       taxExemptFormSubmitted: false,
       taxAmount: '',
       contractFile: null,
+      contractAcknowledgedMissing: false,
       w9File: null,
+      w9AcknowledgedMissing: false,
       isIndividualVendor: false,
       contractedServicesFile: null,
+      contractedServicesAcknowledgedMissing: false,
       conflictOfInterestFile: null,
+      conflictOfInterestAcknowledgedMissing: false,
       specialPayFormFile: null,
+      specialPayFormAcknowledgedMissing: false,
       zelleInfo: '',
       reimbursedMemberName: '',
     }));
-    setRequestedDocTypes(new Set());
-    setUploadTokens({});
     setError(null);
   };
 
-  const submitTransaction = async (
-    transaction: Omit<Transaction, 'id'>,
-    id?: string,
-    tokens?: Record<string, string>,
-  ) => {
+  const submitTransaction = async (transaction: Omit<Transaction, 'id'>, id?: string) => {
     setSubmitting(true);
     setError(null);
     try {
       if (isEditing && existingTransaction) {
         await updateTransaction(existingTransaction.id, transaction);
       } else {
-        await addTransaction(transaction, id, tokens);
+        await addTransaction(transaction, id);
       }
       setForm(initialForm);
       setPreGeneratedId(null);
-      setRequestedDocTypes(new Set());
-      setUploadTokens({});
       setPendingTransaction(null);
       setOverdraftWarning(null);
       onSuccess?.();
@@ -187,40 +189,6 @@ export const AddTransactionForm = ({
       setSubmitting(false);
       submitGuard.current = false;
     }
-  };
-
-  const handleRequestDocument = (
-    docType: string,
-    label: string,
-    templatePath?: string,
-  ) => {
-    if (!form.title.trim()) {
-      setError('Please enter a transaction title before requesting documents via email.');
-      return;
-    }
-    let id = preGeneratedId;
-    if (!id) {
-      id = generateTransactionId();
-      setPreGeneratedId(id);
-    }
-    const token = crypto.randomUUID();
-    setUploadTokens((prev) => ({ ...prev, [docType]: token }));
-    const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${docType}&token=${token}`;
-    const templateLine = templatePath
-      ? `\n\nYou can download a blank ${label} here:\n${window.location.origin}${templatePath}`
-      : '';
-    const subject = encodeURIComponent(
-      `Document Request — ${label} for "${form.title.trim()}"`,
-    );
-    const body = encodeURIComponent(
-      `Hi,\n\nPlease upload the ${label} for "${form.title.trim()}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
-    );
-    window.open(
-      `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,
-      '_blank',
-    );
-    setRequestedDocTypes((prev) => new Set(prev).add(docType));
-    setError(null);
   };
 
   const uploadFile = async (
@@ -242,7 +210,6 @@ export const AddTransactionForm = ({
         form,
         isEditing,
         existingTransaction,
-        requestedDocTypes,
       );
       if (validationError) {
         setError(validationError);
@@ -253,8 +220,8 @@ export const AddTransactionForm = ({
       const budgetLine = deriveBudgetLine(form.type, form.funding);
       const direction = deriveDirection(form.type);
 
-      // Files must be stored under a known transaction ID, so generate one up
-      // front if a document-request-by-email hasn't already pre-generated it.
+      // Files must be stored under a known transaction ID, so generate one
+      // up front.
       const txnId = preGeneratedId ?? generateTransactionId();
       if (!preGeneratedId) setPreGeneratedId(txnId);
 
@@ -297,12 +264,34 @@ export const AddTransactionForm = ({
         isIndividualVendor:
           form.type === 'Payment Request' ? form.isIndividualVendor : undefined,
         noReceiptAcknowledged:
-          form.type === 'Debit Card' ? form.noReceiptAcknowledged : undefined,
+          form.type === 'Debit Card' || form.type === 'Non-Officer Reimbursement'
+            ? form.noReceiptAcknowledged
+            : undefined,
         taxExemptFormSubmitted:
           form.type === 'Debit Card' ? form.taxExemptFormSubmitted : undefined,
         taxAmount:
           form.type === 'Debit Card' && !form.taxExemptFormSubmitted && form.taxAmount
             ? parseFloat(form.taxAmount)
+            : undefined,
+        contractAcknowledgedMissing:
+          form.type === 'Payment Request' || form.type === 'Payment to NU Employee'
+            ? form.contractAcknowledgedMissing
+            : undefined,
+        w9AcknowledgedMissing:
+          form.type === 'Payment Request' || form.type === 'Payment to NU Employee'
+            ? form.w9AcknowledgedMissing
+            : undefined,
+        contractedServicesAcknowledgedMissing:
+          form.type === 'Payment Request' && form.isIndividualVendor
+            ? form.contractedServicesAcknowledgedMissing
+            : undefined,
+        conflictOfInterestAcknowledgedMissing:
+          form.type === 'Payment Request' && form.isIndividualVendor
+            ? form.conflictOfInterestAcknowledgedMissing
+            : undefined,
+        specialPayFormAcknowledgedMissing:
+          form.type === 'Payment to NU Employee'
+            ? form.specialPayFormAcknowledgedMissing
             : undefined,
         receiptFileUrl,
         contractFileUrl,
@@ -326,7 +315,7 @@ export const AddTransactionForm = ({
         }
       }
 
-      await submitTransaction(newTransaction, txnId, uploadTokens);
+      await submitTransaction(newTransaction, txnId);
     } catch (err) {
       setError(
         err instanceof Error
@@ -454,10 +443,8 @@ export const AddTransactionForm = ({
             isEditing={isEditing}
             existingTransaction={existingTransaction}
             scanning={scanning}
-            requestedDocTypes={requestedDocTypes}
             onReceiptChange={handleReceiptChange}
             onChange={handleChange}
-            onRequestDocument={handleRequestDocument}
           />
         )}
 
@@ -466,19 +453,16 @@ export const AddTransactionForm = ({
             form={form}
             isEditing={isEditing}
             existingTransaction={existingTransaction}
-            requestedDocTypes={requestedDocTypes}
             onChange={handleChange}
-            onRequestDocument={handleRequestDocument}
           />
         )}
 
         {form.type === 'Payment to NU Employee' && (
           <NUEmployeePaymentFields
+            form={form}
             isEditing={isEditing}
             existingTransaction={existingTransaction}
-            requestedDocTypes={requestedDocTypes}
             onChange={handleChange}
-            onRequestDocument={handleRequestDocument}
           />
         )}
 
@@ -488,10 +472,8 @@ export const AddTransactionForm = ({
             isEditing={isEditing}
             existingTransaction={existingTransaction}
             scanning={scanning}
-            requestedDocTypes={requestedDocTypes}
             onReceiptChange={handleReceiptChange}
             onChange={handleChange}
-            onRequestDocument={handleRequestDocument}
           />
         )}
       </div>
@@ -526,11 +508,7 @@ export const AddTransactionForm = ({
               className="wl-btn-warning"
               disabled={submitting}
               onClick={() =>
-                submitTransaction(
-                  pendingTransaction.transaction,
-                  pendingTransaction.id,
-                  uploadTokens,
-                )
+                submitTransaction(pendingTransaction.transaction, pendingTransaction.id)
               }
             >
               {submitting ? 'Saving…' : 'Proceed anyway'}
@@ -547,17 +525,6 @@ export const AddTransactionForm = ({
               Cancel
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Request-via-email is only offered while creating (see the `!isEditing &&`
-          guards in DebitCardFields/DirectPaymentFields/ReimbursementFields), so
-          requestedDocTypes can only be non-empty here when isEditing is false. */}
-      {requestedDocTypes.size > 0 && !overdraftWarning && (
-        <div className={styles['wl-save-reminder']} role="status">
-          📧 Email{requestedDocTypes.size !== 1 ? 's' : ''} sent, but the link
-          {requestedDocTypes.size !== 1 ? 's' : ''} won&apos;t work until this transaction
-          is saved — click &quot;Add Transaction&quot; below now.
         </div>
       )}
 

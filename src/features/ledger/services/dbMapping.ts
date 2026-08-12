@@ -30,6 +30,16 @@ export const rowToTransaction = (row: Record<string, unknown>): Transaction => (
   taxExemptFormSubmitted: (row.tax_exempt_form_submitted as boolean) ?? undefined,
   taxAmount: row.tax_amount != null ? Number(row.tax_amount) : undefined,
   taxReimbursed: (row.tax_reimbursed as boolean) ?? undefined,
+  contractAcknowledgedMissing:
+    (row.contract_acknowledged_missing as boolean) ?? undefined,
+  w9AcknowledgedMissing: (row.w9_acknowledged_missing as boolean) ?? undefined,
+  contractedServicesAcknowledgedMissing:
+    (row.contracted_services_acknowledged_missing as boolean) ?? undefined,
+  conflictOfInterestAcknowledgedMissing:
+    (row.conflict_of_interest_acknowledged_missing as boolean) ?? undefined,
+  specialPayFormAcknowledgedMissing:
+    (row.special_pay_form_acknowledged_missing as boolean) ?? undefined,
+  uploadTokens: (row.upload_tokens as Record<string, string>) ?? undefined,
 });
 
 export const rowToOrganization = (
