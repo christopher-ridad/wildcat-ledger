@@ -17,6 +17,10 @@ vi.mock('../features/ledger/components/Dashboard/ReconciliationModal', () => ({
   ReconciliationModal: ({ isOpen }: { isOpen: boolean }) =>
     isOpen ? <div data-testid="reconciliation-modal" /> : null,
 }));
+vi.mock('../features/ledger/components/Dashboard/DebitCardSettingsModal', () => ({
+  DebitCardSettingsModal: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div data-testid="debit-card-settings-modal" /> : null,
+}));
 
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -79,6 +83,7 @@ describe('Dashboard', () => {
     render(<Dashboard />);
     expect(screen.queryByText('+ Add Transaction')).not.toBeInTheDocument();
     expect(screen.queryByText('Reconcile Debit Card')).not.toBeInTheDocument();
+    expect(screen.queryByText('⚙ Debit Card Settings')).not.toBeInTheDocument();
   });
 
   test('clicking a budget line filter selects it', () => {
@@ -115,6 +120,14 @@ describe('Dashboard', () => {
     expect(screen.queryByTestId('reconciliation-modal')).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Reconcile Debit Card'));
     expect(screen.getByTestId('reconciliation-modal')).toBeInTheDocument();
+  });
+
+  test('opens the Debit Card Settings modal', () => {
+    mockUseLedger.mockReturnValue(baseLedger as never);
+    render(<Dashboard />);
+    expect(screen.queryByTestId('debit-card-settings-modal')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('⚙ Debit Card Settings'));
+    expect(screen.getByTestId('debit-card-settings-modal')).toBeInTheDocument();
   });
 
   test('"Audit History" navigates to /audit-log', () => {

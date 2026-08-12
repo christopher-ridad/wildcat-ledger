@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { DebitCardSettingsModal } from '../features/ledger/components/Dashboard/DebitCardSettingsModal';
 import { ReconciliationModal } from '../features/ledger/components/Dashboard/ReconciliationModal';
 import { TransactionList } from '../features/ledger/components/Dashboard/TransactionList';
 import { TransactionModal } from '../features/ledger/components/Dashboard/TransactionModal';
@@ -11,6 +12,7 @@ import { formatCurrency } from '../features/ledger/utils/calculations';
 export const Dashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [reconcileOpen, setReconcileOpen] = useState(false);
+  const [debitCardSettingsOpen, setDebitCardSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const {
     budgetLineSummaries,
@@ -100,6 +102,15 @@ export const Dashboard = () => {
                 + Add Transaction
               </button>
             )}
+            {canEdit && (
+              <button
+                type="button"
+                className="wl-sidebar-settings-link"
+                onClick={() => setDebitCardSettingsOpen(true)}
+              >
+                ⚙ Debit Card Settings
+              </button>
+            )}
           </div>
         </aside>
 
@@ -139,6 +150,10 @@ export const Dashboard = () => {
       <ReconciliationModal
         isOpen={reconcileOpen}
         onClose={() => setReconcileOpen(false)}
+      />
+      <DebitCardSettingsModal
+        isOpen={debitCardSettingsOpen}
+        onClose={() => setDebitCardSettingsOpen(false)}
       />
     </div>
   );

@@ -68,6 +68,7 @@ export const buildMockLedgerContext = (
   cancelPendingChange: vi.fn().mockResolvedValue(undefined),
   updateBudgetAllocations: vi.fn().mockResolvedValue(undefined),
   initializeBudgetAllocations: vi.fn().mockResolvedValue(undefined),
+  updateDebitCardSettings: vi.fn().mockResolvedValue(undefined),
   reconcileTransactions: vi.fn().mockResolvedValue(undefined),
   uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
   selectedBudgetLine: null,
@@ -113,6 +114,7 @@ export const buildMockOrganization = (
   budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 },
   isBudgetLinesSet: true,
   transactions: [],
+  debitCardSettings: {},
   ...overrides,
 });
 
