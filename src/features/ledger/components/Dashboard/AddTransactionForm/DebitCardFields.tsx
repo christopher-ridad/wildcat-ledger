@@ -98,5 +98,40 @@ export const DebitCardFields = ({
         )}
       </div>
     )}
+
+    <div className={styles['wl-form-no-receipt']}>
+      <label className={styles['wl-form-checkbox']}>
+        <input
+          type="checkbox"
+          name="taxExemptFormSubmitted"
+          checked={form.taxExemptFormSubmitted}
+          onChange={onChange}
+        />
+        <span>I submitted a tax exemption form to the vendor</span>
+      </label>
+
+      {!form.taxExemptFormSubmitted && (
+        <div className="wl-form-group">
+          <label className="wl-form-label" htmlFor="taxAmount">
+            Tax Charged on Receipt (if any)
+          </label>
+          <input
+            id="taxAmount"
+            name="taxAmount"
+            type="text"
+            inputMode="decimal"
+            className="wl-form-input"
+            value={form.taxAmount}
+            onChange={onChange}
+            placeholder="0.00"
+          />
+          {parseFloat(form.taxAmount || '0') > 0 && (
+            <div className={styles['wl-form-no-receipt-notice']}>
+              ⚠ This transaction will be flagged as owing a tax reimbursement to SOFO.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   </>
 );

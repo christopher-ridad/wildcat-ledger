@@ -17,6 +17,7 @@ export const TransactionList = () => {
     rejectPendingChange,
     cancelPendingChange,
     updatePaymentStatus,
+    markTaxReimbursed,
   } = useLedger();
   const canEdit = userRole === 'treasurer' || userRole === 'president';
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -70,6 +71,7 @@ export const TransactionList = () => {
                     onCancel={cancelPendingChange}
                     onViewFiles={setViewingFilesTransaction}
                     onUpdatePaymentStatus={updatePaymentStatus}
+                    onMarkTaxReimbursed={markTaxReimbursed}
                   />
                   {deletingTransaction?.id === t.id && (
                     <tr className={styles['wl-delete-confirm-row']}>

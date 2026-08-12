@@ -18,6 +18,8 @@ const baseForm: FormState = {
   funding: 'ASG',
   receiptFile: null,
   noReceiptAcknowledged: false,
+  taxExemptFormSubmitted: false,
+  taxAmount: '',
   contractFile: null,
   w9File: null,
   isIndividualVendor: false,

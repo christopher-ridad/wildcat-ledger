@@ -46,6 +46,15 @@ export interface Transaction {
   noReceiptAcknowledged?: boolean;
   // Uploaded when the transaction has no receipt (satisfies receipt requirement for reconciliation)
   exemptionFormUrl?: string;
+  // Debit card purchase — orgs are tax-exempt when the exemption form is
+  // presented at purchase, so tax should never legitimately show up. When
+  // it does (no exemption form submitted, tax on the receipt), the full
+  // amount still posts to the balance, but the transaction is flagged as
+  // owing a reimbursement to SOFO until self-attested via taxReimbursed
+  // (the actual payment happens on SOFO's own external form).
+  taxExemptFormSubmitted?: boolean;
+  taxAmount?: number;
+  taxReimbursed?: boolean;
 }
 
 export type AuditAction =
@@ -58,7 +67,8 @@ export type AuditAction =
   | 'reject'
   | 'cancel'
   | 'reconcile'
-  | 'payment_status_change';
+  | 'payment_status_change'
+  | 'tax_reimbursed';
 
 export interface AuditEntry {
   id: string;
@@ -143,6 +153,7 @@ export interface LedgerContextValue {
   initializeBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   reconcileTransactions: (transactionIds: string[]) => Promise<void>;
   uploadExemptionForm: (transactionId: string, file: File) => Promise<void>;
+  markTaxReimbursed: (transactionId: string) => Promise<void>;
   selectedBudgetLine: BudgetLine | null;
   setSelectedBudgetLine: (line: BudgetLine | null) => void;
   filteredTransactions: Transaction[];

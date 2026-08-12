@@ -112,6 +112,60 @@
   letter-spacing: 0.01em;
 }
 
+.wl-tax-owed {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.wl-tax-owed-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  padding: 1px 6px;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.wl-tax-owed-link {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #7c3aed;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+.wl-tax-owed-link:hover {
+  color: #5b21b6;
+}
+
+.wl-tax-owed-mark-btn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #d97706;
+  color: #92400e;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+.wl-tax-owed-mark-btn:hover:not(:disabled) {
+  background: #fef3c7;
+}
+.wl-tax-owed-mark-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .wl-pending-badge {
   font-size: 0.72rem;
   font-weight: 600;

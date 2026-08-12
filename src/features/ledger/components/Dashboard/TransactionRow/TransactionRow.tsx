@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '../../../../authentication/hooks/useAuth';
 import { PaymentStatus, PendingChange, Transaction } from '../../../types';
 import { formatCurrency } from '../../../utils/calculations';
+import { SOFO_SALES_TAX_REIMBURSEMENT_URL } from '../../../utils/constants';
 import { diffChangedKeys } from '../../../utils/diff';
 import { getTransactionFiles } from '../TransactionFilesModal';
 import styles from './TransactionRow.module.css';
@@ -38,6 +39,7 @@ export const TransactionRow = ({
   onCancel,
   onViewFiles,
   onUpdatePaymentStatus,
+  onMarkTaxReimbursed,
 }: {
   t: Transaction;
   canEdit: boolean;
@@ -49,10 +51,12 @@ export const TransactionRow = ({
   onCancel: (pendingId: string) => Promise<void>;
   onViewFiles: (t: Transaction) => void;
   onUpdatePaymentStatus: (transactionId: string, status: PaymentStatus) => Promise<void>;
+  onMarkTaxReimbursed: (transactionId: string) => Promise<void>;
 }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [actioning, setActioning] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [reimbursing, setReimbursing] = useState(false);
   const isInflow = t.direction === 'Inflow';
   const fileCount = getTransactionFiles(t).length;
   const { user } = useAuth();
@@ -71,7 +75,21 @@ export const TransactionRow = ({
     onUpdatePaymentStatus(t.id, status).finally(() => setStatusUpdating(false));
   };
 
+  const handleMarkReimbursed = () => {
+    setReimbursing(true);
+    onMarkTaxReimbursed(t.id).finally(() => setReimbursing(false));
+  };
+
   const colSpan = canEdit ? 7 : 6;
+  // Debit Card purchases should never carry tax (orgs are tax-exempt when
+  // the exemption form is presented at purchase). When it happens anyway,
+  // flag it until self-attested as reimbursed to SOFO -- the actual
+  // payment happens on SOFO's own external form, no integration here.
+  const needsTaxReimbursement =
+    t.type === 'Debit card purchase' &&
+    !t.taxExemptFormSubmitted &&
+    (t.taxAmount ?? 0) > 0 &&
+    !t.taxReimbursed;
   // A Deposit on the Debit Card line is a reload — it goes through the same
   // payment-status lifecycle as Direct Payment/Reimbursement, not
   // reconciliation (that's only for purchases needing a receipt).
@@ -95,6 +113,33 @@ export const TransactionRow = ({
             <span className={styles['wl-pending-type-badge']}>
               {pending.type === 'delete' ? 'Delete requested' : 'Edit requested'}
             </span>
+          )}
+          {needsTaxReimbursement && (
+            <div className={styles['wl-tax-owed']}>
+              <span className={styles['wl-tax-owed-badge']}>
+                ⚠ Tax owed: {formatCurrency(t.taxAmount ?? 0)}
+              </span>
+              {canEdit && (
+                <>
+                  <a
+                    href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles['wl-tax-owed-link']}
+                  >
+                    Submit to SOFO ↗
+                  </a>
+                  <button
+                    type="button"
+                    className={styles['wl-tax-owed-mark-btn']}
+                    disabled={reimbursing}
+                    onClick={handleMarkReimbursed}
+                  >
+                    {reimbursing ? 'Marking…' : 'Mark as Reimbursed'}
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-date']}`}>

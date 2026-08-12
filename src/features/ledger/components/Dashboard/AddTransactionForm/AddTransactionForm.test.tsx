@@ -70,7 +70,9 @@ describe('AddTransactionForm', () => {
   test('switching transaction type clears type-specific fields', () => {
     renderForm();
     fireEvent.click(screen.getByText("I don't have a receipt"));
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: "I don't have a receipt" }),
+    ).toBeChecked();
 
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
       target: { value: 'Deposit' },
@@ -79,7 +81,9 @@ describe('AddTransactionForm', () => {
       target: { value: 'Debit card purchase' },
     });
 
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: "I don't have a receipt" }),
+    ).not.toBeChecked();
   });
 
   test('shows a validation error and does not submit when the title is missing', () => {
@@ -118,6 +122,42 @@ describe('AddTransactionForm', () => {
       noReceiptAcknowledged: true,
     });
     expect(onSuccess).toHaveBeenCalled();
+  });
+
+  test('submits tax info when the exemption form was not submitted', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fillCommonFields('Pizza', '12.50');
+    fireEvent.click(screen.getByText("I don't have a receipt"));
+    fireEvent.change(screen.getByLabelText('Tax Charged on Receipt (if any)'), {
+      target: { value: '1.25' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction).toMatchObject({
+      taxExemptFormSubmitted: false,
+      taxAmount: 1.25,
+    });
+  });
+
+  test('omits tax amount once the exemption form checkbox is checked', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fillCommonFields('Pizza', '12.50');
+    fireEvent.click(screen.getByText("I don't have a receipt"));
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'I submitted a tax exemption form to the vendor',
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction.taxExemptFormSubmitted).toBe(true);
+    expect(transaction.taxAmount).toBeUndefined();
   });
 
   test('submits a reimbursement with the member name and Zelle info included', async () => {

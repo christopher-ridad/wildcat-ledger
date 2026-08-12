@@ -27,6 +27,9 @@ export const rowToTransaction = (row: Record<string, unknown>): Transaction => (
   reconciledAt: (row.reconciled_at as number | null) ?? undefined,
   noReceiptAcknowledged: (row.no_receipt_acknowledged as boolean) ?? undefined,
   exemptionFormUrl: (row.exemption_form_url as string) ?? undefined,
+  taxExemptFormSubmitted: (row.tax_exempt_form_submitted as boolean) ?? undefined,
+  taxAmount: row.tax_amount != null ? Number(row.tax_amount) : undefined,
+  taxReimbursed: (row.tax_reimbursed as boolean) ?? undefined,
 });
 
 export const rowToOrganization = (
