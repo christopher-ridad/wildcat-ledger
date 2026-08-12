@@ -14,7 +14,7 @@ const baseForm: FormState = {
   title: 'Pizza',
   date: '2026-01-15',
   amount: '12.50',
-  type: 'Debit card purchase',
+  type: 'Debit Card',
   funding: 'ASG',
   receiptFile: null,
   noReceiptAcknowledged: false,
@@ -25,7 +25,6 @@ const baseForm: FormState = {
   isIndividualVendor: false,
   contractedServicesFile: null,
   conflictOfInterestFile: null,
-  isNorthwesternEmployee: false,
   specialPayFormFile: null,
   zelleInfo: '',
   reimbursedMemberName: '',
@@ -64,17 +63,19 @@ describe('ZELLE_REGEX', () => {
 });
 
 describe('deriveBudgetLine', () => {
-  test('debit card purchase always maps to Debit Card regardless of funding', () => {
-    expect(deriveBudgetLine('Debit card purchase', 'Gifts')).toBe('Debit Card');
-    expect(deriveBudgetLine('Debit card purchase', 'ASG')).toBe('Debit Card');
+  test('Debit Card always maps to Debit Card regardless of funding', () => {
+    expect(deriveBudgetLine('Debit Card', 'Gifts')).toBe('Debit Card');
+    expect(deriveBudgetLine('Debit Card', 'ASG')).toBe('Debit Card');
   });
 
-  test.each(['Direct payment', 'Reimbursement', 'Deposit'] as const)(
-    '%s maps to the selected funding line',
-    (type) => {
-      expect(deriveBudgetLine(type, 'Operating')).toBe('Operating');
-    },
-  );
+  test.each([
+    'Payment Request',
+    'Non-Officer Reimbursement',
+    'Payment to NU Employee',
+    'Deposit',
+  ] as const)('%s maps to the selected funding line', (type) => {
+    expect(deriveBudgetLine(type, 'Operating')).toBe('Operating');
+  });
 });
 
 describe('deriveDirection', () => {
@@ -82,12 +83,14 @@ describe('deriveDirection', () => {
     expect(deriveDirection('Deposit')).toBe('Inflow');
   });
 
-  test.each(['Debit card purchase', 'Direct payment', 'Reimbursement'] as const)(
-    '%s is an Outflow',
-    (type) => {
-      expect(deriveDirection(type)).toBe('Outflow');
-    },
-  );
+  test.each([
+    'Debit Card',
+    'Payment Request',
+    'Non-Officer Reimbursement',
+    'Payment to NU Employee',
+  ] as const)('%s is an Outflow', (type) => {
+    expect(deriveDirection(type)).toBe('Outflow');
+  });
 });
 
 describe('validateTransactionForm', () => {
@@ -112,11 +115,11 @@ describe('validateTransactionForm', () => {
     );
   });
 
-  describe('Debit card purchase', () => {
+  describe('Debit Card', () => {
     test('requires a receipt, request, or acknowledgment', () => {
       const form = {
         ...baseForm,
-        type: 'Debit card purchase' as const,
+        type: 'Debit Card' as const,
         receiptFile: null,
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
@@ -125,14 +128,14 @@ describe('validateTransactionForm', () => {
     });
 
     test('passes with a receipt file', () => {
-      const form = { ...baseForm, type: 'Debit card purchase' as const, receiptFile };
+      const form = { ...baseForm, type: 'Debit Card' as const, receiptFile };
       expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
     });
 
     test('passes with noReceiptAcknowledged', () => {
       const form = {
         ...baseForm,
-        type: 'Debit card purchase' as const,
+        type: 'Debit Card' as const,
         receiptFile: null,
         noReceiptAcknowledged: true,
       };
@@ -142,7 +145,7 @@ describe('validateTransactionForm', () => {
     test('passes when receipt was requested via email', () => {
       const form = {
         ...baseForm,
-        type: 'Debit card purchase' as const,
+        type: 'Debit Card' as const,
         receiptFile: null,
       };
       expect(
@@ -153,7 +156,7 @@ describe('validateTransactionForm', () => {
     test('passes when editing and an existing receipt is already attached', () => {
       const form = {
         ...baseForm,
-        type: 'Debit card purchase' as const,
+        type: 'Debit Card' as const,
         receiptFile: null,
       };
       const existing: Transaction = {
@@ -161,7 +164,7 @@ describe('validateTransactionForm', () => {
         title: 'Pizza',
         amount: 12.5,
         direction: 'Outflow',
-        type: 'Debit card purchase',
+        type: 'Debit Card',
         budgetLine: 'Debit Card',
         notes: '',
         receiptFileUrl: 'orgs/org-1/txn-1/receipt.png',
@@ -170,14 +173,14 @@ describe('validateTransactionForm', () => {
     });
   });
 
-  describe('Direct payment', () => {
+  describe('Payment Request', () => {
     const contractFile = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
     const w9File = new File(['x'], 'w9.pdf', { type: 'application/pdf' });
 
     test('requires a contract when creating', () => {
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment Request' as const,
         contractFile: null,
         w9File,
       };
@@ -189,7 +192,7 @@ describe('validateTransactionForm', () => {
     test('requires a W-9 when creating', () => {
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment Request' as const,
         contractFile,
         w9File: null,
       };
@@ -199,7 +202,7 @@ describe('validateTransactionForm', () => {
     test('does not require contract/W-9 when editing', () => {
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment Request' as const,
         contractFile: null,
         w9File: null,
       };
@@ -209,7 +212,7 @@ describe('validateTransactionForm', () => {
     test('individual vendors additionally require contracted services and conflict of interest forms', () => {
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment Request' as const,
         contractFile,
         w9File,
         isIndividualVendor: true,
@@ -226,7 +229,7 @@ describe('validateTransactionForm', () => {
       const coiFile = new File(['x'], 'coi.pdf', { type: 'application/pdf' });
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment Request' as const,
         contractFile,
         w9File,
         isIndividualVendor: true,
@@ -236,13 +239,54 @@ describe('validateTransactionForm', () => {
       expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
     });
 
-    test('Northwestern employees additionally require the Special Pay Form', () => {
+    test('passes for a non-individual vendor with contract and W-9', () => {
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment Request' as const,
         contractFile,
         w9File,
-        isNorthwesternEmployee: true,
+      };
+      expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
+    });
+  });
+
+  describe('Payment to NU Employee', () => {
+    const contractFile = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
+    const w9File = new File(['x'], 'w9.pdf', { type: 'application/pdf' });
+    const specialPayFormFile = new File(['x'], 'special-pay.pdf', {
+      type: 'application/pdf',
+    });
+
+    test('requires a contract when creating', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment to NU Employee' as const,
+        contractFile: null,
+        w9File,
+        specialPayFormFile,
+      };
+      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
+        /RSO Agreement/,
+      );
+    });
+
+    test('requires a W-9 when creating', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment to NU Employee' as const,
+        contractFile,
+        w9File: null,
+        specialPayFormFile,
+      };
+      expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(/W-9/);
+    });
+
+    test('requires the Special Pay Form when creating', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment to NU Employee' as const,
+        contractFile,
+        w9File,
         specialPayFormFile: null,
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toMatch(
@@ -250,27 +294,34 @@ describe('validateTransactionForm', () => {
       );
     });
 
-    test('passes once the Special Pay Form is provided for a Northwestern employee', () => {
-      const specialPayFormFile = new File(['x'], 'special-pay.pdf', {
-        type: 'application/pdf',
-      });
+    test('does not require documents when editing', () => {
       const form = {
         ...baseForm,
-        type: 'Direct payment' as const,
+        type: 'Payment to NU Employee' as const,
+        contractFile: null,
+        w9File: null,
+        specialPayFormFile: null,
+      };
+      expect(validateTransactionForm(form, true, undefined, new Set())).toBeNull();
+    });
+
+    test('passes once contract, W-9, and Special Pay Form are all provided', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment to NU Employee' as const,
         contractFile,
         w9File,
-        isNorthwesternEmployee: true,
         specialPayFormFile,
       };
       expect(validateTransactionForm(form, false, undefined, new Set())).toBeNull();
     });
   });
 
-  describe('Reimbursement', () => {
+  describe('Non-Officer Reimbursement', () => {
     test('requires the name of the member being reimbursed', () => {
       const form = {
         ...baseForm,
-        type: 'Reimbursement' as const,
+        type: 'Non-Officer Reimbursement' as const,
         receiptFile,
         zelleInfo: 'person@example.com',
         reimbursedMemberName: '  ',
@@ -283,7 +334,7 @@ describe('validateTransactionForm', () => {
     test('requires a receipt when creating', () => {
       const form = {
         ...baseForm,
-        type: 'Reimbursement' as const,
+        type: 'Non-Officer Reimbursement' as const,
         receiptFile: null,
         zelleInfo: 'person@example.com',
         reimbursedMemberName: 'Jane Doe',
@@ -296,7 +347,7 @@ describe('validateTransactionForm', () => {
     test('requires Zelle info', () => {
       const form = {
         ...baseForm,
-        type: 'Reimbursement' as const,
+        type: 'Non-Officer Reimbursement' as const,
         receiptFile,
         zelleInfo: '',
         reimbursedMemberName: 'Jane Doe',
@@ -309,7 +360,7 @@ describe('validateTransactionForm', () => {
     test('rejects invalid Zelle info', () => {
       const form = {
         ...baseForm,
-        type: 'Reimbursement' as const,
+        type: 'Non-Officer Reimbursement' as const,
         receiptFile,
         zelleInfo: 'not valid',
         reimbursedMemberName: 'Jane Doe',
@@ -322,7 +373,7 @@ describe('validateTransactionForm', () => {
     test('passes with a member name, a receipt, and a valid Zelle email', () => {
       const form = {
         ...baseForm,
-        type: 'Reimbursement' as const,
+        type: 'Non-Officer Reimbursement' as const,
         receiptFile,
         zelleInfo: 'person@example.com',
         reimbursedMemberName: 'Jane Doe',

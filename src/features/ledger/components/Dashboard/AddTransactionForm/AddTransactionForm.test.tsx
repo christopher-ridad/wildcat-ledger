@@ -44,12 +44,12 @@ describe('AddTransactionForm', () => {
     vi.restoreAllMocks();
   });
 
-  test('renders the always-visible fields and defaults to Debit Card Purchase', () => {
+  test('renders the always-visible fields and defaults to Debit Card', () => {
     renderForm();
     expect(screen.getByLabelText(/^Title/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Date/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Amount/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Transaction Type/)).toHaveValue('Debit card purchase');
+    expect(screen.getByLabelText(/Transaction Type/)).toHaveValue('Debit Card');
     expect(screen.getByRole('button', { name: 'Add Transaction' })).toBeInTheDocument();
   });
 
@@ -78,7 +78,7 @@ describe('AddTransactionForm', () => {
       target: { value: 'Deposit' },
     });
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
-      target: { value: 'Debit card purchase' },
+      target: { value: 'Debit Card' },
     });
 
     expect(
@@ -164,7 +164,7 @@ describe('AddTransactionForm', () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({ addTransaction });
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
-      target: { value: 'Reimbursement' },
+      target: { value: 'Non-Officer Reimbursement' },
     });
     fillCommonFields('Team dinner', '25.00');
     fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
@@ -189,11 +189,11 @@ describe('AddTransactionForm', () => {
     });
   });
 
-  test('submits a direct payment to a Northwestern employee with the Special Pay Form', async () => {
+  test('submits a payment to a Northwestern employee with contract, W-9, and Special Pay Form', async () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({ addTransaction });
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
-      target: { value: 'Direct payment' },
+      target: { value: 'Payment to NU Employee' },
     });
     fillCommonFields('Guest speaker honorarium', '200.00');
 
@@ -204,7 +204,6 @@ describe('AddTransactionForm', () => {
     fireEvent.change(document.getElementById('w9File') as HTMLInputElement, {
       target: { files: [file] },
     });
-    fireEvent.click(screen.getByText('Is the payee a Northwestern employee?'));
     fireEvent.change(document.getElementById('specialPayFormFile') as HTMLInputElement, {
       target: { files: [file] },
     });
@@ -215,7 +214,7 @@ describe('AddTransactionForm', () => {
     expect(transaction).toMatchObject({
       title: 'Guest speaker honorarium',
       amount: 200,
-      isNorthwesternEmployee: true,
+      type: 'Payment to NU Employee',
       specialPayFormUrl: 'clubs/org-1/transactions/txn-1/specialPayForm_doc.pdf',
     });
   });
@@ -321,7 +320,7 @@ describe('AddTransactionForm', () => {
     const existingTransaction = buildMockTransaction({
       title: 'Existing Purchase',
       amount: 33.25,
-      type: 'Debit card purchase',
+      type: 'Debit Card',
       receiptFileUrl: 'orgs/1/receipt.png',
     });
     renderForm({}, { existingTransaction });
@@ -338,7 +337,7 @@ describe('AddTransactionForm', () => {
       id: 'txn-99',
       title: 'Existing Purchase',
       amount: 33.25,
-      type: 'Debit card purchase',
+      type: 'Debit Card',
       receiptFileUrl: 'orgs/1/receipt.png',
     });
     renderForm({ updateTransaction, addTransaction }, { existingTransaction });

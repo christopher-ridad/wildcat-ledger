@@ -94,7 +94,7 @@ export const buildMockTransaction = (
   date: '2026-01-15',
   amount: 42.5,
   direction: 'Outflow',
-  type: 'Debit card purchase',
+  type: 'Debit Card',
   funding: 'ASG',
   budgetLine: 'Debit Card',
   notes: '',

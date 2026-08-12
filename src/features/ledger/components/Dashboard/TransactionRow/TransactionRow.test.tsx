@@ -135,7 +135,7 @@ describe('TransactionRow', () => {
     test('does not show a tax-owed badge for non-debit-card transaction types', () => {
       renderRow({
         t: buildMockTransaction({
-          type: 'Direct payment',
+          type: 'Payment Request',
           budgetLine: 'Operating',
           taxExemptFormSubmitted: false,
           taxAmount: 2.5,
@@ -224,7 +224,7 @@ describe('TransactionRow', () => {
     test('does not show a payment-status control for Debit Card transactions', () => {
       renderRow({
         canEdit: true,
-        t: buildMockTransaction({ type: 'Debit card purchase' }),
+        t: buildMockTransaction({ type: 'Debit Card' }),
       });
       expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
       expect(screen.queryByText('Pending')).not.toBeInTheDocument();
@@ -234,7 +234,7 @@ describe('TransactionRow', () => {
       renderRow({
         canEdit: false,
         t: buildMockTransaction({
-          type: 'Direct payment',
+          type: 'Payment Request',
           budgetLine: 'Operating',
           paymentStatus: undefined,
         }),
@@ -246,7 +246,7 @@ describe('TransactionRow', () => {
       renderRow({
         canEdit: false,
         t: buildMockTransaction({
-          type: 'Reimbursement',
+          type: 'Non-Officer Reimbursement',
           budgetLine: 'Operating',
           paymentStatus: 'Approved',
         }),
@@ -259,7 +259,7 @@ describe('TransactionRow', () => {
       renderRow({
         canEdit: true,
         t: buildMockTransaction({
-          type: 'Reimbursement',
+          type: 'Non-Officer Reimbursement',
           budgetLine: 'Operating',
           paymentStatus: 'Paid',
         }),
@@ -299,7 +299,7 @@ describe('TransactionRow', () => {
       renderRow({
         canEdit: true,
         t: buildMockTransaction({
-          type: 'Direct payment',
+          type: 'Payment Request',
           budgetLine: 'Operating',
           paymentStatus: 'Pending',
         }),
@@ -313,7 +313,7 @@ describe('TransactionRow', () => {
       const onUpdatePaymentStatus = vi.fn().mockResolvedValue(undefined);
       const t = buildMockTransaction({
         id: 'txn-42',
-        type: 'Direct payment',
+        type: 'Payment Request',
         budgetLine: 'Operating',
         paymentStatus: 'Pending',
       });

@@ -2,15 +2,24 @@ export type BudgetLine = 'ASG' | 'Operating' | 'Gifts' | 'Debit Card';
 
 export type Funding = 'ASG' | 'Operating' | 'Gifts';
 
+// Renamed from the original 'Reimbursement' / 'Debit card purchase' /
+// 'Direct payment' -- the stored value IS the display string everywhere
+// (no separate label map), so existing rows need a data migration (see
+// migration 0013) alongside this rename.
 export type TransactionType =
-  'Reimbursement' | 'Debit card purchase' | 'Direct payment' | 'Deposit';
+  | 'Non-Officer Reimbursement'
+  | 'Debit Card'
+  | 'Payment Request'
+  | 'Payment to NU Employee'
+  | 'Deposit';
 
 export type TransactionDirection = 'Inflow' | 'Outflow';
 
-// Direct Payment / Reimbursement, plus Deposits onto the Debit Card line
-// (reloads) — tracks real-world fulfillment, distinct from PendingChange
-// (which governs edits/deletes to the record itself). Debit Card purchases
-// use reconciledAt instead; other Deposits don't need a status.
+// Payment Request / Non-Officer Reimbursement / Payment to NU Employee, plus
+// Deposits onto the Debit Card line (reloads) — tracks real-world
+// fulfillment, distinct from PendingChange (which governs edits/deletes to
+// the record itself). Debit Card purchases use reconciledAt instead; other
+// Deposits don't need a status.
 export type PaymentStatus = 'Pending' | 'Approved' | 'Paid';
 
 export interface Transaction {
@@ -23,14 +32,17 @@ export interface Transaction {
   funding?: Funding;
   budgetLine: BudgetLine;
   notes: string;
-  // Reimbursement
+  // Non-Officer Reimbursement
   zelleInfo?: string;
   reimbursedMemberName?: string;
-  // Direct payment / Reimbursement
+  // Payment Request / Non-Officer Reimbursement / Payment to NU Employee
   paymentStatus?: PaymentStatus;
-  // Direct payment
+  // Payment Request
   isIndividualVendor?: boolean;
-  // Special Pay Form required when the payee is a Northwestern employee
+  // Legacy field from before Payment to NU Employee was split out into its
+  // own type -- new transactions no longer set this, the type itself
+  // conveys it. Kept for historical Payment Request rows that used the
+  // Northwestern-employee checkbox.
   isNorthwesternEmployee?: boolean;
   // Storage object paths (Supabase Storage, 'documents' bucket)
   receiptFileUrl?: string;
@@ -46,7 +58,7 @@ export interface Transaction {
   noReceiptAcknowledged?: boolean;
   // Uploaded when the transaction has no receipt (satisfies receipt requirement for reconciliation)
   exemptionFormUrl?: string;
-  // Debit card purchase — orgs are tax-exempt when the exemption form is
+  // Debit Card purchase — orgs are tax-exempt when the exemption form is
   // presented at purchase, so tax should never legitimately show up. When
   // it does (no exemption form submitted, tax on the receipt), the full
   // amount still posts to the balance, but the transaction is flagged as

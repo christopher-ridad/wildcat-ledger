@@ -10,7 +10,7 @@ export const deriveBudgetLine = (
   type: SupportedType,
   funding: FundingOption,
 ): BudgetLine => {
-  if (type === 'Debit card purchase') return 'Debit Card';
+  if (type === 'Debit Card') return 'Debit Card';
   return funding;
 };
 
@@ -33,7 +33,7 @@ export const validateTransactionForm = (
     return 'Enter a valid dollar amount (e.g. 12.50). No negative values or scientific notation.';
   }
 
-  if (form.type === 'Debit card purchase') {
+  if (form.type === 'Debit Card') {
     const hasExistingReceipt = isEditing && !!existingTransaction?.receiptFileUrl;
     if (
       !form.receiptFile &&
@@ -45,7 +45,7 @@ export const validateTransactionForm = (
     }
   }
 
-  if (form.type === 'Direct payment') {
+  if (form.type === 'Payment Request') {
     if (!form.contractFile && !isEditing && !requestedDocTypes.has('contract')) {
       return 'Upload the RSO Agreement or request it via email.';
     }
@@ -68,18 +68,25 @@ export const validateTransactionForm = (
         return 'Upload the Conflict of Interest Form or request it via email.';
       }
     }
-    if (form.isNorthwesternEmployee) {
-      if (
-        !form.specialPayFormFile &&
-        !isEditing &&
-        !requestedDocTypes.has('specialPayForm')
-      ) {
-        return 'Upload the Special Pay Form or request it via email.';
-      }
+  }
+
+  if (form.type === 'Payment to NU Employee') {
+    if (!form.contractFile && !isEditing && !requestedDocTypes.has('contract')) {
+      return 'Upload the RSO Agreement or request it via email.';
+    }
+    if (!form.w9File && !isEditing && !requestedDocTypes.has('w9')) {
+      return 'Upload the W-9 or request it via email.';
+    }
+    if (
+      !form.specialPayFormFile &&
+      !isEditing &&
+      !requestedDocTypes.has('specialPayForm')
+    ) {
+      return 'Upload the Special Pay Form or request it via email.';
     }
   }
 
-  if (form.type === 'Reimbursement') {
+  if (form.type === 'Non-Officer Reimbursement') {
     if (!form.reimbursedMemberName.trim()) {
       return 'Name of the member being reimbursed is required.';
     }

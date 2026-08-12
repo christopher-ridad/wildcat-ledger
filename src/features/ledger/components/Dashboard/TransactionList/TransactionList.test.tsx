@@ -128,7 +128,7 @@ describe('TransactionList', () => {
       filteredTransactions: [
         buildMockTransaction({
           id: 't1',
-          type: 'Direct payment',
+          type: 'Payment Request',
           budgetLine: 'Operating',
           paymentStatus: 'Pending',
         }),
