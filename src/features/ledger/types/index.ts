@@ -110,6 +110,16 @@ export interface PendingChange {
 
 export type UserRole = 'treasurer' | 'president' | 'officer';
 
+// Needed to pre-fill the official SOFO debit card reconciliation form.
+// loadBalance is the card's fixed limit, distinct from the live running
+// balance in budgetAllocations['Debit Card'].
+export interface DebitCardSettings {
+  accountNumber?: string;
+  lastFourDigits?: string;
+  inventoryControlNumber?: string;
+  loadBalance?: number;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -123,6 +133,7 @@ export interface Organization {
   // Reconciliation — epoch ms of the last completed reconciliation,
   // or the first transaction timestamp if never reconciled
   lastReconciliationDate?: number | null;
+  debitCardSettings: DebitCardSettings;
 }
 
 export interface LedgerContextValue {
@@ -151,6 +162,7 @@ export interface LedgerContextValue {
   cancelPendingChange: (pendingId: string) => Promise<void>;
   updateBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   initializeBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
+  updateDebitCardSettings: (settings: DebitCardSettings) => Promise<void>;
   reconcileTransactions: (transactionIds: string[]) => Promise<void>;
   uploadExemptionForm: (transactionId: string, file: File) => Promise<void>;
   markTaxReimbursed: (transactionId: string) => Promise<void>;

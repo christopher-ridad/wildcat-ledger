@@ -46,6 +46,15 @@ export const rowToOrganization = (
   isBudgetLinesSet: (row.is_budget_lines_set as boolean) ?? false,
   lastReconciliationDate: (row.last_reconciliation_date as number | null) ?? null,
   transactions,
+  debitCardSettings: {
+    accountNumber: (row.debit_card_account_number as string) ?? undefined,
+    lastFourDigits: (row.debit_card_last_four as string) ?? undefined,
+    inventoryControlNumber: (row.debit_card_icn as string) ?? undefined,
+    loadBalance:
+      row.debit_card_load_balance != null
+        ? Number(row.debit_card_load_balance)
+        : undefined,
+  },
 });
 
 export const rowToAuditEntry = (row: Record<string, unknown>): AuditEntry => ({

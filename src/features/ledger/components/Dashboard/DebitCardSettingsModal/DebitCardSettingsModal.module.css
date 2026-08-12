@@ -1,0 +1,13 @@
+.wl-settings-hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0 0 12px;
+}
+
+.wl-settings-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 8px;
+  border-top: 1.5px solid var(--color-border);
+}
