@@ -141,6 +141,25 @@ describe('TransactionRow', () => {
       expect(screen.queryByLabelText('View missing documents')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/View \d+ attached file/)).not.toBeInTheDocument();
     });
+
+    test('clicking the "Missing" badge opens the files modal for a canEdit viewer', () => {
+      const onViewFiles = vi.fn();
+      const t = buildMockTransaction({
+        type: 'Payment Request',
+        budgetLine: 'Operating',
+      });
+      renderRow({ canEdit: true, t, onViewFiles });
+      fireEvent.click(screen.getByText('⚠ Missing: RSO Agreement, W-9'));
+      expect(onViewFiles).toHaveBeenCalledWith(t);
+    });
+
+    test('the "Missing" badge is not clickable for a viewer who cannot edit', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      });
+      expect(screen.queryByRole('button', { name: /Missing:/ })).not.toBeInTheDocument();
+    });
   });
 
   describe('tax reimbursement', () => {

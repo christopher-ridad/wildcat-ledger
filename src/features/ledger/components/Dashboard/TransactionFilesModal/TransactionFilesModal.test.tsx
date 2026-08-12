@@ -128,7 +128,47 @@ describe('TransactionFilesModal', () => {
       expect(screen.queryByText('Missing')).not.toBeInTheDocument();
     });
 
-    test('clicking "Request via Email" mints a token and opens a mail compose window', async () => {
+    test('a simple-request document (W-9) shows a "Request via Email" button', () => {
+      renderModal(
+        buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      );
+      expect(screen.getByText('Request via Email')).toBeInTheDocument();
+    });
+
+    test('a prepare-first document (contract) shows "Send for Signature" and a prep reminder', () => {
+      renderModal(
+        buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      );
+      expect(screen.getByText('Send for Signature')).toBeInTheDocument();
+      expect(screen.getByText(/attach your version to the email/)).toBeInTheDocument();
+    });
+
+    test('a self-created document (Conflict of Interest) shows no request button', () => {
+      renderModal(
+        buildMockTransaction({
+          type: 'Payment Request',
+          budgetLine: 'Operating',
+          isIndividualVendor: true,
+          contractFileUrl: 'orgs/1/contract.pdf',
+          w9FileUrl: 'orgs/1/w9.pdf',
+          contractedServicesFileUrl: 'orgs/1/cs.pdf',
+        }),
+      );
+      expect(screen.getByText('Conflict of Interest Form')).toBeInTheDocument();
+      expect(screen.getByText(/complete and upload it yourself/)).toBeInTheDocument();
+      expect(screen.queryByText('Request via Email')).not.toBeInTheDocument();
+      expect(screen.queryByText('Send for Signature')).not.toBeInTheDocument();
+    });
+
+    test('shows a blank-template download link for documents that have one', () => {
+      renderModal(
+        buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+      );
+      const link = screen.getByText('↓ Blank RSO Agreement');
+      expect(link).toHaveAttribute('href', '/forms/rso-agreement.pdf');
+    });
+
+    test('clicking "Request via Email" on a simple document mints a token and opens a mail compose window', async () => {
       const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
       const requestTransactionDocument = vi.fn().mockResolvedValue('the-token');
       renderModal(
@@ -142,11 +182,10 @@ describe('TransactionFilesModal', () => {
         { requestTransactionDocument },
       );
 
-      const [requestButton] = screen.getAllByText('Request via Email');
-      fireEvent.click(requestButton);
+      fireEvent.click(screen.getByText('Request via Email'));
 
       await vi.waitFor(() =>
-        expect(requestTransactionDocument).toHaveBeenCalledWith('txn-1', 'contract'),
+        expect(requestTransactionDocument).toHaveBeenCalledWith('txn-1', 'w9'),
       );
       expect(openSpy).toHaveBeenCalled();
       const [url] = openSpy.mock.calls[0];
@@ -156,12 +195,33 @@ describe('TransactionFilesModal', () => {
       ).toBeInTheDocument();
     });
 
+    test('clicking "Send for Signature" on a prepare-first document mints a token for it', async () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      const requestTransactionDocument = vi.fn().mockResolvedValue('the-token');
+      renderModal(
+        buildMockTransaction({
+          id: 'txn-1',
+          title: 'Guest speaker',
+          type: 'Payment Request',
+          budgetLine: 'Operating',
+        }),
+        vi.fn(),
+        { requestTransactionDocument },
+      );
+
+      fireEvent.click(screen.getByText('Send for Signature'));
+
+      await vi.waitFor(() =>
+        expect(requestTransactionDocument).toHaveBeenCalledWith('txn-1', 'contract'),
+      );
+    });
+
     test('shows "Requested" for a document that already has a pending upload token', () => {
       renderModal(
         buildMockTransaction({
           type: 'Payment Request',
           budgetLine: 'Operating',
-          uploadTokens: { contract: 'existing-token' },
+          uploadTokens: { w9: 'existing-token' },
         }),
       );
       expect(screen.getByText('Requested — waiting for upload')).toBeInTheDocument();
@@ -177,8 +237,7 @@ describe('TransactionFilesModal', () => {
         { requestTransactionDocument },
       );
 
-      const [requestButton] = screen.getAllByText('Request via Email');
-      fireEvent.click(requestButton);
+      fireEvent.click(screen.getByText('Request via Email'));
 
       expect(await screen.findByText('Network unavailable')).toBeInTheDocument();
     });

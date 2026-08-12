@@ -11,18 +11,33 @@ export type DocumentTypeKey =
   | 'conflictOfInterest'
   | 'specialPayForm';
 
+// How a missing document actually gets resolved in practice:
+//  - 'simple': the other party just fills it out and sends it back --
+//    Receipt, W-9, Special Pay Form.
+//  - 'prepareFirst': the treasurer/president downloads the blank template,
+//    fills in the org's side first, then sends it to the vendor to sign --
+//    RSO Agreement, Contracted Services Form. Since a mailto link can't
+//    attach a file automatically, the UI needs to remind them to attach
+//    their filled-in copy before sending.
+//  - 'none': nobody else is involved -- the treasurer/president completes
+//    and uploads it themselves, so there's nothing to email. Conflict of
+//    Interest Form.
+export type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
+
 export interface DocumentRequirement {
   key: DocumentTypeKey;
   field: keyof Transaction;
   acknowledgedMissingField?: keyof Transaction;
   label: string;
   templatePath?: string;
+  requestBehavior: DocumentRequestBehavior;
 }
 
 const RECEIPT: DocumentRequirement = {
   key: 'receipt',
   field: 'receiptFileUrl',
   label: 'Receipt',
+  requestBehavior: 'simple',
 };
 const CONTRACT: DocumentRequirement = {
   key: 'contract',
@@ -30,6 +45,7 @@ const CONTRACT: DocumentRequirement = {
   acknowledgedMissingField: 'contractAcknowledgedMissing',
   label: 'RSO Agreement',
   templatePath: '/forms/rso-agreement.pdf',
+  requestBehavior: 'prepareFirst',
 };
 const W9: DocumentRequirement = {
   key: 'w9',
@@ -37,6 +53,7 @@ const W9: DocumentRequirement = {
   acknowledgedMissingField: 'w9AcknowledgedMissing',
   label: 'W-9',
   templatePath: '/forms/w9.pdf',
+  requestBehavior: 'simple',
 };
 const CONTRACTED_SERVICES: DocumentRequirement = {
   key: 'contractedServices',
@@ -44,6 +61,7 @@ const CONTRACTED_SERVICES: DocumentRequirement = {
   acknowledgedMissingField: 'contractedServicesAcknowledgedMissing',
   label: 'Contracted Services Form',
   templatePath: '/forms/contracted-services.pdf',
+  requestBehavior: 'prepareFirst',
 };
 const CONFLICT_OF_INTEREST: DocumentRequirement = {
   key: 'conflictOfInterest',
@@ -51,6 +69,7 @@ const CONFLICT_OF_INTEREST: DocumentRequirement = {
   acknowledgedMissingField: 'conflictOfInterestAcknowledgedMissing',
   label: 'Conflict of Interest Form',
   templatePath: '/forms/conflict-of-interest.pdf',
+  requestBehavior: 'none',
 };
 const SPECIAL_PAY_FORM: DocumentRequirement = {
   key: 'specialPayForm',
@@ -58,6 +77,7 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
   acknowledgedMissingField: 'specialPayFormAcknowledgedMissing',
   label: 'Special Pay Form',
   templatePath: '/forms/special-pay-request-form.pdf',
+  requestBehavior: 'simple',
 };
 
 // The documents a transaction needs, based on its type (and, for Payment

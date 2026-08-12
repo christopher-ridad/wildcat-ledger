@@ -75,3 +75,36 @@ describe('getMissingDocuments', () => {
     expect(getMissingDocuments(t).map((d) => d.key)).toContain('contract');
   });
 });
+
+describe('requestBehavior', () => {
+  test('receipt, W-9, and Special Pay Form are simple requests', () => {
+    const receipt = getRequiredDocuments(buildMockTransaction({ type: 'Debit Card' }))[0];
+    const [, w9] = getRequiredDocuments(
+      buildMockTransaction({ type: 'Payment Request' }),
+    );
+    const [, , specialPayForm] = getRequiredDocuments(
+      buildMockTransaction({ type: 'Payment to NU Employee' }),
+    );
+    expect(receipt.requestBehavior).toBe('simple');
+    expect(w9.requestBehavior).toBe('simple');
+    expect(specialPayForm.requestBehavior).toBe('simple');
+  });
+
+  test('contract and Contracted Services Form require preparation first', () => {
+    const [contract] = getRequiredDocuments(
+      buildMockTransaction({ type: 'Payment Request' }),
+    );
+    const [, , contractedServices] = getRequiredDocuments(
+      buildMockTransaction({ type: 'Payment Request', isIndividualVendor: true }),
+    );
+    expect(contract.requestBehavior).toBe('prepareFirst');
+    expect(contractedServices.requestBehavior).toBe('prepareFirst');
+  });
+
+  test('Conflict of Interest Form cannot be requested', () => {
+    const [, , , conflictOfInterest] = getRequiredDocuments(
+      buildMockTransaction({ type: 'Payment Request', isIndividualVendor: true }),
+    );
+    expect(conflictOfInterest.requestBehavior).toBe('none');
+  });
+});

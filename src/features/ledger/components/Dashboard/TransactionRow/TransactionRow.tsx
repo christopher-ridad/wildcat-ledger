@@ -126,11 +126,20 @@ export const TransactionRow = ({
               {pending.type === 'delete' ? 'Delete requested' : 'Edit requested'}
             </span>
           )}
-          {missingDocs.length > 0 && (
-            <div className={styles['wl-missing-docs-badge']}>
-              ⚠ Missing: {missingDocs.map((d) => d.label).join(', ')}
-            </div>
-          )}
+          {missingDocs.length > 0 &&
+            (canEdit ? (
+              <button
+                type="button"
+                className={styles['wl-missing-docs-badge']}
+                onClick={() => onViewFiles(t)}
+              >
+                ⚠ Missing: {missingDocs.map((d) => d.label).join(', ')}
+              </button>
+            ) : (
+              <div className={styles['wl-missing-docs-badge']}>
+                ⚠ Missing: {missingDocs.map((d) => d.label).join(', ')}
+              </div>
+            ))}
           {needsTaxReimbursement && (
             <div className={styles['wl-tax-owed']}>
               <span className={styles['wl-tax-owed-badge']}>
@@ -263,14 +272,16 @@ export const TransactionRow = ({
                 {(fileCount > 0 || missingDocs.length > 0) && (
                   <button
                     type="button"
-                    className={styles['wl-action-btn']}
+                    className={`${styles['wl-action-btn']} ${missingDocs.length > 0 ? styles['wl-action-btn--warning'] : ''}`}
                     onClick={() => onViewFiles(t)}
                     aria-label={
-                      fileCount > 0
-                        ? `View ${fileCount} attached file${fileCount !== 1 ? 's' : ''}`
-                        : 'View missing documents'
+                      missingDocs.length > 0
+                        ? 'View missing documents'
+                        : `View ${fileCount} attached file${fileCount !== 1 ? 's' : ''}`
                     }
-                    title="View documents"
+                    title={
+                      missingDocs.length > 0 ? 'Missing documents' : 'View documents'
+                    }
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

@@ -26,20 +26,45 @@
 
 .wl-missing-doc-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
   background: #fffbeb;
 }
 
+.wl-missing-doc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .wl-missing-doc-label {
   font-size: 0.85rem;
   font-weight: 600;
   color: #92400e;
+}
+
+.wl-missing-doc-template-link {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wl-missing-doc-template-link:hover {
+  text-decoration: underline;
+}
+
+.wl-missing-doc-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #92400e;
+  opacity: 0.85;
 }
 
 .wl-missing-doc-actions {

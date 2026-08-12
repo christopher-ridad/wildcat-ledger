@@ -3,7 +3,10 @@ import { useEffect, useState } from 'react';
 import { useLedger } from '../../../hooks/useLedger';
 import { getSignedFileUrl } from '../../../services/storage';
 import { Transaction } from '../../../types';
-import { getMissingDocuments } from '../../../utils/documentRequirements';
+import {
+  DocumentRequirement,
+  getMissingDocuments,
+} from '../../../utils/documentRequirements';
 import styles from './TransactionFilesModal.module.css';
 
 const FILE_LABELS: { key: keyof Transaction; label: string }[] = [
@@ -85,6 +88,11 @@ const FilePreviewCard = ({ label, url: path }: { label: string; url: string }) =
   );
 };
 
+const REQUEST_BUTTON_LABEL: Record<'simple' | 'prepareFirst', string> = {
+  simple: 'Request via Email',
+  prepareFirst: 'Send for Signature',
+};
+
 export const TransactionFilesModal = ({
   transaction,
   onClose,
@@ -102,26 +110,29 @@ export const TransactionFilesModal = ({
   const isRequested = (key: string) =>
     justRequested.has(key) || !!transaction.uploadTokens?.[key];
 
-  const handleRequest = async (docType: string, label: string, templatePath?: string) => {
-    setRequesting(docType);
+  const handleRequest = async (doc: DocumentRequirement) => {
+    setRequesting(doc.key);
     setRequestError(null);
     try {
-      const token = await requestTransactionDocument(transaction.id, docType);
-      const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${docType}&token=${token}`;
-      const templateLine = templatePath
-        ? `\n\nYou can download a blank ${label} here:\n${window.location.origin}${templatePath}`
+      const token = await requestTransactionDocument(transaction.id, doc.key);
+      const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${doc.key}&token=${token}`;
+      const templateLine = doc.templatePath
+        ? `\n\nYou can download a blank ${doc.label} here:\n${window.location.origin}${doc.templatePath}`
         : '';
+      const isSignature = doc.requestBehavior === 'prepareFirst';
       const subject = encodeURIComponent(
-        `Document Request — ${label} for "${transaction.title}"`,
+        `${isSignature ? 'Signature Request' : 'Document Request'} — ${doc.label} for "${transaction.title}"`,
       );
       const body = encodeURIComponent(
-        `Hi,\n\nPlease upload the ${label} for "${transaction.title}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
+        isSignature
+          ? `Hi,\n\nPlease review, sign, and return the attached ${doc.label} for "${transaction.title}". You can upload the signed copy here:\n\n${uploadUrl}\n\n(Don't forget to attach your filled-in copy to this email before sending!)${templateLine}\n\nThank you!`
+          : `Hi,\n\nPlease upload the ${doc.label} for "${transaction.title}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
       );
       window.open(
         `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,
         '_blank',
       );
-      setJustRequested((prev) => new Set(prev).add(docType));
+      setJustRequested((prev) => new Set(prev).add(doc.key));
     } catch (err) {
       setRequestError(
         err instanceof Error ? err.message : 'Failed to send the document request.',
@@ -160,24 +171,50 @@ export const TransactionFilesModal = ({
               <ul className={styles['wl-missing-docs-list']}>
                 {missingDocs.map((doc) => (
                   <li key={doc.key} className={styles['wl-missing-doc-item']}>
-                    <span className={styles['wl-missing-doc-label']}>{doc.label}</span>
-                    <div className={styles['wl-missing-doc-actions']}>
-                      <button
-                        type="button"
-                        className={styles['wl-btn-request-doc']}
-                        disabled={requesting === doc.key}
-                        onClick={() =>
-                          handleRequest(doc.key, doc.label, doc.templatePath)
-                        }
-                      >
-                        {requesting === doc.key ? 'Sending…' : 'Request via Email'}
-                      </button>
-                      {isRequested(doc.key) && (
-                        <span className={styles['wl-missing-doc-requested-note']}>
-                          Requested — waiting for upload
-                        </span>
+                    <div className={styles['wl-missing-doc-header']}>
+                      <span className={styles['wl-missing-doc-label']}>{doc.label}</span>
+                      {doc.templatePath && (
+                        <a
+                          href={doc.templatePath}
+                          target="_blank"
+                          rel="noreferrer"
+                          className={styles['wl-missing-doc-template-link']}
+                        >
+                          ↓ Blank {doc.label}
+                        </a>
                       )}
                     </div>
+                    {doc.requestBehavior === 'prepareFirst' && (
+                      <p className={styles['wl-missing-doc-hint']}>
+                        Download the template, fill in your org&apos;s details, and attach
+                        your version to the email before sending — a mailto link
+                        can&apos;t attach it for you.
+                      </p>
+                    )}
+                    {doc.requestBehavior === 'none' ? (
+                      <p className={styles['wl-missing-doc-hint']}>
+                        Nobody else needs to fill this out — complete and upload it
+                        yourself.
+                      </p>
+                    ) : (
+                      <div className={styles['wl-missing-doc-actions']}>
+                        <button
+                          type="button"
+                          className={styles['wl-btn-request-doc']}
+                          disabled={requesting === doc.key}
+                          onClick={() => handleRequest(doc)}
+                        >
+                          {requesting === doc.key
+                            ? 'Sending…'
+                            : REQUEST_BUTTON_LABEL[doc.requestBehavior]}
+                        </button>
+                        {isRequested(doc.key) && (
+                          <span className={styles['wl-missing-doc-requested-note']}>
+                            Requested — waiting for upload
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
