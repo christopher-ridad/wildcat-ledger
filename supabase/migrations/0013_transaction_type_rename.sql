@@ -13,10 +13,21 @@
 -- Request rows that used the old Northwestern-employee checkbox keep
 -- their `is_northwestern_employee` flag and stay type = 'Payment Request';
 -- this migration does not attempt to reclassify them.
+--
+-- transactions_restrict_member_updates (0001_init.sql) fires on every
+-- UPDATE and only allows non-managers to touch exemption_form_url; it
+-- checks can_manage_org() via auth.jwt(), which has no value when this
+-- runs as a raw SQL Editor script (no request-scoped JWT), so it would
+-- otherwise block this bulk rename. Safe to disable/re-enable around it
+-- since this whole script runs as the table owner in one transaction.
+
+alter table transactions disable trigger transactions_restrict_member_updates;
 
 update transactions set type = 'Payment Request' where type = 'Direct payment';
 update transactions set type = 'Debit Card' where type = 'Debit card purchase';
 update transactions set type = 'Non-Officer Reimbursement' where type = 'Reimbursement';
+
+alter table transactions enable trigger transactions_restrict_member_updates;
 
 -- Payment to NU Employee joins Payment Request / Non-Officer Reimbursement /
 -- Debit Card reload deposits as a type whose budget impact is deferred
