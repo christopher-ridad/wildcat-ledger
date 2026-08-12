@@ -25,7 +25,7 @@ const FILE_TYPE_MAP: Record<string, { field: string; prefix: string; label: stri
   },
 };
 
-export const UploadReceiptPage = () => {
+export const UploadDocumentPage = () => {
   const [searchParams] = useSearchParams();
   const transactionId = searchParams.get('transactionId');
   const orgId = searchParams.get('orgId');
@@ -92,9 +92,9 @@ export const UploadReceiptPage = () => {
 
   if (loading) {
     return (
-      <div className="wl-upload-receipt-root">
-        <div className="wl-upload-receipt-card">
-          <p className="wl-upload-receipt-txn">Loading…</p>
+      <div className="wl-upload-document-root">
+        <div className="wl-upload-document-card">
+          <p className="wl-upload-document-txn">Loading…</p>
         </div>
       </div>
     );
@@ -102,9 +102,9 @@ export const UploadReceiptPage = () => {
 
   if (loadError) {
     return (
-      <div className="wl-upload-receipt-root">
-        <div className="wl-upload-receipt-card">
-          <h1 className="wl-upload-receipt-title">Upload {docLabel}</h1>
+      <div className="wl-upload-document-root">
+        <div className="wl-upload-document-card">
+          <h1 className="wl-upload-document-title">Upload {docLabel}</h1>
           <p className="wl-form-error">{loadError}</p>
         </div>
       </div>
@@ -113,24 +113,24 @@ export const UploadReceiptPage = () => {
 
   if (success) {
     return (
-      <div className="wl-upload-receipt-root">
-        <div className="wl-upload-receipt-card">
-          <h1 className="wl-upload-receipt-title">Done!</h1>
-          <p className="wl-upload-receipt-success">
+      <div className="wl-upload-document-root">
+        <div className="wl-upload-document-card">
+          <h1 className="wl-upload-document-title">Done!</h1>
+          <p className="wl-upload-document-success">
             Your {docLabel} has been uploaded successfully.
           </p>
-          <p className="wl-upload-receipt-txn">You can close this tab.</p>
+          <p className="wl-upload-document-txn">You can close this tab.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="wl-upload-receipt-root">
-      <div className="wl-upload-receipt-card">
-        <h1 className="wl-upload-receipt-title">Upload {docLabel}</h1>
+    <div className="wl-upload-document-root">
+      <div className="wl-upload-document-card">
+        <h1 className="wl-upload-document-title">Upload {docLabel}</h1>
         {txnTitle && (
-          <p className="wl-upload-receipt-txn">
+          <p className="wl-upload-document-txn">
             Transaction: <strong>{txnTitle}</strong>
           </p>
         )}

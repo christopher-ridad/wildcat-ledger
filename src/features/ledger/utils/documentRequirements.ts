@@ -1,7 +1,7 @@
 import { Transaction } from '../types';
 
 // The doc-type keys used end-to-end for the request-via-email flow: as the
-// query param on the emailed upload link (UploadReceiptPage.tsx) and as the
+// query param on the emailed upload link (UploadDocumentPage.tsx) and as the
 // key into a transaction's upload_tokens (submit_document_upload RPC).
 export type DocumentTypeKey =
   | 'receipt'

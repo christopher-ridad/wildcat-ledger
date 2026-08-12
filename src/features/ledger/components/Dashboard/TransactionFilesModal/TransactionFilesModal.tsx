@@ -115,17 +115,21 @@ export const TransactionFilesModal = ({
     setRequestError(null);
     try {
       const token = await requestTransactionDocument(transaction.id, doc.key);
-      const uploadUrl = `${window.location.origin}/upload-receipt?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${doc.key}&token=${token}`;
-      const templateLine = doc.templatePath
-        ? `\n\nYou can download a blank ${doc.label} here:\n${window.location.origin}${doc.templatePath}`
-        : '';
+      const uploadUrl = `${window.location.origin}/upload-document?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${doc.key}&token=${token}`;
       const isSignature = doc.requestBehavior === 'prepareFirst';
+      // The blank-template link is only useful to a recipient filling the
+      // form out themselves for the first time -- for a signature request,
+      // they're receiving the org's already-filled-in copy, not a blank one.
+      const templateLine =
+        doc.templatePath && !isSignature
+          ? `\n\nYou can download a blank ${doc.label} here:\n${window.location.origin}${doc.templatePath}`
+          : '';
       const subject = encodeURIComponent(
         `${isSignature ? 'Signature Request' : 'Document Request'} — ${doc.label} for "${transaction.title}"`,
       );
       const body = encodeURIComponent(
         isSignature
-          ? `Hi,\n\nPlease review, sign, and return the attached ${doc.label} for "${transaction.title}". You can upload the signed copy here:\n\n${uploadUrl}\n\n(Don't forget to attach your filled-in copy to this email before sending!)${templateLine}\n\nThank you!`
+          ? `Hi,\n\nPlease review, sign, and return the attached ${doc.label} for "${transaction.title}". You can upload the signed copy here:\n\n${uploadUrl}\n\n(Don't forget to attach your filled-in copy to this email before sending!)\n\nThank you!`
           : `Hi,\n\nPlease upload the ${doc.label} for "${transaction.title}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
       );
       window.open(
