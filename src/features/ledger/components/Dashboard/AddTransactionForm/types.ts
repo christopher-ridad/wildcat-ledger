@@ -2,7 +2,11 @@ import { Transaction, TransactionType } from '../../../types';
 
 export type SupportedType = Extract<
   TransactionType,
-  'Debit card purchase' | 'Direct payment' | 'Reimbursement' | 'Deposit'
+  | 'Debit Card'
+  | 'Payment Request'
+  | 'Non-Officer Reimbursement'
+  | 'Payment to NU Employee'
+  | 'Deposit'
 >;
 
 export type FundingOption = 'ASG' | 'Operating' | 'Gifts';
@@ -18,20 +22,19 @@ export interface FormState {
   amount: string;
   type: SupportedType;
   funding: FundingOption;
-  // Debit card purchase
+  // Debit Card
   receiptFile: File | null;
   noReceiptAcknowledged: boolean;
   taxExemptFormSubmitted: boolean;
   taxAmount: string;
-  // Direct payment
+  // Payment Request / Payment to NU Employee
   contractFile: File | null;
   w9File: File | null;
   isIndividualVendor: boolean;
   contractedServicesFile: File | null;
   conflictOfInterestFile: File | null;
-  isNorthwesternEmployee: boolean;
   specialPayFormFile: File | null;
-  // Reimbursement
+  // Non-Officer Reimbursement
   zelleInfo: string;
   reimbursedMemberName: string;
   notes: string;
@@ -43,7 +46,7 @@ export const initialForm: FormState = {
   title: '',
   date: todayISO(),
   amount: '',
-  type: 'Debit card purchase',
+  type: 'Debit Card',
   funding: 'ASG',
   receiptFile: null,
   noReceiptAcknowledged: false,
@@ -54,7 +57,6 @@ export const initialForm: FormState = {
   isIndividualVendor: false,
   contractedServicesFile: null,
   conflictOfInterestFile: null,
-  isNorthwesternEmployee: false,
   specialPayFormFile: null,
   zelleInfo: '',
   reimbursedMemberName: '',

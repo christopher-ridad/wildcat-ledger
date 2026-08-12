@@ -20,7 +20,11 @@ const STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
   Paid: styles['wl-status-badge--paid'],
 };
 
-const PAYMENT_STATUS_TYPES: Transaction['type'][] = ['Direct payment', 'Reimbursement'];
+const PAYMENT_STATUS_TYPES: Transaction['type'][] = [
+  'Payment Request',
+  'Non-Officer Reimbursement',
+  'Payment to NU Employee',
+];
 
 // Reload deposits skip the "Approved" middle state — approving a reload IS
 // reloading it, there's no separate paid-out step — so they only ever go
@@ -86,7 +90,7 @@ export const TransactionRow = ({
   // flag it until self-attested as reimbursed to SOFO -- the actual
   // payment happens on SOFO's own external form, no integration here.
   const needsTaxReimbursement =
-    t.type === 'Debit card purchase' &&
+    t.type === 'Debit Card' &&
     !t.taxExemptFormSubmitted &&
     (t.taxAmount ?? 0) > 0 &&
     !t.taxReimbursed;

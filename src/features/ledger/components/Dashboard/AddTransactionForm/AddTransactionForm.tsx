@@ -8,6 +8,7 @@ import { Transaction } from '../../../types';
 import styles from './AddTransactionForm.module.css';
 import { DebitCardFields } from './DebitCardFields';
 import { DirectPaymentFields } from './DirectPaymentFields';
+import { NUEmployeePaymentFields } from './NUEmployeePaymentFields';
 import { ReimbursementFields } from './ReimbursementFields';
 import {
   AddTransactionFormProps,
@@ -35,13 +36,19 @@ export const AddTransactionForm = ({
     if (existingTransaction) {
       const t = existingTransaction;
       const isSupportedType = (
-        ['Debit card purchase', 'Direct payment', 'Reimbursement', 'Deposit'] as string[]
+        [
+          'Debit Card',
+          'Payment Request',
+          'Non-Officer Reimbursement',
+          'Payment to NU Employee',
+          'Deposit',
+        ] as string[]
       ).includes(t.type);
       return {
         title: t.title,
         date: t.date ?? todayISO(),
         amount: String(t.amount),
-        type: isSupportedType ? (t.type as FormState['type']) : 'Debit card purchase',
+        type: isSupportedType ? (t.type as FormState['type']) : 'Debit Card',
         funding: (t.budgetLine === 'Debit Card' ? 'ASG' : t.budgetLine) as FundingOption,
         receiptFile: null,
         noReceiptAcknowledged: t.noReceiptAcknowledged ?? false,
@@ -52,7 +59,6 @@ export const AddTransactionForm = ({
         isIndividualVendor: t.isIndividualVendor ?? false,
         contractedServicesFile: null,
         conflictOfInterestFile: null,
-        isNorthwesternEmployee: t.isNorthwesternEmployee ?? false,
         specialPayFormFile: null,
         zelleInfo: t.zelleInfo ?? '',
         reimbursedMemberName: t.reimbursedMemberName ?? '',
@@ -142,7 +148,6 @@ export const AddTransactionForm = ({
       isIndividualVendor: false,
       contractedServicesFile: null,
       conflictOfInterestFile: null,
-      isNorthwesternEmployee: false,
       specialPayFormFile: null,
       zelleInfo: '',
       reimbursedMemberName: '',
@@ -280,24 +285,23 @@ export const AddTransactionForm = ({
         amount,
         direction,
         type: form.type,
-        funding: form.type !== 'Debit card purchase' ? form.funding : undefined,
+        funding: form.type !== 'Debit Card' ? form.funding : undefined,
         budgetLine,
         notes: form.notes.trim(),
-        zelleInfo: form.type === 'Reimbursement' ? form.zelleInfo.trim() : undefined,
+        zelleInfo:
+          form.type === 'Non-Officer Reimbursement' ? form.zelleInfo.trim() : undefined,
         reimbursedMemberName:
-          form.type === 'Reimbursement' ? form.reimbursedMemberName.trim() : undefined,
+          form.type === 'Non-Officer Reimbursement'
+            ? form.reimbursedMemberName.trim()
+            : undefined,
         isIndividualVendor:
-          form.type === 'Direct payment' ? form.isIndividualVendor : undefined,
-        isNorthwesternEmployee:
-          form.type === 'Direct payment' ? form.isNorthwesternEmployee : undefined,
+          form.type === 'Payment Request' ? form.isIndividualVendor : undefined,
         noReceiptAcknowledged:
-          form.type === 'Debit card purchase' ? form.noReceiptAcknowledged : undefined,
+          form.type === 'Debit Card' ? form.noReceiptAcknowledged : undefined,
         taxExemptFormSubmitted:
-          form.type === 'Debit card purchase' ? form.taxExemptFormSubmitted : undefined,
+          form.type === 'Debit Card' ? form.taxExemptFormSubmitted : undefined,
         taxAmount:
-          form.type === 'Debit card purchase' &&
-          !form.taxExemptFormSubmitted &&
-          form.taxAmount
+          form.type === 'Debit Card' && !form.taxExemptFormSubmitted && form.taxAmount
             ? parseFloat(form.taxAmount)
             : undefined,
         receiptFileUrl,
@@ -335,8 +339,9 @@ export const AddTransactionForm = ({
   };
 
   const showFunding =
-    form.type === 'Direct payment' ||
-    form.type === 'Reimbursement' ||
+    form.type === 'Payment Request' ||
+    form.type === 'Non-Officer Reimbursement' ||
+    form.type === 'Payment to NU Employee' ||
     form.type === 'Deposit';
 
   const fundingOptions: { value: FundingOption; label: string }[] =
@@ -411,16 +416,17 @@ export const AddTransactionForm = ({
           value={form.type}
           onChange={handleTypeChange}
         >
-          <option value="Debit card purchase">Debit Card Purchase</option>
-          <option value="Direct payment">Direct Payment</option>
-          <option value="Reimbursement">Reimbursement</option>
+          <option value="Debit Card">Debit Card</option>
+          <option value="Payment Request">Payment Request</option>
+          <option value="Non-Officer Reimbursement">Non-Officer Reimbursement</option>
+          <option value="Payment to NU Employee">Payment to NU Employee</option>
           <option value="Deposit">Deposit</option>
         </select>
       </div>
 
       {/* ── Conditional expanded section ── */}
       <div className={styles['wl-form-section']}>
-        {/* Funding source (all types except Debit card purchase) */}
+        {/* Funding source (all types except Debit Card) */}
         {showFunding && (
           <div className="wl-form-group">
             <label className="wl-form-label" htmlFor="funding">
@@ -442,7 +448,7 @@ export const AddTransactionForm = ({
           </div>
         )}
 
-        {form.type === 'Debit card purchase' && (
+        {form.type === 'Debit Card' && (
           <DebitCardFields
             form={form}
             isEditing={isEditing}
@@ -455,7 +461,7 @@ export const AddTransactionForm = ({
           />
         )}
 
-        {form.type === 'Direct payment' && (
+        {form.type === 'Payment Request' && (
           <DirectPaymentFields
             form={form}
             isEditing={isEditing}
@@ -466,7 +472,17 @@ export const AddTransactionForm = ({
           />
         )}
 
-        {form.type === 'Reimbursement' && (
+        {form.type === 'Payment to NU Employee' && (
+          <NUEmployeePaymentFields
+            isEditing={isEditing}
+            existingTransaction={existingTransaction}
+            requestedDocTypes={requestedDocTypes}
+            onChange={handleChange}
+            onRequestDocument={handleRequestDocument}
+          />
+        )}
+
+        {form.type === 'Non-Officer Reimbursement' && (
           <ReimbursementFields
             form={form}
             isEditing={isEditing}

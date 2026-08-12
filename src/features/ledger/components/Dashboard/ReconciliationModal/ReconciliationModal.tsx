@@ -72,7 +72,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // exemption form submitted, tax on the receipt), it blocks reconciliation
   // until self-attested as reimbursed to SOFO.
   const needsTaxReimbursement = (t: Transaction) =>
-    t.type === 'Debit card purchase' &&
+    t.type === 'Debit Card' &&
     !t.taxExemptFormSubmitted &&
     (t.taxAmount ?? 0) > 0 &&
     !t.taxReimbursed;
