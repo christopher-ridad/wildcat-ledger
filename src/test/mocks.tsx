@@ -71,6 +71,7 @@ export const buildMockLedgerContext = (
   updateDebitCardSettings: vi.fn().mockResolvedValue(undefined),
   reconcileTransactions: vi.fn().mockResolvedValue(undefined),
   uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
+  markTaxReimbursed: vi.fn().mockResolvedValue(undefined),
   selectedBudgetLine: null,
   setSelectedBudgetLine: vi.fn(),
   filteredTransactions: [],

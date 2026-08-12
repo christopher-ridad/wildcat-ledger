@@ -77,6 +77,86 @@ describe('ReconciliationModal', () => {
     expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
   });
 
+  test('blocks confirmation entirely when any transaction owes an unresolved tax reimbursement', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+        buildMockTransaction({
+          id: 't2',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r2',
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(
+      screen.getByText(
+        /1 transaction cannot be reconciled until its tax reimbursement to SOFO is resolved/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+  });
+
+  test('does not block when tax was charged but the exemption form was submitted', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          taxExemptFormSubmitted: true,
+          taxAmount: 2.5,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' })).toBeEnabled();
+  });
+
+  test('clicking Mark as Reimbursed calls markTaxReimbursed and unblocks reconciliation', async () => {
+    const markTaxReimbursed = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, markTaxReimbursed });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as Reimbursed' }));
+    await vi.waitFor(() => expect(markTaxReimbursed).toHaveBeenCalledWith('t1'));
+  });
+
+  test('shows an error message when marking as reimbursed fails', async () => {
+    const markTaxReimbursed = vi.fn().mockRejectedValue(new Error('Mark failed'));
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, markTaxReimbursed });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as Reimbursed' }));
+    expect(await screen.findByText('Mark failed')).toBeInTheDocument();
+  });
+
   test('confirming reconciles the selected transactions and shows a success summary', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({

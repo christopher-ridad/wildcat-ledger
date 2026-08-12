@@ -45,6 +45,8 @@ export const AddTransactionForm = ({
         funding: (t.budgetLine === 'Debit Card' ? 'ASG' : t.budgetLine) as FundingOption,
         receiptFile: null,
         noReceiptAcknowledged: t.noReceiptAcknowledged ?? false,
+        taxExemptFormSubmitted: t.taxExemptFormSubmitted ?? false,
+        taxAmount: t.taxAmount != null ? String(t.taxAmount) : '',
         contractFile: null,
         w9File: null,
         isIndividualVendor: t.isIndividualVendor ?? false,
@@ -104,7 +106,7 @@ export const AddTransactionForm = ({
       setForm((prev) => ({ ...prev, [name]: target.checked }));
     } else if (target instanceof HTMLInputElement && target.type === 'file') {
       setForm((prev) => ({ ...prev, [name]: target.files?.[0] ?? null }));
-    } else if (name === 'amount') {
+    } else if (name === 'amount' || name === 'taxAmount') {
       // Strip everything that isn't a digit or decimal point, then enforce
       // at most one decimal point with at most 2 digits after it.
       const raw = target.value.replace(/[^\d.]/g, '');
@@ -115,7 +117,7 @@ export const AddTransactionForm = ({
           : parts.length === 2
             ? parts[0] + '.' + parts[1].slice(0, 2)
             : parts[0];
-      setForm((prev) => ({ ...prev, amount: sanitized }));
+      setForm((prev) => ({ ...prev, [name]: sanitized }));
     } else {
       setForm((prev) => ({ ...prev, [name]: target.value }));
     }
@@ -133,6 +135,8 @@ export const AddTransactionForm = ({
       // Clear files when type changes
       receiptFile: null,
       noReceiptAcknowledged: false,
+      taxExemptFormSubmitted: false,
+      taxAmount: '',
       contractFile: null,
       w9File: null,
       isIndividualVendor: false,
@@ -288,6 +292,14 @@ export const AddTransactionForm = ({
           form.type === 'Direct payment' ? form.isNorthwesternEmployee : undefined,
         noReceiptAcknowledged:
           form.type === 'Debit card purchase' ? form.noReceiptAcknowledged : undefined,
+        taxExemptFormSubmitted:
+          form.type === 'Debit card purchase' ? form.taxExemptFormSubmitted : undefined,
+        taxAmount:
+          form.type === 'Debit card purchase' &&
+          !form.taxExemptFormSubmitted &&
+          form.taxAmount
+            ? parseFloat(form.taxAmount)
+            : undefined,
         receiptFileUrl,
         contractFileUrl,
         w9FileUrl,

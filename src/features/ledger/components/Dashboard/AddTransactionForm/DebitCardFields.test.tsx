@@ -103,7 +103,9 @@ describe('DebitCardFields', () => {
         onRequestDocument={vi.fn()}
       />,
     );
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: "I don't have a receipt" }),
+    ).toBeChecked();
     expect(screen.getByText(/flagged as missing a receipt/)).toBeInTheDocument();
   });
 
@@ -156,5 +158,92 @@ describe('DebitCardFields', () => {
       />,
     );
     expect(screen.getByText('Tax cannot be paid by the debit card.')).toBeInTheDocument();
+  });
+
+  test('shows the tax amount field when no exemption form was submitted', () => {
+    render(
+      <DebitCardFields
+        form={{ ...initialForm, taxExemptFormSubmitted: false }}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('Tax Charged on Receipt (if any)')).toBeInTheDocument();
+  });
+
+  test('hides the tax amount field once the exemption form checkbox is checked', () => {
+    render(
+      <DebitCardFields
+        form={{ ...initialForm, taxExemptFormSubmitted: true }}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByLabelText('Tax Charged on Receipt (if any)'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('shows a warning once a tax amount is entered', () => {
+    render(
+      <DebitCardFields
+        form={{ ...initialForm, taxExemptFormSubmitted: false, taxAmount: '2.50' }}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(/flagged as owing a tax reimbursement to SOFO/),
+    ).toBeInTheDocument();
+  });
+
+  test('does not warn while the tax amount field is empty', () => {
+    render(
+      <DebitCardFields
+        form={{ ...initialForm, taxExemptFormSubmitted: false, taxAmount: '' }}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={vi.fn()}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByText(/flagged as owing a tax reimbursement to SOFO/),
+    ).not.toBeInTheDocument();
+  });
+
+  test('checking the exemption form checkbox calls onChange', () => {
+    const onChange = vi.fn();
+    render(
+      <DebitCardFields
+        form={initialForm}
+        isEditing={false}
+        scanning={false}
+        requestedDocTypes={new Set()}
+        onReceiptChange={vi.fn()}
+        onChange={onChange}
+        onRequestDocument={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'I submitted a tax exemption form to the vendor',
+      }),
+    );
+    expect(onChange).toHaveBeenCalled();
   });
 });

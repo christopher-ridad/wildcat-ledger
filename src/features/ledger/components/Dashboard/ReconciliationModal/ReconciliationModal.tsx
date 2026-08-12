@@ -4,7 +4,10 @@ import { useLedger } from '../../../hooks/useLedger';
 import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
 import { Transaction } from '../../../types';
 import { formatCurrency } from '../../../utils/calculations';
-import { POLICY_EXEMPTION_FORM_URL } from '../../../utils/constants';
+import {
+  POLICY_EXEMPTION_FORM_URL,
+  SOFO_SALES_TAX_REIMBURSEMENT_URL,
+} from '../../../utils/constants';
 import styles from './ReconciliationModal.module.css';
 
 interface ReconciliationModalProps {
@@ -26,6 +29,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     activeOrganization,
     reconcileTransactions,
     uploadExemptionForm,
+    markTaxReimbursed,
     addTransaction,
     generateTransactionId,
   } = useLedger();
@@ -44,6 +48,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [uploadError, setUploadError] = useState<Record<string, string>>({});
+  const [reimbursing, setReimbursing] = useState<Record<string, boolean>>({});
+  const [reimburseError, setReimburseError] = useState<Record<string, string>>({});
   const [zipping, setZipping] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -62,6 +68,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [reloadError, setReloadError] = useState<string | null>(null);
   // A transaction is "covered" if it has a receipt or an attached exemption form
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
+  // Debit Card purchases should never carry tax; when one does (no
+  // exemption form submitted, tax on the receipt), it blocks reconciliation
+  // until self-attested as reimbursed to SOFO.
+  const needsTaxReimbursement = (t: Transaction) =>
+    t.type === 'Debit card purchase' &&
+    !t.taxExemptFormSubmitted &&
+    (t.taxAmount ?? 0) > 0 &&
+    !t.taxReimbursed;
 
   // Reset selection whenever the modal opens (the false→true transition only —
   // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
@@ -81,6 +95,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setError(null);
       setUploading({});
       setUploadError({});
+      setReimbursing({});
+      setReimburseError({});
       setStep('review');
       setReconSummary(null);
       setReloadAmountInput('');
@@ -102,10 +118,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
   // All uncovered transactions in the list (blocks reconciliation entirely)
   const uncoveredAll = unreconciledTxns.filter((t) => !isCovered(t));
+  const unresolvedTaxAll = unreconciledTxns.filter(needsTaxReimbursement);
 
-  // If ANY unreconciled transaction is missing a receipt/exemption form,
-  // hide ALL checkboxes — nothing can be selected until every transaction is covered
-  const hideCheckboxes = uncoveredAll.length > 0;
+  // If ANY unreconciled transaction is missing a receipt/exemption form, or
+  // owes an unresolved tax reimbursement, hide ALL checkboxes — nothing can
+  // be selected until every transaction is covered and resolved
+  const hideCheckboxes = uncoveredAll.length > 0 || unresolvedTaxAll.length > 0;
 
   const coveredCount = unreconciledTxns.filter(isCovered).length;
   const displayCount = hideCheckboxes ? coveredCount : selected.size;
@@ -128,6 +146,21 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     }
   };
 
+  const handleMarkReimbursed = async (txnId: string) => {
+    setReimbursing((prev) => ({ ...prev, [txnId]: true }));
+    setReimburseError((prev) => ({ ...prev, [txnId]: '' }));
+    try {
+      await markTaxReimbursed(txnId);
+    } catch (err) {
+      setReimburseError((prev) => ({
+        ...prev,
+        [txnId]: err instanceof Error ? err.message : 'Failed to mark as reimbursed.',
+      }));
+    } finally {
+      setReimbursing((prev) => ({ ...prev, [txnId]: false }));
+    }
+  };
+
   const handleConfirm = async () => {
     if (selected.size === 0) {
       setError('Select at least one transaction to reconcile.');
@@ -136,6 +169,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     if (uncoveredAll.length > 0) {
       setError(
         `${uncoveredAll.length} transaction(s) are missing a receipt or exemption form.`,
+      );
+      return;
+    }
+    if (unresolvedTaxAll.length > 0) {
+      setError(
+        `${unresolvedTaxAll.length} transaction(s) owe an unresolved tax reimbursement to SOFO.`,
       );
       return;
     }
@@ -251,14 +290,16 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   <div className={styles['wl-recon-list']}>
                     {unreconciledTxns.map((t) => {
                       const isMissing = !isCovered(t);
+                      const needsTax = needsTaxReimbursement(t);
+                      const isBlocking = isMissing || needsTax;
 
                       return (
                         <div
                           key={t.id}
-                          className={`${styles['wl-recon-item']}${isMissing ? ` ${styles['wl-recon-item--warning']}` : ''}`}
+                          className={`${styles['wl-recon-item']}${isBlocking ? ` ${styles['wl-recon-item--warning']}` : ''}`}
                         >
                           <div
-                            className={`${styles['wl-recon-row']}${isMissing ? ` ${styles['wl-recon-row--disabled']}` : ''}`}
+                            className={`${styles['wl-recon-row']}${isBlocking ? ` ${styles['wl-recon-row--disabled']}` : ''}`}
                           >
                             <span className={styles['wl-recon-row-title']}>
                               {t.title}
@@ -289,6 +330,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                                 }
                               >
                                 ⚠
+                              </span>
+                            )}
+                            {needsTax && (
+                              <span
+                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
+                                title="Owes an unresolved tax reimbursement to SOFO"
+                              >
+                                💲
                               </span>
                             )}
                             <span className={styles['wl-recon-row-amount']}>
@@ -345,6 +394,38 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                               </div>
                             </div>
                           )}
+
+                          {/* Unresolved tax reimbursement sub-panel */}
+                          {needsTax && (
+                            <div className={styles['wl-recon-missing']}>
+                              <p className={styles['wl-recon-missing-msg']}>
+                                Owes {formatCurrency(t.taxAmount ?? 0)} in tax to SOFO —{' '}
+                                <a
+                                  href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={styles['wl-recon-exemption-link']}
+                                >
+                                  Submit to SOFO ↗
+                                </a>
+                              </p>
+                              <div className={styles['wl-recon-upload-row']}>
+                                <button
+                                  type="button"
+                                  className={styles['wl-btn-upload-exemption']}
+                                  onClick={() => handleMarkReimbursed(t.id)}
+                                  disabled={reimbursing[t.id]}
+                                >
+                                  {reimbursing[t.id] ? 'Marking…' : 'Mark as Reimbursed'}
+                                </button>
+                                {reimburseError[t.id] && (
+                                  <span className={styles['wl-recon-upload-error']}>
+                                    {reimburseError[t.id]}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -356,6 +437,15 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                       {uncoveredAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
                       {uncoveredAll.length === 1 ? 'it has' : 'they have'} a receipt or
                       attached exemption form.
+                    </div>
+                  )}
+
+                  {unresolvedTaxAll.length > 0 && (
+                    <div className={styles['wl-recon-block-warning']}>
+                      ⚠ {unresolvedTaxAll.length} transaction
+                      {unresolvedTaxAll.length !== 1 ? 's' : ''} cannot be reconciled
+                      until {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax
+                      reimbursement to SOFO is resolved.
                     </div>
                   )}
 

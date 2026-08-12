@@ -31,6 +31,7 @@ const renderRow = (props: Partial<ComponentProps<typeof TransactionRow>> = {}) =
           onCancel={asyncNoop}
           onViewFiles={noop}
           onUpdatePaymentStatus={asyncNoop}
+          onMarkTaxReimbursed={asyncNoop}
           {...props}
         />
       </tbody>
@@ -102,6 +103,83 @@ describe('TransactionRow', () => {
     renderRow({ canEdit: true, onDelete, t });
     fireEvent.click(screen.getByLabelText('Delete transaction'));
     expect(onDelete).toHaveBeenCalledWith(t);
+  });
+
+  describe('tax reimbursement', () => {
+    test('shows a tax-owed badge when tax was charged and no exemption form was submitted', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({ taxExemptFormSubmitted: false, taxAmount: 2.5 }),
+      });
+      expect(screen.getByText('⚠ Tax owed: $2.50')).toBeInTheDocument();
+    });
+
+    test('does not show a tax-owed badge when the exemption form was submitted', () => {
+      renderRow({
+        t: buildMockTransaction({ taxExemptFormSubmitted: true, taxAmount: 2.5 }),
+      });
+      expect(screen.queryByText(/Tax owed/)).not.toBeInTheDocument();
+    });
+
+    test('does not show a tax-owed badge once marked reimbursed', () => {
+      renderRow({
+        t: buildMockTransaction({
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+          taxReimbursed: true,
+        }),
+      });
+      expect(screen.queryByText(/Tax owed/)).not.toBeInTheDocument();
+    });
+
+    test('does not show a tax-owed badge for non-debit-card transaction types', () => {
+      renderRow({
+        t: buildMockTransaction({
+          type: 'Direct payment',
+          budgetLine: 'Operating',
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+        }),
+      });
+      expect(screen.queryByText(/Tax owed/)).not.toBeInTheDocument();
+    });
+
+    test('shows Submit to SOFO and Mark as Reimbursed only when canEdit', () => {
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({ taxExemptFormSubmitted: false, taxAmount: 2.5 }),
+      });
+      expect(screen.getByText('Submit to SOFO ↗')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Mark as Reimbursed' }),
+      ).toBeInTheDocument();
+    });
+
+    test('hides the Submit/Mark actions when the viewer cannot edit', () => {
+      renderRow({
+        canEdit: false,
+        t: buildMockTransaction({ taxExemptFormSubmitted: false, taxAmount: 2.5 }),
+      });
+      expect(screen.queryByText('Submit to SOFO ↗')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Mark as Reimbursed' }),
+      ).not.toBeInTheDocument();
+    });
+
+    test('clicking Mark as Reimbursed calls onMarkTaxReimbursed with the transaction id', () => {
+      const onMarkTaxReimbursed = vi.fn().mockResolvedValue(undefined);
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({
+          id: 'txn-tax-1',
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+        }),
+        onMarkTaxReimbursed,
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Mark as Reimbursed' }));
+      expect(onMarkTaxReimbursed).toHaveBeenCalledWith('txn-tax-1');
+    });
   });
 
   describe('debit card reconciliation status', () => {

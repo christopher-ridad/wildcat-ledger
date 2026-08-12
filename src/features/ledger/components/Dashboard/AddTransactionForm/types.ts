@@ -21,6 +21,8 @@ export interface FormState {
   // Debit card purchase
   receiptFile: File | null;
   noReceiptAcknowledged: boolean;
+  taxExemptFormSubmitted: boolean;
+  taxAmount: string;
   // Direct payment
   contractFile: File | null;
   w9File: File | null;
@@ -45,6 +47,8 @@ export const initialForm: FormState = {
   funding: 'ASG',
   receiptFile: null,
   noReceiptAcknowledged: false,
+  taxExemptFormSubmitted: false,
+  taxAmount: '',
   contractFile: null,
   w9File: null,
   isIndividualVendor: false,

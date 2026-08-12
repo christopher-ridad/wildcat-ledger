@@ -330,6 +330,15 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
+  const markTaxReimbursed = async (transactionId: string) => {
+    if (!activeOrganizationId) return;
+    const { error } = await supabase.rpc('mark_tax_reimbursed_with_audit', {
+      p_org_id: activeOrganizationId,
+      p_transaction_id: transactionId,
+    });
+    if (error) throw error;
+  };
+
   const activeOrganization =
     organizations.find((o: Organization) => o.id === activeOrganizationId) ?? null;
 
@@ -377,6 +386,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     updateDebitCardSettings,
     reconcileTransactions,
     uploadExemptionForm,
+    markTaxReimbursed,
     selectedBudgetLine,
     setSelectedBudgetLine,
     filteredTransactions,

@@ -15,6 +15,7 @@ describe('AuditEntryCard', () => {
     ['cancel', 'Cancelled'],
     ['reconcile', 'Reconciled'],
     ['payment_status_change', 'Payment Status Updated'],
+    ['tax_reimbursed', 'Tax Reimbursed to SOFO'],
   ])('renders the %s badge as "%s"', (action, label) => {
     render(<AuditEntryCard entry={buildMockAuditEntry({ action })} />);
     expect(screen.getByText(label)).toBeInTheDocument();
@@ -72,6 +73,19 @@ describe('AuditEntryCard', () => {
     expect(screen.getByText('Before')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByText('Approved')).toBeInTheDocument();
+  });
+
+  test('renders a before/after diff for a tax reimbursement', () => {
+    const before = buildMockTransaction({ taxReimbursed: false });
+    const after = buildMockTransaction({ taxReimbursed: true });
+    render(
+      <AuditEntryCard
+        entry={buildMockAuditEntry({ action: 'tax_reimbursed', before, after })}
+      />,
+    );
+    expect(screen.getByText('Before')).toBeInTheDocument();
+    expect(screen.getByText('false')).toBeInTheDocument();
+    expect(screen.getByText('true')).toBeInTheDocument();
   });
 
   test('does not render a diff for edits with no changed fields', () => {
