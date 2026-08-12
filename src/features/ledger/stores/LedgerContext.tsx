@@ -13,6 +13,7 @@ import {
   AuditEntry,
   BudgetAllocations,
   BudgetLine,
+  DebitCardSettings,
   LedgerContextValue,
   Organization,
   PaymentStatus,
@@ -290,6 +291,20 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
+  const updateDebitCardSettings = async (settings: DebitCardSettings) => {
+    if (!activeOrganizationId) return;
+    const { error } = await supabase
+      .from('organizations')
+      .update({
+        debit_card_account_number: settings.accountNumber ?? null,
+        debit_card_last_four: settings.lastFourDigits ?? null,
+        debit_card_icn: settings.inventoryControlNumber ?? null,
+        debit_card_load_balance: settings.loadBalance ?? null,
+      })
+      .eq('id', activeOrganizationId);
+    if (error) throw error;
+  };
+
   const reconcileTransactions = async (transactionIds: string[]) => {
     if (!activeOrganizationId) return;
     const { error } = await supabase.rpc('reconcile_transactions_with_audit', {
@@ -359,6 +374,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     cancelPendingChange,
     updateBudgetAllocations,
     initializeBudgetAllocations,
+    updateDebitCardSettings,
     reconcileTransactions,
     uploadExemptionForm,
     selectedBudgetLine,
