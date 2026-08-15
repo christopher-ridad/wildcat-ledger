@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
   buildMockOrganization,
+  buildMockPendingChange,
   buildMockTransaction,
   MockLedgerProvider,
 } from '../../../../../test/mocks';
@@ -99,6 +100,36 @@ describe('ReconciliationModal', () => {
       screen.getByText(
         /1 transaction cannot be reconciled until its tax reimbursement to SOFO is resolved/,
       ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+  });
+
+  test('blocks confirmation entirely when any transaction has a pending edit/delete request', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+        buildMockTransaction({
+          id: 't2',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r2',
+        }),
+      ],
+    });
+    const pendingChanges = [
+      buildMockPendingChange({ transactionId: 't2', type: 'edit' }),
+    ];
+    renderModal({ activeOrganization: org, pendingChanges });
+    expect(
+      screen.getByText(
+        /1 transaction cannot be reconciled until its pending edit or delete request is resolved/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Has a pending edit request awaiting approval/),
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
   });
