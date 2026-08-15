@@ -160,6 +160,23 @@ describe('TransactionRow', () => {
       });
       expect(screen.queryByRole('button', { name: /Missing:/ })).not.toBeInTheDocument();
     });
+
+    test('keeps the view-files button for a reconciled Debit Card purchase covered only by an exemption form', () => {
+      // Regression: exemptionFormUrl wasn't counted as an attached file, so
+      // once it satisfied the (now-fixed) missing-receipt requirement, the
+      // transaction had zero missing docs AND zero counted files -- the
+      // button vanished entirely, leaving no way to reopen the exemption
+      // form that was actually saved.
+      renderRow({
+        canEdit: true,
+        t: buildMockTransaction({
+          budgetLine: 'Debit Card',
+          exemptionFormUrl: 'orgs/1/exemption.pdf',
+          reconciledAt: Date.now(),
+        }),
+      });
+      expect(screen.getByLabelText('View 1 attached file')).toBeInTheDocument();
+    });
   });
 
   describe('tax reimbursement', () => {

@@ -27,6 +27,11 @@ export type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
 export interface DocumentRequirement {
   key: DocumentTypeKey;
   field: keyof Transaction;
+  // An alternate field that also satisfies this requirement (e.g. a Debit
+  // Card purchase's receipt requirement is equally satisfied by an attached
+  // Policy Exemption Form -- see ReconciliationModal's own isCovered check,
+  // which already treats the two as interchangeable).
+  alternateField?: keyof Transaction;
   acknowledgedMissingField?: keyof Transaction;
   label: string;
   templatePath?: string;
@@ -38,6 +43,15 @@ const RECEIPT: DocumentRequirement = {
   field: 'receiptFileUrl',
   label: 'Receipt',
   requestBehavior: 'simple',
+};
+
+// Exemption forms are Debit-Card-specific (tax-exemption at the point of
+// purchase); Non-Officer Reimbursement's receipt requirement has no such
+// alternate, so this is a separate requirement rather than an addition to
+// the shared RECEIPT above.
+const DEBIT_CARD_RECEIPT: DocumentRequirement = {
+  ...RECEIPT,
+  alternateField: 'exemptionFormUrl',
 };
 const CONTRACT: DocumentRequirement = {
   key: 'contract',
@@ -87,7 +101,7 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
 export const getRequiredDocuments = (t: Transaction): DocumentRequirement[] => {
   switch (t.type) {
     case 'Debit Card':
-      return [RECEIPT];
+      return [DEBIT_CARD_RECEIPT];
     case 'Non-Officer Reimbursement':
       return [RECEIPT];
     case 'Payment Request':
@@ -104,4 +118,6 @@ export const getRequiredDocuments = (t: Transaction): DocumentRequirement[] => {
 };
 
 export const getMissingDocuments = (t: Transaction): DocumentRequirement[] =>
-  getRequiredDocuments(t).filter((doc) => !t[doc.field]);
+  getRequiredDocuments(t).filter(
+    (doc) => !t[doc.field] && !(doc.alternateField && t[doc.alternateField]),
+  );

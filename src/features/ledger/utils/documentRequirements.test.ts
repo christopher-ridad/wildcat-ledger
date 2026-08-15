@@ -74,6 +74,33 @@ describe('getMissingDocuments', () => {
     });
     expect(getMissingDocuments(t).map((d) => d.key)).toContain('contract');
   });
+
+  test('a Debit Card purchase with an exemption form but no receipt is not missing its receipt', () => {
+    const t = buildMockTransaction({
+      type: 'Debit Card',
+      receiptFileUrl: undefined,
+      exemptionFormUrl: 'orgs/1/exemption.pdf',
+    });
+    expect(getMissingDocuments(t)).toEqual([]);
+  });
+
+  test('a Debit Card purchase with neither a receipt nor an exemption form is missing its receipt', () => {
+    const t = buildMockTransaction({
+      type: 'Debit Card',
+      receiptFileUrl: undefined,
+      exemptionFormUrl: undefined,
+    });
+    expect(getMissingDocuments(t).map((d) => d.key)).toEqual(['receipt']);
+  });
+
+  test("an exemption form does not satisfy Non-Officer Reimbursement's receipt requirement", () => {
+    const t = buildMockTransaction({
+      type: 'Non-Officer Reimbursement',
+      receiptFileUrl: undefined,
+      exemptionFormUrl: 'orgs/1/exemption.pdf',
+    });
+    expect(getMissingDocuments(t).map((d) => d.key)).toEqual(['receipt']);
+  });
 });
 
 describe('requestBehavior', () => {

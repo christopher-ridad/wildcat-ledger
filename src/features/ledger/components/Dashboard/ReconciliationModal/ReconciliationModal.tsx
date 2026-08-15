@@ -136,6 +136,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     setUploadError((prev) => ({ ...prev, [txnId]: '' }));
     try {
       await uploadExemptionForm(txnId, file);
+      // The auto-select effect only (re)populates `selected` on the modal's
+      // own isOpen false->true transition, not on every coveredIds change
+      // while it stays open -- so a transaction that just became covered
+      // mid-session needs to be added here, or Confirm stays stuck at (0).
+      setSelected((prev) => new Set(prev).add(txnId));
     } catch (err) {
       setUploadError((prev) => ({
         ...prev,
@@ -151,6 +156,9 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     setReimburseError((prev) => ({ ...prev, [txnId]: '' }));
     try {
       await markTaxReimbursed(txnId);
+      // See the matching comment in handleFileChange -- the auto-select
+      // effect won't pick this up mid-session on its own.
+      setSelected((prev) => new Set(prev).add(txnId));
     } catch (err) {
       setReimburseError((prev) => ({
         ...prev,

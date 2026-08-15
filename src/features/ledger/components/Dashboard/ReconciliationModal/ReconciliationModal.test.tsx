@@ -218,6 +218,110 @@ describe('ReconciliationModal', () => {
     expect(await screen.findByText('Upload rejected')).toBeInTheDocument();
   });
 
+  test('an exemption form uploaded mid-session becomes selected without needing to reopen the modal', async () => {
+    const uploadExemptionForm = vi.fn().mockResolvedValue(undefined);
+    const uncovered = buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' });
+    const covered = { ...uncovered, exemptionFormUrl: 'e1' };
+
+    const { container, rerender } = render(
+      <MockLedgerProvider
+        value={{
+          activeOrganization: buildMockOrganization({ transactions: [uncovered] }),
+          uploadExemptionForm,
+        }}
+      >
+        <ReconciliationModal isOpen onClose={vi.fn()} />
+      </MockLedgerProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'exemption.pdf', { type: 'application/pdf' });
+    fireEvent.change(input, { target: { files: [file] } });
+    await vi.waitFor(() => expect(uploadExemptionForm).toHaveBeenCalledWith('t1', file));
+
+    // Simulate the Realtime push that delivers the now-covered transaction
+    // back into activeOrganization while the modal stays open -- without the
+    // fix, `selected` stays the empty Set from when the modal opened, and
+    // Confirm & Reconcile stays stuck at "(0)" even though nothing blocks it
+    // anymore.
+    rerender(
+      <MockLedgerProvider
+        value={{
+          activeOrganization: buildMockOrganization({ transactions: [covered] }),
+          uploadExemptionForm,
+        }}
+      >
+        <ReconciliationModal isOpen onClose={vi.fn()} />
+      </MockLedgerProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' })).toBeEnabled();
+  });
+
+  test('resolving a tax reimbursement mid-session becomes selected without needing to reopen the modal', async () => {
+    const uploadExemptionForm = vi.fn().mockResolvedValue(undefined);
+    const markTaxReimbursed = vi.fn().mockResolvedValue(undefined);
+    // t1 starts missing its receipt (so the modal's auto-select-on-open
+    // effect sees uncoveredCount > 0 and starts `selected` as an empty Set --
+    // a solo tax-blocked transaction with a receipt already attached would
+    // get auto-selected on open regardless of its tax status, which would
+    // pass even without the fix under test).
+    const t1Unresolved = buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' });
+    const t2Unresolved = buildMockTransaction({
+      id: 't2',
+      budgetLine: 'Debit Card',
+      receiptFileUrl: 'r2',
+      taxExemptFormSubmitted: false,
+      taxAmount: 2.5,
+    });
+
+    const { container, rerender } = render(
+      <MockLedgerProvider
+        value={{
+          activeOrganization: buildMockOrganization({
+            transactions: [t1Unresolved, t2Unresolved],
+          }),
+          uploadExemptionForm,
+          markTaxReimbursed,
+        }}
+      >
+        <ReconciliationModal isOpen onClose={vi.fn()} />
+      </MockLedgerProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['x'], 'exemption.pdf', { type: 'application/pdf' });
+    fireEvent.change(input, { target: { files: [file] } });
+    await vi.waitFor(() => expect(uploadExemptionForm).toHaveBeenCalledWith('t1', file));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as Reimbursed' }));
+    await vi.waitFor(() => expect(markTaxReimbursed).toHaveBeenCalledWith('t2'));
+
+    // Simulate the Realtime push delivering both resolutions back into
+    // activeOrganization while the modal stays open the whole time.
+    const t1Covered = { ...t1Unresolved, exemptionFormUrl: 'e1' };
+    const t2Resolved = { ...t2Unresolved, taxReimbursed: true };
+    rerender(
+      <MockLedgerProvider
+        value={{
+          activeOrganization: buildMockOrganization({
+            transactions: [t1Covered, t2Resolved],
+          }),
+          uploadExemptionForm,
+          markTaxReimbursed,
+        }}
+      >
+        <ReconciliationModal isOpen onClose={vi.fn()} />
+      </MockLedgerProvider>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Confirm & Reconcile (2)' })).toBeEnabled();
+  });
+
   test('shows a Receipts ZIP button after reconciling covered transactions, and downloads on click', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
