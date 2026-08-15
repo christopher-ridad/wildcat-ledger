@@ -32,6 +32,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     markTaxReimbursed,
     addTransaction,
     generateTransactionId,
+    pendingChanges,
   } = useLedger();
 
   // Unreconciled debit card *purchases* needing a receipt before they can be
@@ -76,6 +77,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     !t.taxExemptFormSubmitted &&
     (t.taxAmount ?? 0) > 0 &&
     !t.taxReimbursed;
+  // A reconciled Debit Card transaction can never be edited or have its
+  // pending change resolved afterward (both RPCs refuse to touch it), so an
+  // outstanding edit/delete request needs to be resolved -- on the
+  // dashboard, not from inside this modal -- before reconciling.
+  const pendingChangeFor = (t: Transaction) =>
+    pendingChanges.find((p) => p.transactionId === t.id);
 
   // Reset selection whenever the modal opens (the false→true transition only —
   // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
@@ -119,11 +126,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // All uncovered transactions in the list (blocks reconciliation entirely)
   const uncoveredAll = unreconciledTxns.filter((t) => !isCovered(t));
   const unresolvedTaxAll = unreconciledTxns.filter(needsTaxReimbursement);
+  const pendingAll = unreconciledTxns.filter((t) => pendingChangeFor(t));
 
-  // If ANY unreconciled transaction is missing a receipt/exemption form, or
-  // owes an unresolved tax reimbursement, hide ALL checkboxes — nothing can
-  // be selected until every transaction is covered and resolved
-  const hideCheckboxes = uncoveredAll.length > 0 || unresolvedTaxAll.length > 0;
+  // If ANY unreconciled transaction is missing a receipt/exemption form,
+  // owes an unresolved tax reimbursement, or has a pending edit/delete
+  // request, hide ALL checkboxes — nothing can be selected until every
+  // transaction is covered and resolved
+  const hideCheckboxes =
+    uncoveredAll.length > 0 || unresolvedTaxAll.length > 0 || pendingAll.length > 0;
 
   const coveredCount = unreconciledTxns.filter(isCovered).length;
   const displayCount = hideCheckboxes ? coveredCount : selected.size;
@@ -183,6 +193,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     if (unresolvedTaxAll.length > 0) {
       setError(
         `${unresolvedTaxAll.length} transaction(s) owe an unresolved tax reimbursement to SOFO.`,
+      );
+      return;
+    }
+    if (pendingAll.length > 0) {
+      setError(
+        `${pendingAll.length} transaction(s) have a pending edit or delete request awaiting approval.`,
       );
       return;
     }
@@ -299,7 +315,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                     {unreconciledTxns.map((t) => {
                       const isMissing = !isCovered(t);
                       const needsTax = needsTaxReimbursement(t);
-                      const isBlocking = isMissing || needsTax;
+                      const pending = pendingChangeFor(t);
+                      const isBlocking = isMissing || needsTax || !!pending;
 
                       return (
                         <div
@@ -346,6 +363,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                                 title="Owes an unresolved tax reimbursement to SOFO"
                               >
                                 💲
+                              </span>
+                            )}
+                            {pending && (
+                              <span
+                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
+                                title="Awaiting approval — resolve before reconciling"
+                              >
+                                ⏳
                               </span>
                             )}
                             <span className={styles['wl-recon-row-amount']}>
@@ -434,6 +459,18 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                               </div>
                             </div>
                           )}
+
+                          {/* Pending edit/delete request sub-panel */}
+                          {pending && (
+                            <div className={styles['wl-recon-missing']}>
+                              <p className={styles['wl-recon-missing-msg']}>
+                                Has a pending{' '}
+                                {pending.type === 'delete' ? 'delete' : 'edit'} request
+                                awaiting approval — resolve it from the dashboard, then
+                                reopen this dialog.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -454,6 +491,15 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                       {unresolvedTaxAll.length !== 1 ? 's' : ''} cannot be reconciled
                       until {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax
                       reimbursement to SOFO is resolved.
+                    </div>
+                  )}
+
+                  {pendingAll.length > 0 && (
+                    <div className={styles['wl-recon-block-warning']}>
+                      ⚠ {pendingAll.length} transaction
+                      {pendingAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
+                      {pendingAll.length === 1 ? 'its' : 'their'} pending edit or delete
+                      request {pendingAll.length === 1 ? 'is' : 'are'} resolved.
                     </div>
                   )}
 
