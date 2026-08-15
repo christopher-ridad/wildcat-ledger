@@ -11,6 +11,7 @@ import styles from './TransactionFilesModal.module.css';
 
 const FILE_LABELS: { key: keyof Transaction; label: string }[] = [
   { key: 'receiptFileUrl', label: 'Receipt' },
+  { key: 'exemptionFormUrl', label: 'Policy Exemption Form' },
   { key: 'contractFileUrl', label: 'RSO Agreement / Contract' },
   { key: 'w9FileUrl', label: 'W-9 Form' },
   { key: 'contractedServicesFileUrl', label: 'Contracted Services Form' },

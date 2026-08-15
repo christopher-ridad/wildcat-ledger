@@ -45,6 +45,17 @@ describe('getTransactionFiles', () => {
       { label: 'Special Pay Form', url: 'orgs/1/special-pay.pdf' },
     ]);
   });
+
+  test("maps a Debit Card purchase's exemption form, even with no receipt attached", () => {
+    // Regression: a Debit Card purchase covered only by an exemption form
+    // (no receipt) used to have zero attached files and nothing missing --
+    // so the "View files" button vanished entirely, with no way left to
+    // open the exemption form that was actually saved.
+    const t = buildMockTransaction({ exemptionFormUrl: 'orgs/1/exemption.pdf' });
+    expect(getTransactionFiles(t)).toEqual([
+      { label: 'Policy Exemption Form', url: 'orgs/1/exemption.pdf' },
+    ]);
+  });
 });
 
 describe('TransactionFilesModal', () => {
