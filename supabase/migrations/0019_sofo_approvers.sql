@@ -10,11 +10,6 @@ alter table organizations add column sofo_approvers text[] not null default '{}'
 update organizations
 set sofo_approvers = array(select distinct unnest(admins || treasurer || president));
 
-alter table organizations
-  drop column admins,
-  drop column treasurer,
-  drop column president;
-
 create or replace function can_manage_org(p_org_id uuid)
 returns boolean
 language sql stable
@@ -51,6 +46,13 @@ $$;
 drop policy "members can read their org" on organizations;
 create policy "members can read their org" on organizations
   for select using (auth.role() = 'authenticated' and current_email() = any (sofo_approvers || officers));
+
+-- Only now safe to drop -- nothing left referencing them (the functions and
+-- policy above were redefined against sofo_approvers first).
+alter table organizations
+  drop column admins,
+  drop column treasurer,
+  drop column president;
 
 -- Only ever distinguished treasurer/admins from president as a label on
 -- pending_changes.requested_by_role -- with one merged role there's nothing
