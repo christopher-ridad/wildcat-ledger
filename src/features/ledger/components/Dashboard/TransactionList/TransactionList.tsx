@@ -12,7 +12,7 @@ export const TransactionList = () => {
     filteredTransactions,
     deleteTransaction,
     canEdit,
-    pendingChanges,
+    pendingChangeForTransaction,
     approvePendingChange,
     rejectPendingChange,
     cancelPendingChange,
@@ -62,7 +62,7 @@ export const TransactionList = () => {
                   <TransactionRow
                     t={t}
                     canEdit={canEdit}
-                    pending={pendingChanges.find((p) => p.transactionId === t.id)}
+                    pending={pendingChangeForTransaction(t.id)}
                     onEdit={setEditingTransaction}
                     onDelete={setDeletingTransaction}
                     onApprove={approvePendingChange}

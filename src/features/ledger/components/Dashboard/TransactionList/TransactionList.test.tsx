@@ -1,11 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-  buildMockPendingChange,
-  buildMockTransaction,
-  buildMockUser,
-} from '../../../../../test/mocks';
+import { buildMockTransaction, buildMockUser } from '../../../../../test/mocks';
 import { useAuth } from '../../../../authentication/hooks/useAuth';
 import { useLedger } from '../../../hooks/useLedger';
 import { TransactionList } from './TransactionList';
@@ -25,7 +21,7 @@ const baseLedger = {
   deleteTransaction: vi.fn().mockResolvedValue(undefined),
   userRole: 'sofoApprover' as const,
   canEdit: true,
-  pendingChanges: [] as ReturnType<typeof buildMockPendingChange>[],
+  pendingChangeForTransaction: vi.fn(() => undefined),
   approvePendingChange: vi.fn().mockResolvedValue(undefined),
   rejectPendingChange: vi.fn().mockResolvedValue(undefined),
   cancelPendingChange: vi.fn().mockResolvedValue(undefined),

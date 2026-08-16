@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
+import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
+import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
 import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
 import { Transaction } from '../../../types';
 import { formatCurrency, formatTimestamp } from '../../../utils/calculations';
@@ -27,7 +29,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     markTaxReimbursed,
     addTransaction,
     generateTransactionId,
-    pendingChanges,
+    pendingChangeForTransaction,
   } = useLedger();
 
   // Unreconciled debit card *purchases* needing a receipt before they can be
@@ -42,10 +44,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<Record<string, boolean>>({});
-  const [uploadError, setUploadError] = useState<Record<string, string>>({});
-  const [reimbursing, setReimbursing] = useState<Record<string, boolean>>({});
-  const [reimburseError, setReimburseError] = useState<Record<string, string>>({});
+  const uploadAction = useAsyncActionMap();
+  const reimburseAction = useAsyncActionMap();
   const [zipping, setZipping] = useState(false);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -67,8 +67,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // See docs/BUSINESS_RULES.md#dual-approval-workflow -- a reconciled
   // transaction can never be edited/deleted, so an outstanding request
   // needs resolving from the dashboard before reconciling.
-  const pendingChangeFor = (t: Transaction) =>
-    pendingChanges.find((p) => p.transactionId === t.id);
+  const pendingChangeFor = (t: Transaction) => pendingChangeForTransaction(t.id);
 
   // Reset selection whenever the modal opens (the false→true transition only —
   // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
@@ -79,26 +78,20 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     .map((t) => t.id)
     .join(',');
   const uncoveredCount = unreconciledTxns.filter((t) => !isCovered(t)).length;
-  const wasOpenRef = useRef(false);
-  useEffect(() => {
-    if (isOpen && !wasOpenRef.current) {
-      setSelected(
-        uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
-      );
-      setError(null);
-      setUploading({});
-      setUploadError({});
-      setReimbursing({});
-      setReimburseError({});
-      setStep('review');
-      setReconSummary(null);
-      setReloadAmountInput('');
-      setRequestingReload(false);
-      setReloadRequested(false);
-      setReloadError(null);
-    }
-    wasOpenRef.current = isOpen;
-  }, [isOpen, coveredIds, uncoveredCount]);
+  useResetOnOpen(isOpen, () => {
+    setSelected(
+      uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
+    );
+    setError(null);
+    uploadAction.reset();
+    reimburseAction.reset();
+    setStep('review');
+    setReconSummary(null);
+    setReloadAmountInput('');
+    setRequestingReload(false);
+    setReloadRequested(false);
+    setReloadError(null);
+  }, [coveredIds, uncoveredCount]);
 
   // All uncovered transactions in the list (blocks reconciliation entirely)
   const uncoveredAll = unreconciledTxns.filter((t) => !isCovered(t));
@@ -119,41 +112,31 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
   const handleFileChange = async (txnId: string, file: File | null) => {
     if (!file) return;
-    setUploading((prev) => ({ ...prev, [txnId]: true }));
-    setUploadError((prev) => ({ ...prev, [txnId]: '' }));
-    try {
-      await uploadExemptionForm(txnId, file);
-      // The auto-select effect only (re)populates `selected` on the modal's
-      // own isOpen false->true transition, not on every coveredIds change
-      // while it stays open -- so a transaction that just became covered
-      // mid-session needs to be added here, or Confirm stays stuck at (0).
-      setSelected((prev) => new Set(prev).add(txnId));
-    } catch (err) {
-      setUploadError((prev) => ({
-        ...prev,
-        [txnId]: err instanceof Error ? err.message : 'Upload failed.',
-      }));
-    } finally {
-      setUploading((prev) => ({ ...prev, [txnId]: false }));
-    }
+    await uploadAction.run(
+      txnId,
+      async () => {
+        await uploadExemptionForm(txnId, file);
+        // The auto-select effect only (re)populates `selected` on the modal's
+        // own isOpen false->true transition, not on every coveredIds change
+        // while it stays open -- so a transaction that just became covered
+        // mid-session needs to be added here, or Confirm stays stuck at (0).
+        setSelected((prev) => new Set(prev).add(txnId));
+      },
+      'Upload failed.',
+    );
   };
 
   const handleMarkReimbursed = async (txnId: string) => {
-    setReimbursing((prev) => ({ ...prev, [txnId]: true }));
-    setReimburseError((prev) => ({ ...prev, [txnId]: '' }));
-    try {
-      await markTaxReimbursed(txnId);
-      // See the matching comment in handleFileChange -- the auto-select
-      // effect won't pick this up mid-session on its own.
-      setSelected((prev) => new Set(prev).add(txnId));
-    } catch (err) {
-      setReimburseError((prev) => ({
-        ...prev,
-        [txnId]: err instanceof Error ? err.message : 'Failed to mark as reimbursed.',
-      }));
-    } finally {
-      setReimbursing((prev) => ({ ...prev, [txnId]: false }));
-    }
+    await reimburseAction.run(
+      txnId,
+      async () => {
+        await markTaxReimbursed(txnId);
+        // See the matching comment in handleFileChange -- the auto-select
+        // effect won't pick this up mid-session on its own.
+        setSelected((prev) => new Set(prev).add(txnId));
+      },
+      'Failed to mark as reimbursed.',
+    );
   };
 
   const handleConfirm = async () => {
@@ -368,15 +351,15 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                               type="button"
                               className={styles['wl-btn-upload-exemption']}
                               onClick={() => fileInputRefs.current[t.id]?.click()}
-                              disabled={uploading[t.id]}
+                              disabled={uploadAction.pending(t.id)}
                             >
-                              {uploading[t.id]
+                              {uploadAction.pending(t.id)
                                 ? 'Uploading…'
                                 : '↑ Attach Completed Exemption Form'}
                             </button>
-                            {uploadError[t.id] && (
+                            {uploadAction.error(t.id) && (
                               <span className={styles['wl-recon-upload-error']}>
-                                {uploadError[t.id]}
+                                {uploadAction.error(t.id)}
                               </span>
                             )}
                           </div>
@@ -401,13 +384,15 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                               type="button"
                               className={styles['wl-btn-upload-exemption']}
                               onClick={() => handleMarkReimbursed(t.id)}
-                              disabled={reimbursing[t.id]}
+                              disabled={reimburseAction.pending(t.id)}
                             >
-                              {reimbursing[t.id] ? 'Marking…' : 'Mark as Reimbursed'}
+                              {reimburseAction.pending(t.id)
+                                ? 'Marking…'
+                                : 'Mark as Reimbursed'}
                             </button>
-                            {reimburseError[t.id] && (
+                            {reimburseAction.error(t.id) && (
                               <span className={styles['wl-recon-upload-error']}>
-                                {reimburseError[t.id]}
+                                {reimburseAction.error(t.id)}
                               </span>
                             )}
                           </div>

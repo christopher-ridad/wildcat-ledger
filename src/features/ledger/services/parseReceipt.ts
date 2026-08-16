@@ -4,7 +4,12 @@
  * and extracts the most likely total amount and vendor/title.
  */
 
-import { callVisionApi, extractFullText, fileToBase64 } from './visionApi';
+import {
+  callVisionApi,
+  extractFullText,
+  fileToBase64,
+  getVisionApiKey,
+} from './visionApi';
 
 export interface ReceiptData {
   title: string;
@@ -61,9 +66,7 @@ function extractTitle(text: string): string {
 }
 
 export async function parseReceipt(file: File): Promise<ReceiptData> {
-  const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
-  if (!apiKey) throw new Error('VITE_GOOGLE_VISION_API_KEY is not set in .env');
-
+  const apiKey = getVisionApiKey();
   const base64 = await fileToBase64(file);
 
   const data = await callVisionApi(

@@ -100,11 +100,11 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
 
       const orgs: Organization[] = await Promise.all(
         orgRows.map(async (row) => {
-          const { data: txnRows } = await supabase
-            .from('transactions')
-            .select('*')
-            .eq('org_id', row.id);
-          const transactions = (txnRows ?? []).map(rowToTransaction);
+          const transactions = await fetchOrgRows(
+            'transactions',
+            row.id,
+            rowToTransaction,
+          );
           return rowToOrganization(row, transactions);
         }),
       );
@@ -214,128 +214,102 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     return crypto.randomUUID();
   };
 
+  // Shared by the mutation actions below, which otherwise repeated this same
+  // guard-if-no-active-org / call-rpc-scoped-to-it / throw-on-error shape.
+  const callOrgRpc = async (name: string, params: Record<string, unknown> = {}) => {
+    if (!activeOrganizationId) return;
+    const { error } = await supabase.rpc(name, {
+      p_org_id: activeOrganizationId,
+      ...params,
+    });
+    if (error) throw error;
+  };
+
+  // Same shape as callOrgRpc, for the mutations that patch the active
+  // organization row directly instead of going through an RPC.
+  const updateActiveOrganization = async (patch: Record<string, unknown>) => {
+    if (!activeOrganizationId) return;
+    const { error } = await supabase
+      .from('organizations')
+      .update(patch)
+      .eq('id', activeOrganizationId);
+    if (error) throw error;
+  };
+
   const addTransaction = async (
     transaction: Omit<Transaction, 'id'>,
     id?: string,
     uploadTokens?: Record<string, string>,
   ) => {
-    if (!activeOrganizationId) return;
     const txnId = id ?? crypto.randomUUID();
-    const { error } = await supabase.rpc('create_transaction_with_audit', {
-      p_org_id: activeOrganizationId,
+    await callOrgRpc('create_transaction_with_audit', {
       p_transaction_id: txnId,
       p_transaction: transaction,
       p_upload_tokens: uploadTokens ?? {},
     });
-    if (error) throw error;
   };
 
   const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
-    if (!activeOrganizationId) return;
-    const role = userRole;
-    if (role !== 'sofoApprover') return;
-    const { error } = await supabase.rpc('request_transaction_change_with_audit', {
-      p_org_id: activeOrganizationId,
+    if (userRole !== 'sofoApprover') return;
+    await callOrgRpc('request_transaction_change_with_audit', {
       p_transaction_id: id,
       p_type: 'edit',
       p_after: transaction,
     });
-    if (error) throw error;
   };
 
   const deleteTransaction = async (id: string) => {
-    if (!activeOrganizationId) return;
-    const role = userRole;
-    if (role !== 'sofoApprover') return;
-    const { error } = await supabase.rpc('request_transaction_change_with_audit', {
-      p_org_id: activeOrganizationId,
+    if (userRole !== 'sofoApprover') return;
+    await callOrgRpc('request_transaction_change_with_audit', {
       p_transaction_id: id,
       p_type: 'delete',
       p_after: null,
     });
-    if (error) throw error;
   };
 
-  const updatePaymentStatus = async (transactionId: string, status: PaymentStatus) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('update_payment_status_with_audit', {
-      p_org_id: activeOrganizationId,
+  const updatePaymentStatus = async (transactionId: string, status: PaymentStatus) =>
+    callOrgRpc('update_payment_status_with_audit', {
       p_transaction_id: transactionId,
       p_status: status,
     });
-    if (error) throw error;
-  };
 
-  const approvePendingChange = async (pendingId: string) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('resolve_pending_change_with_audit', {
-      p_org_id: activeOrganizationId,
+  const approvePendingChange = async (pendingId: string) =>
+    callOrgRpc('resolve_pending_change_with_audit', {
       p_pending_id: pendingId,
       p_approved: true,
     });
-    if (error) throw error;
-  };
 
-  const rejectPendingChange = async (pendingId: string) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('resolve_pending_change_with_audit', {
-      p_org_id: activeOrganizationId,
+  const rejectPendingChange = async (pendingId: string) =>
+    callOrgRpc('resolve_pending_change_with_audit', {
       p_pending_id: pendingId,
       p_approved: false,
     });
-    if (error) throw error;
-  };
 
-  const cancelPendingChange = async (pendingId: string) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('cancel_pending_change_with_audit', {
-      p_org_id: activeOrganizationId,
-      p_pending_id: pendingId,
+  const cancelPendingChange = async (pendingId: string) =>
+    callOrgRpc('cancel_pending_change_with_audit', { p_pending_id: pendingId });
+
+  const updateBudgetAllocations = async (allocations: BudgetAllocations) =>
+    updateActiveOrganization({ budget_allocations: allocations });
+
+  const initializeBudgetAllocations = async (allocations: BudgetAllocations) =>
+    updateActiveOrganization({
+      budget_allocations: allocations,
+      is_budget_lines_set: true,
     });
-    if (error) throw error;
-  };
 
-  const updateBudgetAllocations = async (allocations: BudgetAllocations) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase
-      .from('organizations')
-      .update({ budget_allocations: allocations })
-      .eq('id', activeOrganizationId);
-    if (error) throw error;
-  };
+  const updateDebitCardSettings = async (settings: DebitCardSettings) =>
+    updateActiveOrganization({
+      debit_card_project_id: settings.projectId ?? null,
+      debit_card_account_number: settings.accountNumber ?? null,
+      debit_card_last_four: settings.lastFourDigits ?? null,
+      debit_card_icn: settings.inventoryControlNumber ?? null,
+      debit_card_load_balance: settings.loadBalance ?? null,
+    });
 
-  const initializeBudgetAllocations = async (allocations: BudgetAllocations) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase
-      .from('organizations')
-      .update({ budget_allocations: allocations, is_budget_lines_set: true })
-      .eq('id', activeOrganizationId);
-    if (error) throw error;
-  };
-
-  const updateDebitCardSettings = async (settings: DebitCardSettings) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase
-      .from('organizations')
-      .update({
-        debit_card_project_id: settings.projectId ?? null,
-        debit_card_account_number: settings.accountNumber ?? null,
-        debit_card_last_four: settings.lastFourDigits ?? null,
-        debit_card_icn: settings.inventoryControlNumber ?? null,
-        debit_card_load_balance: settings.loadBalance ?? null,
-      })
-      .eq('id', activeOrganizationId);
-    if (error) throw error;
-  };
-
-  const reconcileTransactions = async (transactionIds: string[]) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('reconcile_transactions_with_audit', {
-      p_org_id: activeOrganizationId,
+  const reconcileTransactions = async (transactionIds: string[]) =>
+    callOrgRpc('reconcile_transactions_with_audit', {
       p_transaction_ids: transactionIds,
     });
-    if (error) throw error;
-  };
 
   const uploadExemptionForm = async (transactionId: string, file: File) => {
     if (!activeOrganizationId) return;
@@ -353,14 +327,8 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) throw error;
   };
 
-  const markTaxReimbursed = async (transactionId: string) => {
-    if (!activeOrganizationId) return;
-    const { error } = await supabase.rpc('mark_tax_reimbursed_with_audit', {
-      p_org_id: activeOrganizationId,
-      p_transaction_id: transactionId,
-    });
-    if (error) throw error;
-  };
+  const markTaxReimbursed = async (transactionId: string) =>
+    callOrgRpc('mark_tax_reimbursed_with_audit', { p_transaction_id: transactionId });
 
   const requestTransactionDocument = async (transactionId: string, docType: string) => {
     if (!activeOrganizationId) throw new Error('No active organization');
@@ -398,9 +366,20 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     [transactions, budgetAllocations],
   );
 
+  // Shared by the multiple places (transaction list, reconciliation modal)
+  // that otherwise each re-scanned pendingChanges to find the one for a
+  // given transaction.
+  const pendingChangesByTransactionId = useMemo(
+    () => new Map(pendingChanges.map((p) => [p.transactionId, p])),
+    [pendingChanges],
+  );
+  const pendingChangeForTransaction = (transactionId: string) =>
+    pendingChangesByTransactionId.get(transactionId);
+
   const value: LedgerContextValue = {
     auditLog,
     pendingChanges,
+    pendingChangeForTransaction,
     organizations,
     loading,
     activeOrganizationId,

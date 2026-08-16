@@ -14,17 +14,10 @@
  *       or:  CLUB_OFFICERS_CSV=path/to/club_officers.csv node scripts/importAdmins.mjs
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { parse } from 'csv-parse';
-import dotenv from 'dotenv';
 import { createReadStream } from 'fs';
 
-dotenv.config();
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
+import { supabase } from './supabaseAdmin.mjs';
 
 const csvPath = process.argv[2] ?? process.env.CLUB_OFFICERS_CSV;
 

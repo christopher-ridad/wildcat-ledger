@@ -4,7 +4,12 @@
  * and extracts Operating, ASG, and Gifts amounts.
  */
 
-import { callVisionApi, extractFullText, fileToBase64 } from './visionApi';
+import {
+  callVisionApi,
+  extractFullText,
+  fileToBase64,
+  getVisionApiKey,
+} from './visionApi';
 
 export interface BudgetScanResult {
   ASG: number;
@@ -94,9 +99,7 @@ async function extractTextFromImage(base64: string, apiKey: string): Promise<str
 }
 
 export async function parseBudgetAllocation(file: File): Promise<BudgetScanResult> {
-  const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
-  if (!apiKey) throw new Error('VITE_GOOGLE_VISION_API_KEY is not set in .env');
-
+  const apiKey = getVisionApiKey();
   const base64 = await fileToBase64(file);
   const isPdf =
     file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');

@@ -1,7 +1,9 @@
 import type { ChangeEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
+import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
 import { Modal } from '../Modal';
 import styles from './DebitCardSettingsModal.module.css';
 
@@ -35,25 +37,20 @@ export const DebitCardSettingsModal = ({
   const [inventoryControlNumber, setInventoryControlNumber] = useState('');
   const [lastFourDigits, setLastFourDigits] = useState('');
   const [loadBalance, setLoadBalance] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const saveAction = useAsyncAction();
 
   // Reset fields on the actual open transition only, not on every
   // subsequent re-render while the modal stays open (settings is a new
   // object reference each time activeOrganization refreshes via Realtime,
   // which shouldn't clobber whatever the user is mid-typing).
-  const wasOpenRef = useRef(false);
-  useEffect(() => {
-    if (isOpen && !wasOpenRef.current) {
-      setProjectId(settings?.projectId ?? '');
-      setAccountNumber(settings?.accountNumber ?? '');
-      setInventoryControlNumber(settings?.inventoryControlNumber ?? '');
-      setLastFourDigits(settings?.lastFourDigits ?? '');
-      setLoadBalance(settings?.loadBalance != null ? String(settings.loadBalance) : '');
-      setError(null);
-    }
-    wasOpenRef.current = isOpen;
-  }, [isOpen, settings]);
+  useResetOnOpen(isOpen, () => {
+    setProjectId(settings?.projectId ?? '');
+    setAccountNumber(settings?.accountNumber ?? '');
+    setInventoryControlNumber(settings?.inventoryControlNumber ?? '');
+    setLastFourDigits(settings?.lastFourDigits ?? '');
+    setLoadBalance(settings?.loadBalance != null ? String(settings.loadBalance) : '');
+    saveAction.setError(null);
+  }, [settings]);
 
   const handleProjectIdChange = (e: ChangeEvent<HTMLInputElement>) => {
     setProjectId(e.target.value.replace(/\D/g, '').slice(0, 8));
@@ -69,31 +66,31 @@ export const DebitCardSettingsModal = ({
 
   const handleSave = async () => {
     if (projectId && !PROJECT_ID_PATTERN.test(projectId)) {
-      setError('Project ID must be an 8-digit number between 70000000 and 79999999.');
+      saveAction.setError(
+        'Project ID must be an 8-digit number between 70000000 and 79999999.',
+      );
       return;
     }
     if (accountNumber && !ACCOUNT_NUMBER_PATTERN.test(accountNumber)) {
-      setError('Account No. must be in the format 20XX-XXX (e.g. 2000-000).');
+      saveAction.setError('Account No. must be in the format 20XX-XXX (e.g. 2000-000).');
       return;
     }
     if (inventoryControlNumber && !ICN_PATTERN.test(inventoryControlNumber)) {
-      setError(
+      saveAction.setError(
         'Inventory Control No. must be in the format XXXXXXXX-XXXXXXX (e.g. 12345678-1234567).',
       );
       return;
     }
     if (lastFourDigits && !/^\d{4}$/.test(lastFourDigits)) {
-      setError('Last 4 digits must be exactly 4 numbers.');
+      saveAction.setError('Last 4 digits must be exactly 4 numbers.');
       return;
     }
     const parsedLoadBalance = loadBalance ? parseFloat(loadBalance) : undefined;
     if (loadBalance && (Number.isNaN(parsedLoadBalance) || parsedLoadBalance! < 0)) {
-      setError('Enter a valid load balance.');
+      saveAction.setError('Enter a valid load balance.');
       return;
     }
-    setSaving(true);
-    setError(null);
-    try {
+    await saveAction.run(async () => {
       await updateDebitCardSettings({
         projectId: projectId.trim() || undefined,
         accountNumber: accountNumber.trim() || undefined,
@@ -102,11 +99,7 @@ export const DebitCardSettingsModal = ({
         loadBalance: parsedLoadBalance,
       });
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save. Try again.');
-    } finally {
-      setSaving(false);
-    }
+    }, 'Failed to save. Try again.');
   };
 
   return (
@@ -208,8 +201,10 @@ export const DebitCardSettingsModal = ({
         </div>
       </div>
 
-      {error && (
-        <div className={`wl-form-error ${styles['wl-settings-error']}`}>{error}</div>
+      {saveAction.error && (
+        <div className={`wl-form-error ${styles['wl-settings-error']}`}>
+          {saveAction.error}
+        </div>
       )}
 
       <div className={styles['wl-settings-actions']}>
@@ -217,15 +212,15 @@ export const DebitCardSettingsModal = ({
           type="button"
           className="wl-btn-primary"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saveAction.pending}
         >
-          {saving ? 'Saving…' : 'Save'}
+          {saveAction.pending ? 'Saving…' : 'Save'}
         </button>
         <button
           type="button"
           className="wl-btn-cancel"
           onClick={onClose}
-          disabled={saving}
+          disabled={saveAction.pending}
         >
           Cancel
         </button>

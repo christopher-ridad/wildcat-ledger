@@ -4,6 +4,12 @@
  * parseReceipt.ts and parseBudgetAllocation.ts.
  */
 
+export function getVisionApiKey(): string {
+  const apiKey = import.meta.env.VITE_GOOGLE_VISION_API_KEY;
+  if (!apiKey) throw new Error('VITE_GOOGLE_VISION_API_KEY is not set in .env');
+  return apiKey;
+}
+
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

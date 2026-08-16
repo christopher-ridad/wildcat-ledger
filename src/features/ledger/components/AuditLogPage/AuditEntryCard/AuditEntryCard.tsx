@@ -1,6 +1,7 @@
 import { AuditAction, AuditEntry } from '../../../types';
 import { formatTimestamp } from '../../../utils/calculations';
 import { diffChangedKeys } from '../../../utils/diff';
+import { DiffView } from '../../DiffView';
 import styles from './AuditEntryCard.module.css';
 
 interface ActionDisplay {
@@ -100,42 +101,30 @@ const EditDiff = ({
   before: Record<string, unknown>;
   after: Record<string, unknown>;
 }) => (
-  <div className={styles['wl-audit-diff']}>
-    <div
-      className={`${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--before']}`}
-    >
-      <span className={styles['wl-audit-snapshot-label']}>Before</span>
-      <div className={styles['wl-audit-snapshot-rows']}>
-        {changedKeys.map((key) => (
-          <div key={key} className={styles['wl-audit-snapshot-row']}>
-            <span className={styles['wl-audit-diff-field']}>{key}</span>
-            <span
-              className={`${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--before']}`}
-            >
-              {String(before[key] ?? '—')}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-    <div
-      className={`${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--after']}`}
-    >
-      <span className={styles['wl-audit-snapshot-label']}>After</span>
-      <div className={styles['wl-audit-snapshot-rows']}>
-        {changedKeys.map((key) => (
-          <div key={key} className={styles['wl-audit-snapshot-row']}>
-            <span className={styles['wl-audit-diff-field']}>{key}</span>
-            <span
-              className={`${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--after']}`}
-            >
-              {String(after[key] ?? '—')}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
+  <DiffView
+    changedKeys={changedKeys}
+    before={before}
+    after={after}
+    classNames={{
+      container: styles['wl-audit-diff'],
+      before: {
+        column: `${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--before']}`,
+        label: styles['wl-audit-snapshot-label'],
+        rows: styles['wl-audit-snapshot-rows'],
+        row: styles['wl-audit-snapshot-row'],
+        field: styles['wl-audit-diff-field'],
+        value: `${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--before']}`,
+      },
+      after: {
+        column: `${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--after']}`,
+        label: styles['wl-audit-snapshot-label'],
+        rows: styles['wl-audit-snapshot-rows'],
+        row: styles['wl-audit-snapshot-row'],
+        field: styles['wl-audit-diff-field'],
+        value: `${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--after']}`,
+      },
+    }}
+  />
 );
 
 export const AuditEntryCard = ({

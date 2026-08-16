@@ -165,6 +165,9 @@ export interface Organization {
 export interface LedgerContextValue {
   auditLog: AuditEntry[];
   pendingChanges: PendingChange[];
+  // Looks up the pending edit/delete request for a transaction, if any.
+  // Memoized in LedgerContext so callers don't each re-scan pendingChanges.
+  pendingChangeForTransaction: (transactionId: string) => PendingChange | undefined;
   organizations: Organization[];
   // True until the initial organizations fetch for the current user resolves.
   // Distinguishes "still loading" from "genuinely no active org" so pages

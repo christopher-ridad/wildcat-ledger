@@ -3,7 +3,7 @@ import type { ChangeEvent } from 'react';
 import { Transaction } from '../../../types';
 import { POLICY_EXEMPTION_FORM_URL } from '../../../utils/constants';
 import styles from './AddTransactionForm.module.css';
-import { ExistingFileLink } from './ExistingFileLink';
+import { ReceiptUploadField } from './ReceiptUploadField';
 import { FormState } from './types';
 
 interface DebitCardFieldsProps {
@@ -24,58 +24,28 @@ export const DebitCardFields = ({
   onChange,
 }: DebitCardFieldsProps) => (
   <>
-    <div className="wl-form-group">
-      <label className="wl-form-label" htmlFor="receiptFile">
-        Receipt Photo{' '}
-        {!isEditing && !form.noReceiptAcknowledged && (
-          <span className={styles['wl-form-required']}>*</span>
-        )}
-        {scanning && <span className="wl-ocr-scanning"> Scanning…</span>}
-      </label>
-      <p className={styles['wl-form-hint']}>Tax cannot be paid by the debit card.</p>
-      <div className={styles['wl-receipt-options']}>
-        <input
-          id="receiptFile"
-          name="receiptFile"
-          type="file"
-          accept="image/*,application/pdf"
-          className="wl-form-file"
-          disabled={form.noReceiptAcknowledged}
-          onChange={onReceiptChange}
-        />
-        {isEditing && existingTransaction?.receiptFileUrl && (
-          <span className={styles['wl-form-file-existing']}>
-            Current: <ExistingFileLink path={existingTransaction.receiptFileUrl} />
+    <ReceiptUploadField
+      form={form}
+      isEditing={isEditing}
+      existingTransaction={existingTransaction}
+      scanning={scanning}
+      onReceiptChange={onReceiptChange}
+      onChange={onChange}
+      hint="Tax cannot be paid by the debit card."
+      noReceiptLabel="I don't have a receipt"
+      noReceiptNotice={
+        <>
+          <span>⚠ This transaction will be flagged as missing a receipt. </span>
+          <span>
+            You&apos;ll need to submit a{' '}
+            <a href={POLICY_EXEMPTION_FORM_URL} target="_blank" rel="noreferrer">
+              Policy Exemption Request Form
+            </a>{' '}
+            and attach it before this transaction can be reconciled.
           </span>
-        )}
-      </div>
-    </div>
-
-    {!form.receiptFile && !(isEditing && existingTransaction?.receiptFileUrl) && (
-      <div className={styles['wl-form-no-receipt']}>
-        <label className={styles['wl-form-checkbox']}>
-          <input
-            type="checkbox"
-            name="noReceiptAcknowledged"
-            checked={form.noReceiptAcknowledged}
-            onChange={onChange}
-          />
-          <span>I don&apos;t have a receipt</span>
-        </label>
-        {form.noReceiptAcknowledged && (
-          <div className={styles['wl-form-no-receipt-notice']}>
-            <span>⚠ This transaction will be flagged as missing a receipt. </span>
-            <span>
-              You&apos;ll need to submit a{' '}
-              <a href={POLICY_EXEMPTION_FORM_URL} target="_blank" rel="noreferrer">
-                Policy Exemption Request Form
-              </a>{' '}
-              and attach it before this transaction can be reconciled.
-            </span>
-          </div>
-        )}
-      </div>
-    )}
+        </>
+      }
+    />
 
     <div className={styles['wl-form-no-receipt']}>
       <label className={styles['wl-form-checkbox']}>
