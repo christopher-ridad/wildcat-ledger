@@ -176,3 +176,10 @@ export const DOCUMENT_REQUIREMENTS_BY_KEY: Record<DocumentTypeKey, DocumentRequi
     conflictOfInterest: CONFLICT_OF_INTEREST,
     specialPayForm: SPECIAL_PAY_FORM,
   };
+
+// See docs/BUSINESS_RULES.md#tax-exemption--sofo-reimbursement.
+export const needsTaxReimbursement = (t: Transaction): boolean =>
+  t.type === 'Debit Card' &&
+  !t.taxExemptFormSubmitted &&
+  (t.taxAmount ?? 0) > 0 &&
+  !t.taxReimbursed;
