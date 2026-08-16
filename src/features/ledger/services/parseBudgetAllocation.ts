@@ -44,7 +44,6 @@ function findAmountNear(lines: string[], keyword: RegExp): number {
 
   for (let i = 0; i < lines.length; i++) {
     if (keyword.test(lines[i])) {
-      // Try current line first
       const onLine = parseMatch(lines[i]);
       if (onLine > 0) return onLine;
       // Try next 2 lines (common in tabular/PDF layouts)

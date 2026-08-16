@@ -17,13 +17,9 @@ export const deriveBudgetLine = (
 export const deriveDirection = (type: SupportedType): 'Inflow' | 'Outflow' =>
   type === 'Deposit' ? 'Inflow' : 'Outflow';
 
-// Returns an error message if the form isn't ready to submit, or null if it is.
-// Each document requirement can be satisfied by an attached file OR by
-// checking "I don't have this yet" -- the transaction still saves, but is
-// flagged as missing that document (see documentRequirements.ts) and can't
-// move to Approved/Paid until the file is actually uploaded, either
-// directly or via a request sent from the transaction's Files modal
-// after creation.
+// Returns an error message if the form isn't ready to submit, or null if it
+// is. Document requirements mirror documentRequirements.ts -- see
+// docs/BUSINESS_RULES.md#document-requirements--requesting-documents.
 export const validateTransactionForm = (
   form: FormState,
   isEditing: boolean,

@@ -48,7 +48,6 @@ export const Dashboard = () => {
       </div>
 
       <div className="wl-dashboard-optionB">
-        {/* Sidebar */}
         <aside className="wl-sidebar-optionB">
           <div className="wl-sidebar-header-optionB">
             <button
@@ -114,9 +113,7 @@ export const Dashboard = () => {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="wl-main-optionB">
-          {/* Budget Cards Overview */}
           <section className="wl-optionB-section">
             <h2 className="wl-section-title">Budget Lines Overview</h2>
             <div className="wl-budget-grid-optionB">
@@ -138,7 +135,6 @@ export const Dashboard = () => {
             </div>
           </section>
 
-          {/* Transactions Section */}
           <section className="wl-optionB-section">
             <h2 className="wl-section-title">Transactions</h2>
             <TransactionList />

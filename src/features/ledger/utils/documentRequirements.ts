@@ -11,26 +11,15 @@ export type DocumentTypeKey =
   | 'conflictOfInterest'
   | 'specialPayForm';
 
-// How a missing document actually gets resolved in practice:
-//  - 'simple': the other party just fills it out and sends it back --
-//    Receipt, W-9, Special Pay Form.
-//  - 'prepareFirst': the treasurer/president downloads the blank template,
-//    fills in the org's side first, then sends it to the vendor to sign --
-//    RSO Agreement, Contracted Services Form. Since a mailto link can't
-//    attach a file automatically, the UI needs to remind them to attach
-//    their filled-in copy before sending.
-//  - 'none': nobody else is involved -- the treasurer/president completes
-//    and uploads it themselves, so there's nothing to email. Conflict of
-//    Interest Form.
+// See docs/BUSINESS_RULES.md#document-requirements--requesting-documents
+// for what each behavior means and who acts on it.
 export type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
 
 export interface DocumentRequirement {
   key: DocumentTypeKey;
   field: keyof Transaction;
-  // An alternate field that also satisfies this requirement (e.g. a Debit
-  // Card purchase's receipt requirement is equally satisfied by an attached
-  // Policy Exemption Form -- see ReconciliationModal's own isCovered check,
-  // which already treats the two as interchangeable).
+  // An alternate field that also satisfies this requirement -- see
+  // docs/BUSINESS_RULES.md#debit-card-reconciliation.
   alternateField?: keyof Transaction;
   acknowledgedMissingField?: keyof Transaction;
   label: string;
@@ -94,10 +83,9 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
   requestBehavior: 'simple',
 };
 
-// The documents a transaction needs, based on its type (and, for Payment
-// Request, whether the vendor is an individual). Mirrors the requirements
-// enforced in validation.ts (form-time) and the Approved/Paid gate in
-// update_payment_status_with_audit (server-side) -- keep all three in sync.
+// See docs/BUSINESS_RULES.md#transaction-types--their-documents -- mirrors
+// validation.ts (form-time) and the SQL-side Approved/Paid gate; keep all
+// three in sync.
 export const getRequiredDocuments = (t: Transaction): DocumentRequirement[] => {
   switch (t.type) {
     case 'Debit Card':
@@ -121,3 +109,10 @@ export const getMissingDocuments = (t: Transaction): DocumentRequirement[] =>
   getRequiredDocuments(t).filter(
     (doc) => !t[doc.field] && !(doc.alternateField && t[doc.alternateField]),
   );
+
+// See docs/BUSINESS_RULES.md#tax-exemption--sofo-reimbursement.
+export const needsTaxReimbursement = (t: Transaction): boolean =>
+  t.type === 'Debit Card' &&
+  !t.taxExemptFormSubmitted &&
+  (t.taxAmount ?? 0) > 0 &&
+  !t.taxReimbursed;

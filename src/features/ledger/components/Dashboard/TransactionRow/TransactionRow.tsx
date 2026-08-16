@@ -5,7 +5,10 @@ import { PaymentStatus, PendingChange, Transaction } from '../../../types';
 import { formatCurrency } from '../../../utils/calculations';
 import { SOFO_SALES_TAX_REIMBURSEMENT_URL } from '../../../utils/constants';
 import { diffChangedKeys } from '../../../utils/diff';
-import { getMissingDocuments } from '../../../utils/documentRequirements';
+import {
+  getMissingDocuments,
+  needsTaxReimbursement,
+} from '../../../utils/documentRequirements';
 import { getTransactionFiles } from '../TransactionFilesModal';
 import styles from './TransactionRow.module.css';
 
@@ -27,9 +30,7 @@ const PAYMENT_STATUS_TYPES: Transaction['type'][] = [
   'Payment to NU Employee',
 ];
 
-// Reload deposits skip the "Approved" middle state — approving a reload IS
-// reloading it, there's no separate paid-out step — so they only ever go
-// Pending -> Paid, and "Paid" reads as "Reloaded" for that transaction type.
+// See docs/BUSINESS_RULES.md#payment-status-lifecycle.
 const statusLabel = (status: PaymentStatus, isReloadDeposit: boolean) =>
   isReloadDeposit && status === 'Paid' ? 'Reloaded' : status;
 
@@ -93,18 +94,8 @@ export const TransactionRow = ({
   };
 
   const colSpan = canEdit ? 7 : 6;
-  // Debit Card purchases should never carry tax (orgs are tax-exempt when
-  // the exemption form is presented at purchase). When it happens anyway,
-  // flag it until self-attested as reimbursed to SOFO -- the actual
-  // payment happens on SOFO's own external form, no integration here.
-  const needsTaxReimbursement =
-    t.type === 'Debit Card' &&
-    !t.taxExemptFormSubmitted &&
-    (t.taxAmount ?? 0) > 0 &&
-    !t.taxReimbursed;
-  // A Deposit on the Debit Card line is a reload — it goes through the same
-  // payment-status lifecycle as Direct Payment/Reimbursement, not
-  // reconciliation (that's only for purchases needing a receipt).
+  const txnNeedsTaxReimbursement = needsTaxReimbursement(t);
+  // See docs/BUSINESS_RULES.md#payment-status-lifecycle.
   const isReloadDeposit = t.budgetLine === 'Debit Card' && t.type === 'Deposit';
   const isDebitCardPurchase = t.budgetLine === 'Debit Card' && !isReloadDeposit;
   const isReconciled = isDebitCardPurchase && t.reconciledAt != null;
@@ -140,7 +131,7 @@ export const TransactionRow = ({
                 ⚠ Missing: {missingDocs.map((d) => d.label).join(', ')}
               </div>
             ))}
-          {needsTaxReimbursement && (
+          {txnNeedsTaxReimbursement && (
             <div className={styles['wl-tax-owed']}>
               <span className={styles['wl-tax-owed-badge']}>
                 ⚠ Tax owed: {formatCurrency(t.taxAmount ?? 0)}

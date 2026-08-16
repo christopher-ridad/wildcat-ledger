@@ -9,14 +9,8 @@ import {
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { parseBudgetAllocation } from '../features/ledger/services/parseBudgetAllocation';
 import { BudgetAllocations } from '../features/ledger/types';
+import { EMPTY_ALLOCATIONS } from '../features/ledger/utils/constants';
 import { TopNav } from '../layouts/TopNav';
-
-const EMPTY_ALLOCATIONS: BudgetAllocations = {
-  ASG: 0,
-  Operating: 0,
-  Gifts: 0,
-  'Debit Card': 0,
-};
 
 export const CreateOrganization = () => {
   const { activeOrganization, initializeBudgetAllocations, loading } = useLedger();
@@ -47,7 +41,6 @@ export const CreateOrganization = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show preview
     const pdf =
       file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     setIsPdf(pdf);
