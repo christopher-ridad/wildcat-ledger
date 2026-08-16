@@ -9,6 +9,9 @@ interface DebitCardSettingsModalProps {
   onClose: () => void;
 }
 
+// 8-digit number starting with 7, i.e. 70000000-79999999 (per the official
+// SOFO form's own validation on this field).
+const PROJECT_ID_PATTERN = /^7\d{7}$/;
 // "20" + 2 digits + "-" + 3 digits, e.g. 2000-000.
 const ACCOUNT_NUMBER_PATTERN = /^20\d{2}-\d{3}$/;
 // 8 digits + "-" + 7 digits, e.g. 12345678-1234567.
@@ -64,6 +67,10 @@ export const DebitCardSettingsModal = ({
 
   if (!isOpen) return null;
 
+  const handleProjectIdChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setProjectId(e.target.value.replace(/\D/g, '').slice(0, 8));
+  };
+
   const handleAccountNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
     setAccountNumber(formatWithDash(e.target.value, 4, 7));
   };
@@ -73,6 +80,10 @@ export const DebitCardSettingsModal = ({
   };
 
   const handleSave = async () => {
+    if (projectId && !PROJECT_ID_PATTERN.test(projectId)) {
+      setError('Project ID must be an 8-digit number between 70000000 and 79999999.');
+      return;
+    }
     if (accountNumber && !ACCOUNT_NUMBER_PATTERN.test(accountNumber)) {
       setError('Account No. must be in the format 20XX-XXX (e.g. 2000-000).');
       return;
@@ -148,9 +159,11 @@ export const DebitCardSettingsModal = ({
               <input
                 id="sofo-project-id"
                 type="text"
+                inputMode="numeric"
                 className="wl-form-input"
                 value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
+                placeholder="70000000"
+                onChange={handleProjectIdChange}
               />
             </div>
 

@@ -21,7 +21,7 @@ describe('DebitCardSettingsModal', () => {
   test('pre-fills fields from the active organization', () => {
     const activeOrganization = buildMockOrganization({
       debitCardSettings: {
-        projectId: 'PRJ-42',
+        projectId: '70000000',
         accountNumber: '2000-000',
         lastFourDigits: '4321',
         inventoryControlNumber: '12345678-1234567',
@@ -30,7 +30,7 @@ describe('DebitCardSettingsModal', () => {
     });
     renderModal({ activeOrganization });
 
-    expect(screen.getByLabelText('Project ID')).toHaveValue('PRJ-42');
+    expect(screen.getByLabelText('Project ID')).toHaveValue('70000000');
     expect(screen.getByLabelText('Account No.')).toHaveValue('2000-000');
     expect(screen.getByLabelText('Last 4 Digits of Card')).toHaveValue('4321');
     expect(screen.getByLabelText('Inventory Control No.')).toHaveValue(
@@ -52,6 +52,33 @@ describe('DebitCardSettingsModal', () => {
       target: { value: 'ab12cd' },
     });
     expect(screen.getByLabelText('Last 4 Digits of Card')).toHaveValue('12');
+  });
+
+  test('strips non-digit characters from Project ID and caps it at 8 digits', () => {
+    renderModal({ activeOrganization: buildMockOrganization() });
+    fireEvent.change(screen.getByLabelText('Project ID'), {
+      target: { value: 'PRJ-7000000099extra' },
+    });
+    expect(screen.getByLabelText('Project ID')).toHaveValue('70000000');
+  });
+
+  test('rejects a Project ID that is not an 8-digit number starting with 7', async () => {
+    const updateDebitCardSettings = vi.fn().mockResolvedValue(undefined);
+    renderModal({
+      activeOrganization: buildMockOrganization(),
+      updateDebitCardSettings,
+    });
+    fireEvent.change(screen.getByLabelText('Project ID'), {
+      target: { value: '12345678' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(
+      await screen.findByText(
+        'Project ID must be an 8-digit number between 70000000 and 79999999.',
+      ),
+    ).toBeInTheDocument();
+    expect(updateDebitCardSettings).not.toHaveBeenCalled();
   });
 
   test("auto-inserts a dash into the Account No. as it's typed", () => {
@@ -157,7 +184,7 @@ describe('DebitCardSettingsModal', () => {
     );
 
     fireEvent.change(screen.getByLabelText('Project ID'), {
-      target: { value: 'PRJ-42' },
+      target: { value: '70000000' },
     });
     fireEvent.change(screen.getByLabelText('Account No.'), {
       target: { value: '2000000' },
@@ -175,7 +202,7 @@ describe('DebitCardSettingsModal', () => {
 
     await vi.waitFor(() =>
       expect(updateDebitCardSettings).toHaveBeenCalledWith({
-        projectId: 'PRJ-42',
+        projectId: '70000000',
         accountNumber: '2000-000',
         inventoryControlNumber: '12345678-1234567',
         lastFourDigits: '4321',
