@@ -63,7 +63,7 @@ const RECEIPT: DocumentRequirement = {
   formField: 'receiptFile',
   formAcknowledgedMissingField: 'noReceiptAcknowledged',
   checkExistingFileOnEdit: true,
-  missingMessage: 'Upload a receipt photo or check "I don\'t have a receipt".',
+  missingMessage: 'Upload a receipt or check "I don\'t have a receipt".',
 };
 
 // Exemption forms are Debit-Card-specific (tax-exemption at the point of
@@ -73,7 +73,6 @@ const RECEIPT: DocumentRequirement = {
 const DEBIT_CARD_RECEIPT: DocumentRequirement = {
   ...RECEIPT,
   alternateField: 'exemptionFormUrl',
-  missingMessage: 'Upload a receipt or check "I don\'t have a receipt".',
 };
 const CONTRACT: DocumentRequirement = {
   key: 'contract',
