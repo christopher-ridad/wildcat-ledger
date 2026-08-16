@@ -72,7 +72,7 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('-$50.00')).toHaveLength(2);
   });
 
-  test('shows SOFO Approvers and Officers as a reminder under the org name', () => {
+  test('shows SOFO Approvers as a reminder under the org name', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       activeOrganization: buildMockOrganization({
@@ -83,23 +83,9 @@ describe('Dashboard', () => {
     } as never);
     render(<Dashboard />);
     expect(
-      screen.getByText(
-        'SOFO Approvers: treasurer@example.com, president@example.com · Officers: officer@example.com',
-      ),
+      screen.getByText('SOFO Approvers: treasurer@example.com, president@example.com'),
     ).toBeInTheDocument();
-  });
-
-  test('omits the Officers segment when the org has none', () => {
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
-      activeOrganization: buildMockOrganization({
-        name: 'Wildcat Club',
-        sofoApprovers: ['treasurer@example.com'],
-        officers: [],
-      }),
-    } as never);
-    render(<Dashboard />);
-    expect(screen.getByText('SOFO Approvers: treasurer@example.com')).toBeInTheDocument();
+    expect(screen.queryByText(/officer@example.com/)).not.toBeInTheDocument();
   });
 
   test('resolves emails to names from the people directory, falling back to the email when unknown', () => {
@@ -108,15 +94,12 @@ describe('Dashboard', () => {
       activeOrganization: buildMockOrganization({
         name: 'Wildcat Club',
         sofoApprovers: ['treasurer@example.com', 'president@example.com'],
-        officers: ['officer@example.com'],
       }),
       peopleNames: { 'treasurer@example.com': 'Jane Smith' },
     } as never);
     render(<Dashboard />);
     expect(
-      screen.getByText(
-        'SOFO Approvers: Jane Smith, president@example.com · Officers: officer@example.com',
-      ),
+      screen.getByText('SOFO Approvers: Jane Smith, president@example.com'),
     ).toBeInTheDocument();
   });
 
