@@ -3,27 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 
 import { supabase } from '../config/supabase';
 import { documentPath, uploadDocument } from '../features/ledger/services/storage';
-
-const FILE_TYPE_MAP: Record<string, { field: string; prefix: string; label: string }> = {
-  receipt: { field: 'receiptFileUrl', prefix: 'receipt', label: 'Receipt' },
-  contract: { field: 'contractFileUrl', prefix: 'contract', label: 'RSO Agreement' },
-  w9: { field: 'w9FileUrl', prefix: 'w9', label: 'W-9' },
-  contractedServices: {
-    field: 'contractedServicesFileUrl',
-    prefix: 'contractedServices',
-    label: 'Contracted Services Form',
-  },
-  conflictOfInterest: {
-    field: 'conflictOfInterestFileUrl',
-    prefix: 'conflictOfInterest',
-    label: 'Conflict of Interest Form',
-  },
-  specialPayForm: {
-    field: 'specialPayFormUrl',
-    prefix: 'specialPayForm',
-    label: 'Special Pay Form',
-  },
-};
+import {
+  DOCUMENT_REQUIREMENTS_BY_KEY,
+  DocumentTypeKey,
+} from '../features/ledger/utils/documentRequirements';
 
 export const UploadDocumentPage = () => {
   const [searchParams] = useSearchParams();
@@ -31,8 +14,10 @@ export const UploadDocumentPage = () => {
   const orgId = searchParams.get('orgId');
   const token = searchParams.get('token');
   const rawFileType = searchParams.get('fileType') ?? 'receipt';
-  const fileType = rawFileType in FILE_TYPE_MAP ? rawFileType : 'receipt';
-  const { field, prefix, label: docLabel } = FILE_TYPE_MAP[fileType];
+  const fileType = (
+    rawFileType in DOCUMENT_REQUIREMENTS_BY_KEY ? rawFileType : 'receipt'
+  ) as DocumentTypeKey;
+  const { field, key: prefix, label: docLabel } = DOCUMENT_REQUIREMENTS_BY_KEY[fileType];
 
   const [txnTitle, setTxnTitle] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
