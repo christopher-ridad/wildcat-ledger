@@ -1,4 +1,5 @@
 import { BudgetLine, Transaction } from '../../../types';
+import { getRequiredDocuments } from '../../../utils/documentRequirements';
 import { FormState, FundingOption, SupportedType } from './types';
 
 export const AMOUNT_REGEX = /^\d+(\.\d{1,2})?$/;
@@ -34,62 +35,22 @@ export const validateTransactionForm = (
     return 'Enter a valid dollar amount (e.g. 12.50). No negative values or scientific notation.';
   }
 
-  if (form.type === 'Debit Card') {
-    const hasExistingReceipt = isEditing && !!existingTransaction?.receiptFileUrl;
-    if (!form.receiptFile && !hasExistingReceipt && !form.noReceiptAcknowledged) {
-      return 'Upload a receipt or check "I don\'t have a receipt".';
-    }
+  if (form.type === 'Non-Officer Reimbursement' && !form.reimbursedMemberName.trim()) {
+    return 'Name of the member being reimbursed is required.';
   }
 
-  if (form.type === 'Payment Request') {
-    if (!form.contractFile && !isEditing && !form.contractAcknowledgedMissing) {
-      return 'Upload the RSO Agreement or check "I don\'t have this yet".';
-    }
-    if (!form.w9File && !isEditing && !form.w9AcknowledgedMissing) {
-      return 'Upload the W-9 or check "I don\'t have this yet".';
-    }
-    if (form.isIndividualVendor) {
-      if (
-        !form.contractedServicesFile &&
-        !isEditing &&
-        !form.contractedServicesAcknowledgedMissing
-      ) {
-        return 'Upload the Contracted Services Form or check "I don\'t have this yet".';
-      }
-      if (
-        !form.conflictOfInterestFile &&
-        !isEditing &&
-        !form.conflictOfInterestAcknowledgedMissing
-      ) {
-        return 'Upload the Conflict of Interest Form or check "I don\'t have this yet".';
-      }
-    }
-  }
-
-  if (form.type === 'Payment to NU Employee') {
-    if (!form.contractFile && !isEditing && !form.contractAcknowledgedMissing) {
-      return 'Upload the RSO Agreement or check "I don\'t have this yet".';
-    }
-    if (!form.w9File && !isEditing && !form.w9AcknowledgedMissing) {
-      return 'Upload the W-9 or check "I don\'t have this yet".';
-    }
-    if (
-      !form.specialPayFormFile &&
-      !isEditing &&
-      !form.specialPayFormAcknowledgedMissing
-    ) {
-      return 'Upload the Special Pay Form or check "I don\'t have this yet".';
+  for (const doc of getRequiredDocuments(form)) {
+    const hasExistingFile =
+      isEditing && (!doc.checkExistingFileOnEdit || !!existingTransaction?.[doc.field]);
+    const acknowledgedMissing = doc.formAcknowledgedMissingField
+      ? form[doc.formAcknowledgedMissingField]
+      : false;
+    if (!form[doc.formField] && !hasExistingFile && !acknowledgedMissing) {
+      return doc.missingMessage;
     }
   }
 
   if (form.type === 'Non-Officer Reimbursement') {
-    if (!form.reimbursedMemberName.trim()) {
-      return 'Name of the member being reimbursed is required.';
-    }
-    const hasExistingReceipt = isEditing && !!existingTransaction?.receiptFileUrl;
-    if (!form.receiptFile && !hasExistingReceipt && !form.noReceiptAcknowledged) {
-      return 'Upload a receipt photo or check "I don\'t have a receipt".';
-    }
     if (!form.zelleInfo.trim()) {
       return 'Zelle information (email or phone number) is required.';
     }
