@@ -1,13 +1,35 @@
 .wl-settings-hint {
   font-size: 0.8rem;
   color: var(--color-text-muted);
-  margin: 0 0 12px;
+  margin: 8px 0 0;
+}
+
+.wl-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.wl-settings-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wl-settings-error {
+  margin-top: 20px;
 }
 
 .wl-settings-actions {
   display: flex;
   gap: 12px;
   padding-top: 16px;
-  margin-top: 8px;
+  margin-top: 24px;
   border-top: 1.5px solid var(--color-border);
 }

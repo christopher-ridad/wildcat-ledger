@@ -108,7 +108,7 @@ export const Dashboard = () => {
                 className="wl-sidebar-settings-link"
                 onClick={() => setDebitCardSettingsOpen(true)}
               >
-                ⚙ Debit Card Settings
+                ⚙ SOFO / CO Settings
               </button>
             )}
           </div>

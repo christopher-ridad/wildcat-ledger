@@ -57,6 +57,7 @@ export const rowToOrganization = (
   lastReconciliationDate: (row.last_reconciliation_date as number | null) ?? null,
   transactions,
   debitCardSettings: {
+    projectId: (row.debit_card_project_id as string) ?? undefined,
     accountNumber: (row.debit_card_account_number as string) ?? undefined,
     lastFourDigits: (row.debit_card_last_four as string) ?? undefined,
     inventoryControlNumber: (row.debit_card_icn as string) ?? undefined,
