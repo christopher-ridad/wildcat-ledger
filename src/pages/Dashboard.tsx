@@ -23,6 +23,16 @@ export const Dashboard = () => {
     loading,
   } = useLedger();
   const canEdit = userRole === 'sofoApprover';
+  const approversSubtitle = activeOrganization
+    ? [
+        `SOFO Approvers: ${activeOrganization.sofoApprovers.join(', ') || '—'}`,
+        activeOrganization.officers.length > 0
+          ? `Officers: ${activeOrganization.officers.join(', ')}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   useEffect(() => {
     if (!loading && activeOrganization === null) {
@@ -35,6 +45,11 @@ export const Dashboard = () => {
       <div className="wl-header-optionB">
         <div className="wl-header-optionB-left">
           <h1 className="wl-header-title">{activeOrganization?.name}</h1>
+          {activeOrganization && (
+            <p className="wl-header-approvers" title={approversSubtitle}>
+              {approversSubtitle}
+            </p>
+          )}
         </div>
         <div className="wl-header-optionB-right">
           <button

@@ -71,6 +71,36 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('-$50.00')).toHaveLength(2);
   });
 
+  test('shows SOFO Approvers and Officers as a reminder under the org name', () => {
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      activeOrganization: buildMockOrganization({
+        name: 'Wildcat Club',
+        sofoApprovers: ['treasurer@example.com', 'president@example.com'],
+        officers: ['officer@example.com'],
+      }),
+    } as never);
+    render(<Dashboard />);
+    expect(
+      screen.getByText(
+        'SOFO Approvers: treasurer@example.com, president@example.com · Officers: officer@example.com',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('omits the Officers segment when the org has none', () => {
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      activeOrganization: buildMockOrganization({
+        name: 'Wildcat Club',
+        sofoApprovers: ['treasurer@example.com'],
+        officers: [],
+      }),
+    } as never);
+    render(<Dashboard />);
+    expect(screen.getByText('SOFO Approvers: treasurer@example.com')).toBeInTheDocument();
+  });
+
   test('shows Add Transaction and Reconcile buttons for a SOFO Approver', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     render(<Dashboard />);
