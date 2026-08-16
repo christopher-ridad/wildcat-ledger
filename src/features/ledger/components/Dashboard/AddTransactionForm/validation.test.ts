@@ -363,9 +363,7 @@ describe('validateTransactionForm', () => {
         zelleInfo: 'person@example.com',
         reimbursedMemberName: 'Jane Doe',
       };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(
-        /Upload a receipt photo/,
-      );
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/Upload a receipt/);
     });
 
     test('passes when the receipt is acknowledged missing', () => {

@@ -1,3 +1,4 @@
+import { FormState } from '../components/Dashboard/AddTransactionForm/types';
 import { Transaction } from '../types';
 
 // The doc-type keys used end-to-end for the request-via-email flow: as the
@@ -36,6 +37,22 @@ export interface DocumentRequirement {
   label: string;
   templatePath?: string;
   requestBehavior: DocumentRequestBehavior;
+  // The form-time equivalents of `field`/`acknowledgedMissingField` -- named
+  // differently on FormState than on Transaction (e.g. `contractFileUrl` vs
+  // `contractFile`), so this bridges the two rather than being derivable by
+  // a simple string transform. Used by validation.ts.
+  formField: keyof FormState;
+  formAcknowledgedMissingField?: keyof FormState;
+  // Whether, when editing, an already-uploaded file on the transaction
+  // being edited satisfies this requirement (true), or editing bypasses the
+  // check entirely regardless of whether the file was ever uploaded
+  // (false). Only the receipt requirement checks the existing file --
+  // matches validateTransactionForm's pre-existing behavior.
+  checkExistingFileOnEdit: boolean;
+  // The exact validation-error message shown when this document is missing
+  // and not acknowledged. Not derived from `label` because the receipt
+  // message's wording differs from every other requirement's.
+  missingMessage: string;
 }
 
 const RECEIPT: DocumentRequirement = {
@@ -43,6 +60,10 @@ const RECEIPT: DocumentRequirement = {
   field: 'receiptFileUrl',
   label: 'Receipt',
   requestBehavior: 'simple',
+  formField: 'receiptFile',
+  formAcknowledgedMissingField: 'noReceiptAcknowledged',
+  checkExistingFileOnEdit: true,
+  missingMessage: 'Upload a receipt or check "I don\'t have a receipt".',
 };
 
 // Exemption forms are Debit-Card-specific (tax-exemption at the point of
@@ -60,6 +81,10 @@ const CONTRACT: DocumentRequirement = {
   label: 'RSO Agreement',
   templatePath: '/forms/rso-agreement.pdf',
   requestBehavior: 'prepareFirst',
+  formField: 'contractFile',
+  formAcknowledgedMissingField: 'contractAcknowledgedMissing',
+  checkExistingFileOnEdit: false,
+  missingMessage: 'Upload the RSO Agreement or check "I don\'t have this yet".',
 };
 const W9: DocumentRequirement = {
   key: 'w9',
@@ -68,6 +93,10 @@ const W9: DocumentRequirement = {
   label: 'W-9',
   templatePath: '/forms/w9.pdf',
   requestBehavior: 'simple',
+  formField: 'w9File',
+  formAcknowledgedMissingField: 'w9AcknowledgedMissing',
+  checkExistingFileOnEdit: false,
+  missingMessage: 'Upload the W-9 or check "I don\'t have this yet".',
 };
 const CONTRACTED_SERVICES: DocumentRequirement = {
   key: 'contractedServices',
@@ -76,6 +105,11 @@ const CONTRACTED_SERVICES: DocumentRequirement = {
   label: 'Contracted Services Form',
   templatePath: '/forms/contracted-services.pdf',
   requestBehavior: 'prepareFirst',
+  formField: 'contractedServicesFile',
+  formAcknowledgedMissingField: 'contractedServicesAcknowledgedMissing',
+  checkExistingFileOnEdit: false,
+  missingMessage:
+    'Upload the Contracted Services Form or check "I don\'t have this yet".',
 };
 const CONFLICT_OF_INTEREST: DocumentRequirement = {
   key: 'conflictOfInterest',
@@ -84,6 +118,11 @@ const CONFLICT_OF_INTEREST: DocumentRequirement = {
   label: 'Conflict of Interest Form',
   templatePath: '/forms/conflict-of-interest.pdf',
   requestBehavior: 'none',
+  formField: 'conflictOfInterestFile',
+  formAcknowledgedMissingField: 'conflictOfInterestAcknowledgedMissing',
+  checkExistingFileOnEdit: false,
+  missingMessage:
+    'Upload the Conflict of Interest Form or check "I don\'t have this yet".',
 };
 const SPECIAL_PAY_FORM: DocumentRequirement = {
   key: 'specialPayForm',
@@ -92,13 +131,19 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
   label: 'Special Pay Form',
   templatePath: '/forms/special-pay-request-form.pdf',
   requestBehavior: 'simple',
+  formField: 'specialPayFormFile',
+  formAcknowledgedMissingField: 'specialPayFormAcknowledgedMissing',
+  checkExistingFileOnEdit: false,
+  missingMessage: 'Upload the Special Pay Form or check "I don\'t have this yet".',
 };
 
 // The documents a transaction needs, based on its type (and, for Payment
 // Request, whether the vendor is an individual). Mirrors the requirements
 // enforced in validation.ts (form-time) and the Approved/Paid gate in
 // update_payment_status_with_audit (server-side) -- keep all three in sync.
-export const getRequiredDocuments = (t: Transaction): DocumentRequirement[] => {
+export const getRequiredDocuments = (
+  t: Pick<Transaction, 'type' | 'isIndividualVendor'>,
+): DocumentRequirement[] => {
   switch (t.type) {
     case 'Debit Card':
       return [DEBIT_CARD_RECEIPT];
@@ -121,3 +166,15 @@ export const getMissingDocuments = (t: Transaction): DocumentRequirement[] =>
   getRequiredDocuments(t).filter(
     (doc) => !t[doc.field] && !(doc.alternateField && t[doc.alternateField]),
   );
+
+// Keyed lookup used by UploadDocumentPage.tsx, which only knows a document's
+// key (from the emailed link's query param) and needs its field/label/prefix.
+export const DOCUMENT_REQUIREMENTS_BY_KEY: Record<DocumentTypeKey, DocumentRequirement> =
+  {
+    receipt: RECEIPT,
+    contract: CONTRACT,
+    w9: W9,
+    contractedServices: CONTRACTED_SERVICES,
+    conflictOfInterest: CONFLICT_OF_INTEREST,
+    specialPayForm: SPECIAL_PAY_FORM,
+  };
