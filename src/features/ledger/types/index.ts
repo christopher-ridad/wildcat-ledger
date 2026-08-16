@@ -142,6 +142,7 @@ export type UserRole = 'treasurer' | 'president' | 'officer';
 // loadBalance is the card's fixed limit, distinct from the live running
 // balance in budgetAllocations['Debit Card'].
 export interface DebitCardSettings {
+  projectId?: string;
   accountNumber?: string;
   lastFourDigits?: string;
   inventoryControlNumber?: string;

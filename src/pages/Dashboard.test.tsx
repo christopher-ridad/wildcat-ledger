@@ -83,7 +83,7 @@ describe('Dashboard', () => {
     render(<Dashboard />);
     expect(screen.queryByText('+ Add Transaction')).not.toBeInTheDocument();
     expect(screen.queryByText('Reconcile Debit Card')).not.toBeInTheDocument();
-    expect(screen.queryByText('⚙ Debit Card Settings')).not.toBeInTheDocument();
+    expect(screen.queryByText('⚙ SOFO / CO Settings')).not.toBeInTheDocument();
   });
 
   test('clicking a budget line filter selects it', () => {
@@ -122,11 +122,11 @@ describe('Dashboard', () => {
     expect(screen.getByTestId('reconciliation-modal')).toBeInTheDocument();
   });
 
-  test('opens the Debit Card Settings modal', () => {
+  test('opens the SOFO/CO Settings modal', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     render(<Dashboard />);
     expect(screen.queryByTestId('debit-card-settings-modal')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText('⚙ Debit Card Settings'));
+    fireEvent.click(screen.getByText('⚙ SOFO / CO Settings'));
     expect(screen.getByTestId('debit-card-settings-modal')).toBeInTheDocument();
   });
 
