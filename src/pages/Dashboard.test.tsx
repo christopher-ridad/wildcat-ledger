@@ -38,7 +38,8 @@ const baseLedger = {
   selectedBudgetLine: null,
   setSelectedBudgetLine: vi.fn(),
   activeOrganization: buildMockOrganization({ name: 'Wildcat Club' }),
-  userRole: 'treasurer' as const,
+  userRole: 'sofoApprover' as const,
+  peopleNames: {} as Record<string, string>,
   loading: false,
 };
 
@@ -71,7 +72,38 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('-$50.00')).toHaveLength(2);
   });
 
-  test('shows Add Transaction and Reconcile buttons for a treasurer', () => {
+  test('shows SOFO Approvers as a reminder under the org name', () => {
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      activeOrganization: buildMockOrganization({
+        name: 'Wildcat Club',
+        sofoApprovers: ['treasurer@example.com', 'president@example.com'],
+        officers: ['officer@example.com'],
+      }),
+    } as never);
+    render(<Dashboard />);
+    expect(
+      screen.getByText('SOFO Approvers: treasurer@example.com, president@example.com'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/officer@example.com/)).not.toBeInTheDocument();
+  });
+
+  test('resolves emails to names from the people directory, falling back to the email when unknown', () => {
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      activeOrganization: buildMockOrganization({
+        name: 'Wildcat Club',
+        sofoApprovers: ['treasurer@example.com', 'president@example.com'],
+      }),
+      peopleNames: { 'treasurer@example.com': 'Jane Smith' },
+    } as never);
+    render(<Dashboard />);
+    expect(
+      screen.getByText('SOFO Approvers: Jane Smith, president@example.com'),
+    ).toBeInTheDocument();
+  });
+
+  test('shows Add Transaction and Reconcile buttons for a SOFO Approver', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     render(<Dashboard />);
     expect(screen.getByText('+ Add Transaction')).toBeInTheDocument();

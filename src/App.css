@@ -596,7 +596,7 @@ tbody tr:hover {
   justify-content: space-between;
   align-items: center;
   padding: 0 28px;
-  height: 60px;
+  height: 76px;
   background: var(--color-primary);
   color: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -609,13 +609,27 @@ tbody tr:hover {
 
 .wl-header-optionB-left {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
 }
 
 .wl-header-optionB-left .wl-header-title {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 700;
+}
+
+.wl-header-approvers {
+  margin: 0;
+  max-width: min(60vw, 520px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .wl-header-optionB-right {
@@ -647,7 +661,7 @@ tbody tr:hover {
   min-height: 100vh;
   background: var(--color-bg);
   margin-left: 260px;
-  padding-top: 60px;
+  padding-top: 76px;
 }
 
 .wl-sidebar-optionB {
@@ -659,9 +673,9 @@ tbody tr:hover {
   flex-direction: column;
   box-shadow: 3px 0 12px rgba(78, 42, 132, 0.08);
   position: fixed;
-  top: 60px;
+  top: 76px;
   left: 0;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 76px);
   overflow: hidden;
   z-index: 50;
 }

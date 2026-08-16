@@ -130,13 +130,12 @@ export interface PendingChange {
   transactionId: string;
   transactionTitle: string;
   requestedBy: string;
-  requestedByRole: 'treasurer' | 'president';
   requestedAt: number;
   before: Omit<Transaction, 'id'>;
   after: Omit<Transaction, 'id'> | null;
 }
 
-export type UserRole = 'treasurer' | 'president' | 'officer';
+export type UserRole = 'sofoApprover' | 'officer';
 
 // Needed to pre-fill the official SOFO debit card reconciliation form.
 // loadBalance is the card's fixed limit, distinct from the live running
@@ -152,10 +151,8 @@ export interface DebitCardSettings {
 export interface Organization {
   id: string;
   name: string;
-  admins: string[];
-  treasurer?: string[];
-  president?: string[];
-  officers?: string[];
+  sofoApprovers: string[];
+  officers: string[];
   budgetAllocations: BudgetAllocations;
   isBudgetLinesSet: boolean;
   transactions: Transaction[];
@@ -177,6 +174,10 @@ export interface LedgerContextValue {
   setActiveOrganizationId: (id: string) => void;
   activeOrganization: Organization | null;
   userRole: UserRole | null;
+  // Display names for approver/officer emails, keyed by email -- a separate
+  // directory decoupled from org membership (see the `people` table).
+  // Falls back to showing the email itself wherever a lookup misses.
+  peopleNames: Record<string, string>;
   generateTransactionId: () => string;
   addTransaction: (
     transaction: Omit<Transaction, 'id'>,
