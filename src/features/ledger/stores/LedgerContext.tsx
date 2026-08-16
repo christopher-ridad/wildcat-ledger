@@ -296,6 +296,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     const { error } = await supabase
       .from('organizations')
       .update({
+        debit_card_project_id: settings.projectId ?? null,
         debit_card_account_number: settings.accountNumber ?? null,
         debit_card_last_four: settings.lastFourDigits ?? null,
         debit_card_icn: settings.inventoryControlNumber ?? null,
