@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useAuth } from '../../../../authentication/hooks/useAuth';
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { PaymentStatus, PendingChange, Transaction } from '../../../types';
 import { formatCurrency } from '../../../utils/calculations';
 import { SOFO_SALES_TAX_REIMBURSEMENT_URL } from '../../../utils/constants';
@@ -9,6 +10,7 @@ import {
   getMissingDocuments,
   needsTaxReimbursement,
 } from '../../../utils/documentRequirements';
+import { DiffView } from '../../DiffView';
 import { getTransactionFiles } from '../TransactionFilesModal';
 import styles from './TransactionRow.module.css';
 
@@ -60,10 +62,9 @@ export const TransactionRow = ({
   onMarkTaxReimbursed: (transactionId: string) => Promise<void>;
 }) => {
   const [showDetail, setShowDetail] = useState(false);
-  const [actioning, setActioning] = useState(false);
-  const [statusUpdating, setStatusUpdating] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
-  const [reimbursing, setReimbursing] = useState(false);
+  const actionState = useAsyncAction();
+  const statusState = useAsyncAction();
+  const reimburseState = useAsyncAction();
   const isInflow = t.direction === 'Inflow';
   const fileCount = getTransactionFiles(t).length;
   const missingDocs = getMissingDocuments(t);
@@ -73,24 +74,19 @@ export const TransactionRow = ({
   const canApprove = !!pending && !isMyPending && canEdit;
 
   const handleAction = (fn: (id: string) => Promise<void>, id: string) => {
-    if (actioning) return;
-    setActioning(true);
-    fn(id).finally(() => setActioning(false));
+    if (actionState.pending) return;
+    actionState.run(() => fn(id));
   };
 
   const handleStatusChange = (status: PaymentStatus) => {
-    setStatusUpdating(true);
-    setStatusError(null);
-    onUpdatePaymentStatus(t.id, status)
-      .catch((err) => {
-        setStatusError(err instanceof Error ? err.message : 'Failed to update status.');
-      })
-      .finally(() => setStatusUpdating(false));
+    statusState.run(
+      () => onUpdatePaymentStatus(t.id, status),
+      'Failed to update status.',
+    );
   };
 
   const handleMarkReimbursed = () => {
-    setReimbursing(true);
-    onMarkTaxReimbursed(t.id).finally(() => setReimbursing(false));
+    reimburseState.run(() => onMarkTaxReimbursed(t.id));
   };
 
   const colSpan = canEdit ? 7 : 6;
@@ -149,10 +145,10 @@ export const TransactionRow = ({
                   <button
                     type="button"
                     className={styles['wl-tax-owed-mark-btn']}
-                    disabled={reimbursing}
+                    disabled={reimburseState.pending}
                     onClick={handleMarkReimbursed}
                   >
-                    {reimbursing ? 'Marking…' : 'Mark as Reimbursed'}
+                    {reimburseState.pending ? 'Marking…' : 'Mark as Reimbursed'}
                   </button>
                 </>
               )}
@@ -187,16 +183,16 @@ export const TransactionRow = ({
                   aria-label="Payment status"
                   className={`${styles['wl-status-select']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
                   value={paymentStatus}
-                  disabled={statusUpdating}
+                  disabled={statusState.pending}
                   onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
                 >
                   <option value="Pending">Pending</option>
                   {!isReloadDeposit && <option value="Approved">Approved</option>}
                   <option value="Paid">{statusLabel('Paid', isReloadDeposit)}</option>
                 </select>
-                {statusError && (
+                {statusState.error && (
                   <div className={styles['wl-status-error']} role="alert">
-                    {statusError}
+                    {statusState.error}
                   </div>
                 )}
               </>
@@ -223,10 +219,10 @@ export const TransactionRow = ({
                   <button
                     type="button"
                     className={styles['wl-btn-reject']}
-                    disabled={actioning}
+                    disabled={actionState.pending}
                     onClick={() => handleAction(onCancel, pending.id)}
                   >
-                    {actioning ? '…' : 'Cancel'}
+                    {actionState.pending ? '…' : 'Cancel'}
                   </button>
                 </div>
               ) : canApprove ? (
@@ -243,18 +239,18 @@ export const TransactionRow = ({
                   <button
                     type="button"
                     className={styles['wl-btn-approve']}
-                    disabled={actioning}
+                    disabled={actionState.pending}
                     onClick={() => handleAction(onApprove, pending.id)}
                   >
-                    {actioning ? '…' : 'Approve'}
+                    {actionState.pending ? '…' : 'Approve'}
                   </button>
                   <button
                     type="button"
                     className={styles['wl-btn-reject']}
-                    disabled={actioning}
+                    disabled={actionState.pending}
                     onClick={() => handleAction(onReject, pending.id)}
                   >
-                    {actioning ? '…' : 'Reject'}
+                    {actionState.pending ? '…' : 'Reject'}
                   </button>
                 </div>
               ) : null
@@ -338,38 +334,28 @@ export const TransactionRow = ({
                 This transaction will be <strong>permanently deleted</strong> if approved.
               </p>
             ) : changedKeys.length > 0 ? (
-              <div className={styles['wl-pending-detail-diff']}>
-                <div
-                  className={`${styles['wl-pending-detail-col']} ${styles['wl-pending-detail-col--before']}`}
-                >
-                  <span className={styles['wl-pending-detail-label']}>Before</span>
-                  {changedKeys.map((k) => (
-                    <div key={k} className={styles['wl-pending-detail-row-item']}>
-                      <span className={styles['wl-pending-detail-field']}>{k}</span>
-                      <span
-                        className={`${styles['wl-pending-detail-value']} ${styles['wl-pending-detail-value--before']}`}
-                      >
-                        {String((pending.before as Record<string, unknown>)[k] ?? '—')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <div
-                  className={`${styles['wl-pending-detail-col']} ${styles['wl-pending-detail-col--after']}`}
-                >
-                  <span className={styles['wl-pending-detail-label']}>After</span>
-                  {changedKeys.map((k) => (
-                    <div key={k} className={styles['wl-pending-detail-row-item']}>
-                      <span className={styles['wl-pending-detail-field']}>{k}</span>
-                      <span
-                        className={`${styles['wl-pending-detail-value']} ${styles['wl-pending-detail-value--after']}`}
-                      >
-                        {String((pending.after as Record<string, unknown>)[k] ?? '—')}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <DiffView
+                changedKeys={changedKeys}
+                before={pending.before as Record<string, unknown>}
+                after={pending.after as Record<string, unknown>}
+                classNames={{
+                  container: styles['wl-pending-detail-diff'],
+                  before: {
+                    column: `${styles['wl-pending-detail-col']} ${styles['wl-pending-detail-col--before']}`,
+                    label: styles['wl-pending-detail-label'],
+                    row: styles['wl-pending-detail-row-item'],
+                    field: styles['wl-pending-detail-field'],
+                    value: `${styles['wl-pending-detail-value']} ${styles['wl-pending-detail-value--before']}`,
+                  },
+                  after: {
+                    column: `${styles['wl-pending-detail-col']} ${styles['wl-pending-detail-col--after']}`,
+                    label: styles['wl-pending-detail-label'],
+                    row: styles['wl-pending-detail-row-item'],
+                    field: styles['wl-pending-detail-field'],
+                    value: `${styles['wl-pending-detail-value']} ${styles['wl-pending-detail-value--after']}`,
+                  },
+                }}
+              />
             ) : null}
           </td>
         </tr>

@@ -39,6 +39,7 @@ const baseLedger = {
   setSelectedBudgetLine: vi.fn(),
   activeOrganization: buildMockOrganization({ name: 'Wildcat Club' }),
   userRole: 'sofoApprover' as const,
+  canEdit: true,
   peopleNames: {} as Record<string, string>,
   loading: false,
 };
@@ -111,7 +112,11 @@ describe('Dashboard', () => {
   });
 
   test('hides Add Transaction and Reconcile buttons for an officer', () => {
-    mockUseLedger.mockReturnValue({ ...baseLedger, userRole: 'officer' } as never);
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      userRole: 'officer',
+      canEdit: false,
+    } as never);
     render(<Dashboard />);
     expect(screen.queryByText('+ Add Transaction')).not.toBeInTheDocument();
     expect(screen.queryByText('Reconcile Debit Card')).not.toBeInTheDocument();

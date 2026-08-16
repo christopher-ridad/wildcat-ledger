@@ -1,5 +1,7 @@
 import { User } from '@supabase/supabase-js';
+import { render } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
 import { AuthContext } from '../features/authentication/stores/AuthContext';
@@ -49,44 +51,50 @@ export const MockAuthProvider = ({
 
 export const buildMockLedgerContext = (
   overrides: Partial<LedgerContextValue> = {},
-): LedgerContextValue => ({
-  auditLog: [],
-  pendingChanges: [],
-  organizations: [],
-  loading: false,
-  activeOrganizationId: null,
-  setActiveOrganizationId: vi.fn(),
-  activeOrganization: null,
-  userRole: null,
-  peopleNames: {},
-  generateTransactionId: vi.fn(() => 'generated-id'),
-  addTransaction: vi.fn().mockResolvedValue(undefined),
-  updateTransaction: vi.fn().mockResolvedValue(undefined),
-  deleteTransaction: vi.fn().mockResolvedValue(undefined),
-  updatePaymentStatus: vi.fn().mockResolvedValue(undefined),
-  approvePendingChange: vi.fn().mockResolvedValue(undefined),
-  rejectPendingChange: vi.fn().mockResolvedValue(undefined),
-  cancelPendingChange: vi.fn().mockResolvedValue(undefined),
-  updateBudgetAllocations: vi.fn().mockResolvedValue(undefined),
-  initializeBudgetAllocations: vi.fn().mockResolvedValue(undefined),
-  updateDebitCardSettings: vi.fn().mockResolvedValue(undefined),
-  reconcileTransactions: vi.fn().mockResolvedValue(undefined),
-  uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
-  markTaxReimbursed: vi.fn().mockResolvedValue(undefined),
-  requestTransactionDocument: vi.fn().mockResolvedValue('mock-token'),
-  selectedBudgetLine: null,
-  setSelectedBudgetLine: vi.fn(),
-  filteredTransactions: [],
-  // Large default balances so outflow-submitting tests don't accidentally
-  // trip the overdraft-warning flow; override explicitly to test that flow.
-  budgetLineSummaries: [
-    { line: 'ASG', balance: 100000, inflow: 0, outflow: 0 },
-    { line: 'Operating', balance: 100000, inflow: 0, outflow: 0 },
-    { line: 'Gifts', balance: 100000, inflow: 0, outflow: 0 },
-    { line: 'Debit Card', balance: 100000, inflow: 0, outflow: 0 },
-  ],
-  ...overrides,
-});
+): LedgerContextValue => {
+  const pendingChanges = overrides.pendingChanges ?? [];
+  return {
+    auditLog: [],
+    pendingChanges,
+    pendingChangeForTransaction: (transactionId: string) =>
+      pendingChanges.find((p) => p.transactionId === transactionId),
+    organizations: [],
+    loading: false,
+    activeOrganizationId: null,
+    setActiveOrganizationId: vi.fn(),
+    activeOrganization: null,
+    userRole: null,
+    canEdit: false,
+    peopleNames: {},
+    generateTransactionId: vi.fn(() => 'generated-id'),
+    addTransaction: vi.fn().mockResolvedValue(undefined),
+    updateTransaction: vi.fn().mockResolvedValue(undefined),
+    deleteTransaction: vi.fn().mockResolvedValue(undefined),
+    updatePaymentStatus: vi.fn().mockResolvedValue(undefined),
+    approvePendingChange: vi.fn().mockResolvedValue(undefined),
+    rejectPendingChange: vi.fn().mockResolvedValue(undefined),
+    cancelPendingChange: vi.fn().mockResolvedValue(undefined),
+    updateBudgetAllocations: vi.fn().mockResolvedValue(undefined),
+    initializeBudgetAllocations: vi.fn().mockResolvedValue(undefined),
+    updateDebitCardSettings: vi.fn().mockResolvedValue(undefined),
+    reconcileTransactions: vi.fn().mockResolvedValue(undefined),
+    uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
+    markTaxReimbursed: vi.fn().mockResolvedValue(undefined),
+    requestTransactionDocument: vi.fn().mockResolvedValue('mock-token'),
+    selectedBudgetLine: null,
+    setSelectedBudgetLine: vi.fn(),
+    filteredTransactions: [],
+    // Large default balances so outflow-submitting tests don't accidentally
+    // trip the overdraft-warning flow; override explicitly to test that flow.
+    budgetLineSummaries: [
+      { line: 'ASG', balance: 100000, inflow: 0, outflow: 0 },
+      { line: 'Operating', balance: 100000, inflow: 0, outflow: 0 },
+      { line: 'Gifts', balance: 100000, inflow: 0, outflow: 0 },
+      { line: 'Debit Card', balance: 100000, inflow: 0, outflow: 0 },
+    ],
+    ...overrides,
+  };
+};
 
 export const buildMockTransaction = (
   overrides: Partial<Transaction> = {},
@@ -144,6 +152,14 @@ export const buildMockAuditEntry = (overrides: Partial<AuditEntry> = {}): AuditE
   after: buildMockTransaction(),
   ...overrides,
 });
+
+// Wraps a component in MemoryRouter for tests that render it standalone
+// (rather than through the app's real router). The `vi.mock('react-router-dom', ...)`
+// call each test file uses to stub useNavigate has to stay in that file --
+// Vitest only hoists mock calls it can see at the top of the file being
+// tested -- so only the wrapper half is shared here.
+export const renderWithRouter = (ui: React.ReactElement, route = '/') =>
+  render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
 
 export const MockLedgerProvider = ({
   value,

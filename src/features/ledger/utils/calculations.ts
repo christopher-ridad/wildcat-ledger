@@ -38,3 +38,14 @@ export const applyFilters = (
 
 export const formatCurrency = (amount: number): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+
+export const formatTimestamp = (
+  ts: number,
+  options?: { includeTime?: boolean },
+): string =>
+  new Date(ts).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    ...(options?.includeTime ? { hour: 'numeric', minute: '2-digit' } : {}),
+  });

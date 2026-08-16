@@ -1,15 +1,8 @@
 import { AuditAction, AuditEntry } from '../../../types';
+import { formatTimestamp } from '../../../utils/calculations';
 import { diffChangedKeys } from '../../../utils/diff';
+import { DiffView } from '../../DiffView';
 import styles from './AuditEntryCard.module.css';
-
-const formatTimestamp = (ts: number) =>
-  new Date(ts).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 
 interface ActionDisplay {
   label: string;
@@ -108,45 +101,39 @@ const EditDiff = ({
   before: Record<string, unknown>;
   after: Record<string, unknown>;
 }) => (
-  <div className={styles['wl-audit-diff']}>
-    <div
-      className={`${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--before']}`}
-    >
-      <span className={styles['wl-audit-snapshot-label']}>Before</span>
-      <div className={styles['wl-audit-snapshot-rows']}>
-        {changedKeys.map((key) => (
-          <div key={key} className={styles['wl-audit-snapshot-row']}>
-            <span className={styles['wl-audit-diff-field']}>{key}</span>
-            <span
-              className={`${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--before']}`}
-            >
-              {String(before[key] ?? '—')}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-    <div
-      className={`${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--after']}`}
-    >
-      <span className={styles['wl-audit-snapshot-label']}>After</span>
-      <div className={styles['wl-audit-snapshot-rows']}>
-        {changedKeys.map((key) => (
-          <div key={key} className={styles['wl-audit-snapshot-row']}>
-            <span className={styles['wl-audit-diff-field']}>{key}</span>
-            <span
-              className={`${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--after']}`}
-            >
-              {String(after[key] ?? '—')}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
+  <DiffView
+    changedKeys={changedKeys}
+    before={before}
+    after={after}
+    classNames={{
+      container: styles['wl-audit-diff'],
+      before: {
+        column: `${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--before']}`,
+        label: styles['wl-audit-snapshot-label'],
+        rows: styles['wl-audit-snapshot-rows'],
+        row: styles['wl-audit-snapshot-row'],
+        field: styles['wl-audit-diff-field'],
+        value: `${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--before']}`,
+      },
+      after: {
+        column: `${styles['wl-audit-snapshot']} ${styles['wl-audit-snapshot--after']}`,
+        label: styles['wl-audit-snapshot-label'],
+        rows: styles['wl-audit-snapshot-rows'],
+        row: styles['wl-audit-snapshot-row'],
+        field: styles['wl-audit-diff-field'],
+        value: `${styles['wl-audit-snapshot-value']} ${styles['wl-audit-snapshot-value--after']}`,
+      },
+    }}
+  />
 );
 
-export const AuditEntryCard = ({ entry }: { entry: AuditEntry }) => {
+export const AuditEntryCard = ({
+  entry,
+  peopleNames,
+}: {
+  entry: AuditEntry;
+  peopleNames: Record<string, string>;
+}) => {
   const { label, icon, className, entryClass } = actionLabel(entry.action, entry.after);
   const changedKeys =
     entry.action === 'edit' ||
@@ -166,10 +153,12 @@ export const AuditEntryCard = ({ entry }: { entry: AuditEntry }) => {
         </span>
         <span className={styles['wl-audit-title']}>{entry.transactionTitle}</span>
         <div className={styles['wl-audit-meta']}>
-          <span className={styles['wl-audit-meta-user']}>{entry.performedBy}</span>
+          <span className={styles['wl-audit-meta-user']}>
+            {peopleNames[entry.performedBy] ?? entry.performedBy}
+          </span>
           <span className={styles['wl-audit-meta-sep']}>·</span>
           <span className={styles['wl-audit-meta-time']}>
-            {formatTimestamp(entry.timestamp)}
+            {formatTimestamp(entry.timestamp, { includeTime: true })}
           </span>
         </div>
       </div>

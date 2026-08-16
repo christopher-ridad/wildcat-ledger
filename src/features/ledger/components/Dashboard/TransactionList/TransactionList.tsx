@@ -11,15 +11,14 @@ export const TransactionList = () => {
   const {
     filteredTransactions,
     deleteTransaction,
-    userRole,
-    pendingChanges,
+    canEdit,
+    pendingChangeForTransaction,
     approvePendingChange,
     rejectPendingChange,
     cancelPendingChange,
     updatePaymentStatus,
     markTaxReimbursed,
   } = useLedger();
-  const canEdit = userRole === 'sofoApprover';
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(
     null,
@@ -63,7 +62,7 @@ export const TransactionList = () => {
                   <TransactionRow
                     t={t}
                     canEdit={canEdit}
-                    pending={pendingChanges.find((p) => p.transactionId === t.id)}
+                    pending={pendingChangeForTransaction(t.id)}
                     onEdit={setEditingTransaction}
                     onDelete={setDeletingTransaction}
                     onApprove={approvePendingChange}

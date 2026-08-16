@@ -7,6 +7,7 @@ import {
   DocumentRequirement,
   getMissingDocuments,
 } from '../../../utils/documentRequirements';
+import { Modal } from '../Modal';
 import styles from './TransactionFilesModal.module.css';
 
 const FILE_LABELS: { key: keyof Transaction; label: string }[] = [
@@ -148,102 +149,87 @@ export const TransactionFilesModal = ({
   };
 
   return (
-    <div className="wl-modal-root" role="dialog" aria-modal="true">
-      <div
-        className="wl-modal-overlay"
-        role="button"
-        tabIndex={0}
-        aria-label="Close"
-        onClick={onClose}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClose()}
-      />
-      <div className={`wl-modal ${styles['wl-files-modal']}`}>
-        <div className="wl-modal-header">
-          <h2 className="wl-modal-title">Documents — {transaction.title}</h2>
-          <button className="wl-modal-close" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
-        </div>
-        <div className="wl-modal-body">
-          {missingDocs.length > 0 && (
-            <div className={styles['wl-missing-docs-section']}>
-              <h3 className={styles['wl-files-section-title']}>Missing</h3>
-              {requestError && (
-                <div className="wl-form-error" role="alert">
-                  {requestError}
-                </div>
-              )}
-              <ul className={styles['wl-missing-docs-list']}>
-                {missingDocs.map((doc) => (
-                  <li key={doc.key} className={styles['wl-missing-doc-item']}>
-                    <div className={styles['wl-missing-doc-header']}>
-                      <span className={styles['wl-missing-doc-label']}>{doc.label}</span>
-                      {doc.templatePath && (
-                        <a
-                          href={doc.templatePath}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles['wl-missing-doc-template-link']}
-                        >
-                          ↓ Blank {doc.label}
-                        </a>
-                      )}
-                    </div>
-                    {doc.requestBehavior === 'prepareFirst' && (
-                      <p className={styles['wl-missing-doc-hint']}>
-                        Download the template, fill in your org&apos;s details, and attach
-                        your version to the email before sending — a mailto link
-                        can&apos;t attach it for you.
-                      </p>
-                    )}
-                    {doc.requestBehavior === 'none' ? (
-                      <p className={styles['wl-missing-doc-hint']}>
-                        Nobody else needs to fill this out — complete and upload it
-                        yourself.
-                      </p>
-                    ) : (
-                      <div className={styles['wl-missing-doc-actions']}>
-                        <button
-                          type="button"
-                          className={styles['wl-btn-request-doc']}
-                          disabled={requesting === doc.key}
-                          onClick={() => handleRequest(doc)}
-                        >
-                          {requesting === doc.key
-                            ? 'Sending…'
-                            : REQUEST_BUTTON_LABEL[doc.requestBehavior]}
-                        </button>
-                        {isRequested(doc.key) && (
-                          <span className={styles['wl-missing-doc-requested-note']}>
-                            Requested — waiting for upload
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
+    <Modal
+      isOpen
+      onClose={onClose}
+      titleId="files-modal-title"
+      title={`Documents — ${transaction.title}`}
+      className={styles['wl-files-modal']}
+    >
+      {missingDocs.length > 0 && (
+        <div className={styles['wl-missing-docs-section']}>
+          <h3 className={styles['wl-files-section-title']}>Missing</h3>
+          {requestError && (
+            <div className="wl-form-error" role="alert">
+              {requestError}
             </div>
           )}
-
-          {files.length === 0 ? (
-            <p className={styles['wl-files-empty']}>
-              No files attached to this transaction.
-            </p>
-          ) : (
-            <>
-              {missingDocs.length > 0 && (
-                <h3 className={styles['wl-files-section-title']}>Attached</h3>
-              )}
-              <div className={styles['wl-files-grid']}>
-                {files.map(({ label, url }) => (
-                  <FilePreviewCard key={label} label={label} url={url} />
-                ))}
-              </div>
-            </>
-          )}
+          <ul className={styles['wl-missing-docs-list']}>
+            {missingDocs.map((doc) => (
+              <li key={doc.key} className={styles['wl-missing-doc-item']}>
+                <div className={styles['wl-missing-doc-header']}>
+                  <span className={styles['wl-missing-doc-label']}>{doc.label}</span>
+                  {doc.templatePath && (
+                    <a
+                      href={doc.templatePath}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={styles['wl-missing-doc-template-link']}
+                    >
+                      ↓ Blank {doc.label}
+                    </a>
+                  )}
+                </div>
+                {doc.requestBehavior === 'prepareFirst' && (
+                  <p className={styles['wl-missing-doc-hint']}>
+                    Download the template, fill in your org&apos;s details, and attach
+                    your version to the email before sending — a mailto link can&apos;t
+                    attach it for you.
+                  </p>
+                )}
+                {doc.requestBehavior === 'none' ? (
+                  <p className={styles['wl-missing-doc-hint']}>
+                    Nobody else needs to fill this out — complete and upload it yourself.
+                  </p>
+                ) : (
+                  <div className={styles['wl-missing-doc-actions']}>
+                    <button
+                      type="button"
+                      className={styles['wl-btn-request-doc']}
+                      disabled={requesting === doc.key}
+                      onClick={() => handleRequest(doc)}
+                    >
+                      {requesting === doc.key
+                        ? 'Sending…'
+                        : REQUEST_BUTTON_LABEL[doc.requestBehavior]}
+                    </button>
+                    {isRequested(doc.key) && (
+                      <span className={styles['wl-missing-doc-requested-note']}>
+                        Requested — waiting for upload
+                      </span>
+                    )}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
-    </div>
+      )}
+
+      {files.length === 0 ? (
+        <p className={styles['wl-files-empty']}>No files attached to this transaction.</p>
+      ) : (
+        <>
+          {missingDocs.length > 0 && (
+            <h3 className={styles['wl-files-section-title']}>Attached</h3>
+          )}
+          <div className={styles['wl-files-grid']}>
+            {files.map(({ label, url }) => (
+              <FilePreviewCard key={label} label={label} url={url} />
+            ))}
+          </div>
+        </>
+      )}
+    </Modal>
   );
 };

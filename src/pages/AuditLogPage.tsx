@@ -5,7 +5,7 @@ import { useLedger } from '../features/ledger/hooks/useLedger';
 import { TopNav } from '../layouts/TopNav';
 
 export const AuditLogPage = () => {
-  const { auditLog, activeOrganization } = useLedger();
+  const { auditLog, activeOrganization, peopleNames } = useLedger();
   const navigate = useNavigate();
 
   return (
@@ -41,7 +41,7 @@ export const AuditLogPage = () => {
         ) : (
           <div className="wl-audit-list">
             {auditLog.map((entry) => (
-              <AuditEntryCard key={entry.id} entry={entry} />
+              <AuditEntryCard key={entry.id} entry={entry} peopleNames={peopleNames} />
             ))}
           </div>
         )}

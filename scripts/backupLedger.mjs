@@ -8,16 +8,9 @@
  *   node scripts/backupLedger.mjs
  */
 
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
 import { mkdirSync, writeFileSync } from 'fs';
 
-dotenv.config();
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
+import { supabase } from './supabaseAdmin.mjs';
 
 const TABLES = [
   'organizations',

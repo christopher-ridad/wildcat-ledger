@@ -165,6 +165,9 @@ export interface Organization {
 export interface LedgerContextValue {
   auditLog: AuditEntry[];
   pendingChanges: PendingChange[];
+  // Looks up the pending edit/delete request for a transaction, if any.
+  // Memoized in LedgerContext so callers don't each re-scan pendingChanges.
+  pendingChangeForTransaction: (transactionId: string) => PendingChange | undefined;
   organizations: Organization[];
   // True until the initial organizations fetch for the current user resolves.
   // Distinguishes "still loading" from "genuinely no active org" so pages
@@ -174,6 +177,10 @@ export interface LedgerContextValue {
   setActiveOrganizationId: (id: string) => void;
   activeOrganization: Organization | null;
   userRole: UserRole | null;
+  // Whether the current user can add/edit/delete transactions, approve
+  // pending changes, reconcile, and change SOFO settings -- derived once
+  // from userRole so components don't each re-derive the same check.
+  canEdit: boolean;
   // Display names for approver/officer emails, keyed by email -- a separate
   // directory decoupled from org membership (see the `people` table).
   // Falls back to showing the email itself wherever a lookup misses.

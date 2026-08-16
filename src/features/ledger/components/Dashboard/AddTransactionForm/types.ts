@@ -1,4 +1,4 @@
-import { Transaction, TransactionType } from '../../../types';
+import { Funding, Transaction, TransactionType } from '../../../types';
 
 export type SupportedType = Extract<
   TransactionType,
@@ -9,7 +9,7 @@ export type SupportedType = Extract<
   | 'Deposit'
 >;
 
-export type FundingOption = 'ASG' | 'Operating' | 'Gifts';
+export type FundingOption = Funding;
 
 export interface AddTransactionFormProps {
   onSuccess?: () => void;

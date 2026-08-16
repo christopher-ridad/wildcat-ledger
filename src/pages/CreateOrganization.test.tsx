@@ -1,10 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { parseBudgetAllocation } from '../features/ledger/services/parseBudgetAllocation';
-import { buildMockOrganization } from '../test/mocks';
+import { buildMockOrganization, renderWithRouter } from '../test/mocks';
 import { CreateOrganization } from './CreateOrganization';
 
 vi.mock('../features/ledger/hooks/useLedger');
@@ -19,12 +18,7 @@ vi.mock('react-router-dom', async () => {
 const mockUseLedger = vi.mocked(useLedger);
 const mockParseBudgetAllocation = vi.mocked(parseBudgetAllocation);
 
-const renderPage = () =>
-  render(
-    <MemoryRouter>
-      <CreateOrganization />
-    </MemoryRouter>,
-  );
+const renderPage = () => renderWithRouter(<CreateOrganization />);
 
 describe('CreateOrganization', () => {
   beforeEach(() => {

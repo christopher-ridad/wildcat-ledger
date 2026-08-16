@@ -116,6 +116,13 @@ describe('TransactionFilesModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  test('pressing Escape calls onClose', () => {
+    const onClose = vi.fn();
+    renderModal(buildMockTransaction(), onClose);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalled();
+  });
+
   describe('missing documents', () => {
     test('lists required documents with no file under "Missing"', () => {
       renderModal(

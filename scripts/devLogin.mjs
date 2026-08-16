@@ -6,21 +6,13 @@
  * Run with:  node scripts/devLogin.mjs you@example.com
  */
 
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { supabase } from './supabaseAdmin.mjs';
 
 const email = process.argv[2];
 if (!email) {
   console.error('Usage: node scripts/devLogin.mjs you@example.com');
   process.exit(1);
 }
-
-const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
 
 const { data, error } = await supabase.auth.admin.generateLink({
   type: 'magiclink',
