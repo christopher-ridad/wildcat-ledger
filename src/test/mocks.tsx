@@ -58,6 +58,7 @@ export const buildMockLedgerContext = (
   setActiveOrganizationId: vi.fn(),
   activeOrganization: null,
   userRole: null,
+  peopleNames: {},
   generateTransactionId: vi.fn(() => 'generated-id'),
   addTransaction: vi.fn().mockResolvedValue(undefined),
   updateTransaction: vi.fn().mockResolvedValue(undefined),

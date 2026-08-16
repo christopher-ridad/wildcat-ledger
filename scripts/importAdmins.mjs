@@ -4,6 +4,12 @@
  *   sofo_approvers: [president email, ..., treasurer email, ...]
  *   officers:       [email, ...]
  *
+ * Also upserts every {email, name} pair it sees into the `people` directory
+ * table (display names only -- unrelated to org membership/permissions).
+ * Reads a name per row either from a combined `name` column or separate
+ * `first_name`/`last_name` columns, whichever the CSV has; rows with
+ * neither are skipped (that email just displays as-is in the app).
+ *
  * Run with:  node scripts/importAdmins.mjs path/to/club_officers.csv
  *       or:  CLUB_OFFICERS_CSV=path/to/club_officers.csv node scripts/importAdmins.mjs
  */
@@ -40,10 +46,22 @@ function decodeHTML(str) {
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
 }
 
-// Read CSV → { clubName: { presidents: Set, treasurers: Set, officers: Set } }
+function personName(row) {
+  const combined = row.name?.trim();
+  if (combined) return decodeHTML(combined);
+  const first = row.first_name?.trim();
+  const last = row.last_name?.trim();
+  const joined = [first, last].filter(Boolean).join(' ');
+  return joined ? decodeHTML(joined) : '';
+}
+
+// Read CSV → { clubs: { clubName: { presidents: Set, treasurers: Set, officers: Set } },
+//              people: Map<email, name> } (people is global, not per-club --
+//              the directory table isn't org-scoped)
 async function readCSV(filePath) {
   return new Promise((resolve, reject) => {
     const clubs = {};
+    const people = new Map();
     createReadStream(filePath)
       .pipe(parse({ columns: true, trim: true }))
       .on('data', (row) => {
@@ -59,15 +77,18 @@ async function readCSV(filePath) {
         if (role === 'president') clubs[name].presidents.add(email);
         else if (role === 'treasurer') clubs[name].treasurers.add(email);
         else clubs[name].officers.add(email);
+
+        const fullName = personName(row);
+        if (fullName) people.set(email, fullName);
       })
-      .on('end', () => resolve(clubs))
+      .on('end', () => resolve({ clubs, people }))
       .on('error', reject);
   });
 }
 
 async function importAdmins() {
   console.log('Reading CSV...');
-  const clubs = await readCSV(csvPath);
+  const { clubs, people } = await readCSV(csvPath);
   const clubNames = Object.keys(clubs);
   console.log(`Found ${clubNames.length} clubs.\n`);
 
@@ -114,6 +135,16 @@ async function importAdmins() {
   }
 
   console.log(`\nDone. ${created} created, ${updated} updated.`);
+
+  if (people.size > 0) {
+    const peopleRows = Array.from(people, ([email, name]) => ({ email, name }));
+    const { error } = await supabase
+      .from('people')
+      .upsert(peopleRows, { onConflict: 'email' });
+    if (error) throw error;
+    console.log(`Upserted ${peopleRows.length} names into the people directory.`);
+  }
+
   process.exit(0);
 }
 

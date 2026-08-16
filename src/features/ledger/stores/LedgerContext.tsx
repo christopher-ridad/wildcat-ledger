@@ -37,6 +37,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const userEmail = user?.email ?? null;
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [peopleNames, setPeopleNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
@@ -55,12 +56,23 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!userEmail) {
       setOrganizations([]);
+      setPeopleNames({});
       setLoading(false);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
+
+    // One-time fetch (not kept live via Realtime) -- a name directory
+    // rarely changes, and a stale name just means a page refresh away.
+    const loadPeopleNames = async () => {
+      const { data } = await supabase.from('people').select('email, name');
+      if (!cancelled) {
+        setPeopleNames(Object.fromEntries((data ?? []).map((p) => [p.email, p.name])));
+      }
+    };
+    loadPeopleNames();
 
     const loadOrganizations = async () => {
       const { data: orgRows, error: orgError } = await supabase
@@ -384,6 +396,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveOrganizationId,
     activeOrganization,
     userRole,
+    peopleNames,
     generateTransactionId,
     addTransaction,
     updateTransaction,

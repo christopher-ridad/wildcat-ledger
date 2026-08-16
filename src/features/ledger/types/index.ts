@@ -174,6 +174,10 @@ export interface LedgerContextValue {
   setActiveOrganizationId: (id: string) => void;
   activeOrganization: Organization | null;
   userRole: UserRole | null;
+  // Display names for approver/officer emails, keyed by email -- a separate
+  // directory decoupled from org membership (see the `people` table).
+  // Falls back to showing the email itself wherever a lookup misses.
+  peopleNames: Record<string, string>;
   generateTransactionId: () => string;
   addTransaction: (
     transaction: Omit<Transaction, 'id'>,
