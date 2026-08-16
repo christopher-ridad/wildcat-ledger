@@ -20,9 +20,21 @@ export const Dashboard = () => {
     setSelectedBudgetLine,
     activeOrganization,
     userRole,
+    peopleNames,
     loading,
   } = useLedger();
-  const canEdit = userRole === 'treasurer' || userRole === 'president';
+  const canEdit = userRole === 'sofoApprover';
+  const displayName = (email: string) => peopleNames[email] ?? email;
+  const approversSubtitle = activeOrganization
+    ? [
+        `SOFO Approvers: ${activeOrganization.sofoApprovers.map(displayName).join(', ') || '—'}`,
+        activeOrganization.officers.length > 0
+          ? `Officers: ${activeOrganization.officers.map(displayName).join(', ')}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   useEffect(() => {
     if (!loading && activeOrganization === null) {
@@ -35,6 +47,11 @@ export const Dashboard = () => {
       <div className="wl-header-optionB">
         <div className="wl-header-optionB-left">
           <h1 className="wl-header-title">{activeOrganization?.name}</h1>
+          {activeOrganization && (
+            <p className="wl-header-approvers" title={approversSubtitle}>
+              {approversSubtitle}
+            </p>
+          )}
         </div>
         <div className="wl-header-optionB-right">
           <button

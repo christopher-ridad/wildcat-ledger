@@ -48,9 +48,7 @@ export const rowToOrganization = (
 ): Organization => ({
   id: row.id as string,
   name: row.name as string,
-  admins: (row.admins as string[]) ?? [],
-  treasurer: (row.treasurer as string[]) ?? [],
-  president: (row.president as string[]) ?? [],
+  sofoApprovers: (row.sofo_approvers as string[]) ?? [],
   officers: (row.officers as string[]) ?? [],
   budgetAllocations: row.budget_allocations as Organization['budgetAllocations'],
   isBudgetLinesSet: (row.is_budget_lines_set as boolean) ?? false,
@@ -87,7 +85,6 @@ export const rowToPendingChange = (row: Record<string, unknown>): PendingChange 
   transactionId: row.transaction_id as string,
   transactionTitle: row.transaction_title as string,
   requestedBy: row.requested_by as string,
-  requestedByRole: row.requested_by_role as PendingChange['requestedByRole'],
   requestedAt: row.requested_at as number,
   before: row.before as PendingChange['before'],
   after: row.after as PendingChange['after'],

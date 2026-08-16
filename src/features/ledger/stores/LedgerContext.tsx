@@ -37,6 +37,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const userEmail = user?.email ?? null;
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [peopleNames, setPeopleNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
@@ -55,12 +56,23 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!userEmail) {
       setOrganizations([]);
+      setPeopleNames({});
       setLoading(false);
       return;
     }
 
     let cancelled = false;
     setLoading(true);
+
+    // One-time fetch (not kept live via Realtime) -- a name directory
+    // rarely changes, and a stale name just means a page refresh away.
+    const loadPeopleNames = async () => {
+      const { data } = await supabase.from('people').select('email, name');
+      if (!cancelled) {
+        setPeopleNames(Object.fromEntries((data ?? []).map((p) => [p.email, p.name])));
+      }
+    };
+    loadPeopleNames();
 
     const loadOrganizations = async () => {
       const { data: orgRows, error: orgError } = await supabase
@@ -211,7 +223,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
     if (!activeOrganizationId) return;
     const role = userRole;
-    if (role !== 'treasurer' && role !== 'president') return;
+    if (role !== 'sofoApprover') return;
     const { error } = await supabase.rpc('request_transaction_change_with_audit', {
       p_org_id: activeOrganizationId,
       p_transaction_id: id,
@@ -224,7 +236,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteTransaction = async (id: string) => {
     if (!activeOrganizationId) return;
     const role = userRole;
-    if (role !== 'treasurer' && role !== 'president') return;
+    if (role !== 'sofoApprover') return;
     const { error } = await supabase.rpc('request_transaction_change_with_audit', {
       p_org_id: activeOrganizationId,
       p_transaction_id: id,
@@ -357,10 +369,8 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
 
   const userRole = ((): UserRole | null => {
     if (!userEmail || !activeOrganization) return null;
-    if (activeOrganization.treasurer?.includes(userEmail)) return 'treasurer';
-    if (activeOrganization.president?.includes(userEmail)) return 'president';
+    if (activeOrganization.sofoApprovers?.includes(userEmail)) return 'sofoApprover';
     if (activeOrganization.officers?.includes(userEmail)) return 'officer';
-    if (activeOrganization.admins?.includes(userEmail)) return 'treasurer';
     return null;
   })();
 
@@ -386,6 +396,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveOrganizationId,
     activeOrganization,
     userRole,
+    peopleNames,
     generateTransactionId,
     addTransaction,
     updateTransaction,

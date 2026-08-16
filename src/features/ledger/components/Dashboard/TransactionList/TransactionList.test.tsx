@@ -23,7 +23,7 @@ const mockUseAuth = vi.mocked(useAuth);
 const baseLedger = {
   filteredTransactions: [] as ReturnType<typeof buildMockTransaction>[],
   deleteTransaction: vi.fn().mockResolvedValue(undefined),
-  userRole: 'treasurer' as const,
+  userRole: 'sofoApprover' as const,
   pendingChanges: [] as ReturnType<typeof buildMockPendingChange>[],
   approvePendingChange: vi.fn().mockResolvedValue(undefined),
   rejectPendingChange: vi.fn().mockResolvedValue(undefined),
@@ -50,7 +50,7 @@ describe('TransactionList', () => {
   test('renders a table row per transaction and an Actions column when the viewer can edit', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
-      userRole: 'treasurer',
+      userRole: 'sofoApprover',
       filteredTransactions: [
         buildMockTransaction({ id: 't1', title: 'Pizza' }),
         buildMockTransaction({ id: 't2', title: 'Banners' }),
@@ -76,7 +76,7 @@ describe('TransactionList', () => {
     const deleteTransaction = vi.fn().mockResolvedValue(undefined);
     mockUseLedger.mockReturnValue({
       ...baseLedger,
-      userRole: 'treasurer',
+      userRole: 'sofoApprover',
       deleteTransaction,
       filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
     } as never);
@@ -93,7 +93,7 @@ describe('TransactionList', () => {
     const deleteTransaction = vi.fn().mockResolvedValue(undefined);
     mockUseLedger.mockReturnValue({
       ...baseLedger,
-      userRole: 'treasurer',
+      userRole: 'sofoApprover',
       deleteTransaction,
       filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
     } as never);
@@ -109,7 +109,7 @@ describe('TransactionList', () => {
   test('opens the TransactionModal when a row requests edit', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
-      userRole: 'treasurer',
+      userRole: 'sofoApprover',
       filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
     } as never);
     render(<TransactionList />);
@@ -123,7 +123,7 @@ describe('TransactionList', () => {
     const updatePaymentStatus = vi.fn().mockResolvedValue(undefined);
     mockUseLedger.mockReturnValue({
       ...baseLedger,
-      userRole: 'treasurer',
+      userRole: 'sofoApprover',
       updatePaymentStatus,
       filteredTransactions: [
         buildMockTransaction({
