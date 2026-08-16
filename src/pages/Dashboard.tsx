@@ -26,14 +26,7 @@ export const Dashboard = () => {
   const canEdit = userRole === 'sofoApprover';
   const displayName = (email: string) => peopleNames[email] ?? email;
   const approversSubtitle = activeOrganization
-    ? [
-        `SOFO Approvers: ${activeOrganization.sofoApprovers.map(displayName).join(', ') || '—'}`,
-        activeOrganization.officers.length > 0
-          ? `Officers: ${activeOrganization.officers.map(displayName).join(', ')}`
-          : null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
+    ? `SOFO Approvers: ${activeOrganization.sofoApprovers.map(displayName).join(', ') || '—'}`
     : '';
 
   useEffect(() => {
