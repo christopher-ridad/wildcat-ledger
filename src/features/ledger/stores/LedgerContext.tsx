@@ -211,7 +211,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const updateTransaction = async (id: string, transaction: Omit<Transaction, 'id'>) => {
     if (!activeOrganizationId) return;
     const role = userRole;
-    if (role !== 'treasurer' && role !== 'president') return;
+    if (role !== 'sofoApprover') return;
     const { error } = await supabase.rpc('request_transaction_change_with_audit', {
       p_org_id: activeOrganizationId,
       p_transaction_id: id,
@@ -224,7 +224,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteTransaction = async (id: string) => {
     if (!activeOrganizationId) return;
     const role = userRole;
-    if (role !== 'treasurer' && role !== 'president') return;
+    if (role !== 'sofoApprover') return;
     const { error } = await supabase.rpc('request_transaction_change_with_audit', {
       p_org_id: activeOrganizationId,
       p_transaction_id: id,
@@ -357,10 +357,8 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
 
   const userRole = ((): UserRole | null => {
     if (!userEmail || !activeOrganization) return null;
-    if (activeOrganization.treasurer?.includes(userEmail)) return 'treasurer';
-    if (activeOrganization.president?.includes(userEmail)) return 'president';
+    if (activeOrganization.sofoApprovers?.includes(userEmail)) return 'sofoApprover';
     if (activeOrganization.officers?.includes(userEmail)) return 'officer';
-    if (activeOrganization.admins?.includes(userEmail)) return 'treasurer';
     return null;
   })();
 

@@ -22,7 +22,7 @@ export const Dashboard = () => {
     userRole,
     loading,
   } = useLedger();
-  const canEdit = userRole === 'treasurer' || userRole === 'president';
+  const canEdit = userRole === 'sofoApprover';
 
   useEffect(() => {
     if (!loading && activeOrganization === null) {

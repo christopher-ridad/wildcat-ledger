@@ -38,7 +38,7 @@ const baseLedger = {
   selectedBudgetLine: null,
   setSelectedBudgetLine: vi.fn(),
   activeOrganization: buildMockOrganization({ name: 'Wildcat Club' }),
-  userRole: 'treasurer' as const,
+  userRole: 'sofoApprover' as const,
   loading: false,
 };
 
@@ -71,7 +71,7 @@ describe('Dashboard', () => {
     expect(screen.getAllByText('-$50.00')).toHaveLength(2);
   });
 
-  test('shows Add Transaction and Reconcile buttons for a treasurer', () => {
+  test('shows Add Transaction and Reconcile buttons for a SOFO Approver', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     render(<Dashboard />);
     expect(screen.getByText('+ Add Transaction')).toBeInTheDocument();

@@ -1,8 +1,8 @@
 /**
- * Reads club_officers.csv and creates/updates each club in Supabase with:
- *   president: [email, ...]
- *   treasurer: [email, ...]
- *   officers:  [email, ...]
+ * Reads club_officers.csv (with a president/treasurer/other `role` column
+ * per row) and creates/updates each club in Supabase with:
+ *   sofo_approvers: [president email, ..., treasurer email, ...]
+ *   officers:       [email, ...]
  *
  * Run with:  node scripts/importAdmins.mjs path/to/club_officers.csv
  *       or:  CLUB_OFFICERS_CSV=path/to/club_officers.csv node scripts/importAdmins.mjs
@@ -77,8 +77,7 @@ async function importAdmins() {
   for (const clubName of clubNames) {
     const { presidents, treasurers, officers } = clubs[clubName];
     const fields = {
-      president: Array.from(presidents),
-      treasurer: Array.from(treasurers),
+      sofo_approvers: [...Array.from(presidents), ...Array.from(treasurers)],
       officers: Array.from(officers),
     };
 
@@ -96,7 +95,7 @@ async function importAdmins() {
         .eq('id', existing.id);
       if (error) throw error;
       console.log(
-        `  ✓ updated: ${clubName} — ${fields.president.length} presidents, ${fields.treasurer.length} treasurers, ${fields.officers.length} officers`,
+        `  ✓ updated: ${clubName} — ${fields.sofo_approvers.length} SOFO approvers, ${fields.officers.length} officers`,
       );
       updated++;
     } else {
@@ -108,7 +107,7 @@ async function importAdmins() {
       });
       if (error) throw error;
       console.log(
-        `  + created: ${clubName} — ${fields.president.length} presidents, ${fields.treasurer.length} treasurers, ${fields.officers.length} officers`,
+        `  + created: ${clubName} — ${fields.sofo_approvers.length} SOFO approvers, ${fields.officers.length} officers`,
       );
       created++;
     }

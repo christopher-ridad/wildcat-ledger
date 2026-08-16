@@ -329,7 +329,7 @@ describe('TransactionRow', () => {
       expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
     });
 
-    test('shows an editable select for Treasurer/President with no pending change', () => {
+    test('shows an editable select for a SOFO Approver with no pending change', () => {
       renderRow({
         canEdit: true,
         t: buildMockTransaction({

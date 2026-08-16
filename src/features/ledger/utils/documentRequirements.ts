@@ -15,13 +15,13 @@ export type DocumentTypeKey =
 // How a missing document actually gets resolved in practice:
 //  - 'simple': the other party just fills it out and sends it back --
 //    Receipt, W-9, Special Pay Form.
-//  - 'prepareFirst': the treasurer/president downloads the blank template,
-//    fills in the org's side first, then sends it to the vendor to sign --
-//    RSO Agreement, Contracted Services Form. Since a mailto link can't
-//    attach a file automatically, the UI needs to remind them to attach
-//    their filled-in copy before sending.
-//  - 'none': nobody else is involved -- the treasurer/president completes
-//    and uploads it themselves, so there's nothing to email. Conflict of
+//  - 'prepareFirst': a SOFO Approver downloads the blank template, fills in
+//    the org's side first, then sends it to the vendor to sign -- RSO
+//    Agreement, Contracted Services Form. Since a mailto link can't attach
+//    a file automatically, the UI needs to remind them to attach their
+//    filled-in copy before sending.
+//  - 'none': nobody else is involved -- a SOFO Approver completes and
+//    uploads it themselves, so there's nothing to email. Conflict of
 //    Interest Form.
 export type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
 

@@ -109,9 +109,7 @@ export const buildMockOrganization = (
 ): Organization => ({
   id: 'org-1',
   name: 'Wildcat Club',
-  admins: [],
-  treasurer: [],
-  president: [],
+  sofoApprovers: [],
   officers: [],
   budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 },
   isBudgetLinesSet: true,
@@ -128,7 +126,6 @@ export const buildMockPendingChange = (
   transactionId: 'txn-1',
   transactionTitle: 'Pizza for meeting',
   requestedBy: 'treasurer@example.com',
-  requestedByRole: 'treasurer',
   requestedAt: Date.now(),
   before: buildMockTransaction(),
   after: buildMockTransaction({ amount: 50 }),
