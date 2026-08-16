@@ -1,9 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { useLedger } from '../features/ledger/hooks/useLedger';
-import { buildMockAuditEntry, buildMockOrganization } from '../test/mocks';
+import {
+  buildMockAuditEntry,
+  buildMockOrganization,
+  renderWithRouter,
+} from '../test/mocks';
 import { AuditLogPage } from './AuditLogPage';
 
 vi.mock('../features/ledger/hooks/useLedger');
@@ -16,18 +19,17 @@ vi.mock('react-router-dom', async () => {
 
 const mockUseLedger = vi.mocked(useLedger);
 
-const renderPage = () =>
-  render(
-    <MemoryRouter>
-      <AuditLogPage />
-    </MemoryRouter>,
-  );
+const renderPage = () => renderWithRouter(<AuditLogPage />);
 
 describe('AuditLogPage', () => {
   beforeEach(() => navigateMock.mockClear());
 
   test('shows an empty state when there is no audit history', () => {
-    mockUseLedger.mockReturnValue({ auditLog: [], activeOrganization: null } as never);
+    mockUseLedger.mockReturnValue({
+      auditLog: [],
+      activeOrganization: null,
+      peopleNames: {},
+    } as never);
     renderPage();
     expect(screen.getByText('No activity yet')).toBeInTheDocument();
   });
@@ -39,6 +41,7 @@ describe('AuditLogPage', () => {
         buildMockAuditEntry({ id: 'a2', transactionTitle: 'Banners' }),
       ],
       activeOrganization: null,
+      peopleNames: {},
     } as never);
     renderPage();
     expect(screen.getByText('Pizza')).toBeInTheDocument();
@@ -50,6 +53,7 @@ describe('AuditLogPage', () => {
     mockUseLedger.mockReturnValue({
       auditLog: [buildMockAuditEntry()],
       activeOrganization: null,
+      peopleNames: {},
     } as never);
     renderPage();
     expect(screen.getByText('1 entry')).toBeInTheDocument();
@@ -59,13 +63,18 @@ describe('AuditLogPage', () => {
     mockUseLedger.mockReturnValue({
       auditLog: [],
       activeOrganization: buildMockOrganization({ name: 'Wildcat Club' }),
+      peopleNames: {},
     } as never);
     renderPage();
     expect(screen.getByText('Wildcat Club')).toBeInTheDocument();
   });
 
   test('"Back to Dashboard" navigates to /dashboard', () => {
-    mockUseLedger.mockReturnValue({ auditLog: [], activeOrganization: null } as never);
+    mockUseLedger.mockReturnValue({
+      auditLog: [],
+      activeOrganization: null,
+      peopleNames: {},
+    } as never);
     renderPage();
     fireEvent.click(screen.getByText('← Back to Dashboard'));
     expect(navigateMock).toHaveBeenCalledWith('/dashboard');

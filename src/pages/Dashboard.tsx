@@ -19,11 +19,10 @@ export const Dashboard = () => {
     selectedBudgetLine,
     setSelectedBudgetLine,
     activeOrganization,
-    userRole,
+    canEdit,
     peopleNames,
     loading,
   } = useLedger();
-  const canEdit = userRole === 'sofoApprover';
   const displayName = (email: string) => peopleNames[email] ?? email;
   const approversSubtitle = activeOrganization
     ? `SOFO Approvers: ${activeOrganization.sofoApprovers.map(displayName).join(', ') || '—'}`

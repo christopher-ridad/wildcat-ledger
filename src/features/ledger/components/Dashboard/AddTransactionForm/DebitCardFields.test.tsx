@@ -1,65 +1,49 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
 import { buildMockTransaction } from '../../../../../test/mocks';
 import { DebitCardFields } from './DebitCardFields';
 import { initialForm } from './types';
 
+const renderFields = (overrides: Partial<ComponentProps<typeof DebitCardFields>> = {}) =>
+  render(
+    <DebitCardFields
+      form={initialForm}
+      isEditing={false}
+      scanning={false}
+      onReceiptChange={vi.fn()}
+      onChange={vi.fn()}
+      {...overrides}
+    />,
+  );
+
 describe('DebitCardFields', () => {
   test('shows the required asterisk when creating and no acknowledgment given', () => {
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields();
     expect(screen.getByText('*')).toBeInTheDocument();
   });
 
   test('hides the asterisk while editing', () => {
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing
-        existingTransaction={buildMockTransaction({
-          receiptFileUrl: 'orgs/1/receipt.png',
-        })}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({
+      isEditing: true,
+      existingTransaction: buildMockTransaction({ receiptFileUrl: 'orgs/1/receipt.png' }),
+    });
     expect(screen.queryByText('*')).not.toBeInTheDocument();
     expect(screen.getByText('View file')).toBeInTheDocument();
   });
 
   test('shows a scanning indicator when scanning', () => {
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({ scanning: true });
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
   });
 
   test('shows the "no receipt" checkbox and warning notice when checked', () => {
     const onChange = vi.fn();
-    render(
-      <DebitCardFields
-        form={{ ...initialForm, noReceiptAcknowledged: true }}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={onChange}
-      />,
-    );
+    renderFields({
+      form: { ...initialForm, noReceiptAcknowledged: true },
+      onChange,
+    });
     expect(
       screen.getByRole('checkbox', { name: "I don't have a receipt" }),
     ).toBeChecked();
@@ -68,29 +52,13 @@ describe('DebitCardFields', () => {
 
   test('hides the "no receipt" option once a receipt file is present', () => {
     const file = new File(['x'], 'receipt.png', { type: 'image/png' });
-    render(
-      <DebitCardFields
-        form={{ ...initialForm, receiptFile: file }}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({ form: { ...initialForm, receiptFile: file } });
     expect(screen.queryByText("I don't have a receipt")).not.toBeInTheDocument();
   });
 
   test('selecting a receipt file calls onReceiptChange', () => {
     const onReceiptChange = vi.fn();
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={onReceiptChange}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({ onReceiptChange });
     const file = new File(['x'], 'receipt.png', { type: 'image/png' });
     fireEvent.change(document.getElementById('receiptFile') as HTMLInputElement, {
       target: { files: [file] },
@@ -99,71 +67,35 @@ describe('DebitCardFields', () => {
   });
 
   test('shows a note that tax cannot be paid by the debit card', () => {
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields();
     expect(screen.getByText('Tax cannot be paid by the debit card.')).toBeInTheDocument();
   });
 
   test('shows the tax amount field when no exemption form was submitted', () => {
-    render(
-      <DebitCardFields
-        form={{ ...initialForm, taxExemptFormSubmitted: false }}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({ form: { ...initialForm, taxExemptFormSubmitted: false } });
     expect(screen.getByLabelText('Tax Charged on Receipt (if any)')).toBeInTheDocument();
   });
 
   test('hides the tax amount field once the exemption form checkbox is checked', () => {
-    render(
-      <DebitCardFields
-        form={{ ...initialForm, taxExemptFormSubmitted: true }}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({ form: { ...initialForm, taxExemptFormSubmitted: true } });
     expect(
       screen.queryByLabelText('Tax Charged on Receipt (if any)'),
     ).not.toBeInTheDocument();
   });
 
   test('shows a warning once a tax amount is entered', () => {
-    render(
-      <DebitCardFields
-        form={{ ...initialForm, taxExemptFormSubmitted: false, taxAmount: '2.50' }}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({
+      form: { ...initialForm, taxExemptFormSubmitted: false, taxAmount: '2.50' },
+    });
     expect(
       screen.getByText(/flagged as owing a tax reimbursement to SOFO/),
     ).toBeInTheDocument();
   });
 
   test('does not warn while the tax amount field is empty', () => {
-    render(
-      <DebitCardFields
-        form={{ ...initialForm, taxExemptFormSubmitted: false, taxAmount: '' }}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={vi.fn()}
-      />,
-    );
+    renderFields({
+      form: { ...initialForm, taxExemptFormSubmitted: false, taxAmount: '' },
+    });
     expect(
       screen.queryByText(/flagged as owing a tax reimbursement to SOFO/),
     ).not.toBeInTheDocument();
@@ -171,15 +103,7 @@ describe('DebitCardFields', () => {
 
   test('checking the exemption form checkbox calls onChange', () => {
     const onChange = vi.fn();
-    render(
-      <DebitCardFields
-        form={initialForm}
-        isEditing={false}
-        scanning={false}
-        onReceiptChange={vi.fn()}
-        onChange={onChange}
-      />,
-    );
+    renderFields({ onChange });
     fireEvent.click(
       screen.getByRole('checkbox', {
         name: 'I submitted a tax exemption form to the vendor',

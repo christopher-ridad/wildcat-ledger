@@ -3,25 +3,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useLedger } from '../../../hooks/useLedger';
 import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
 import { Transaction } from '../../../types';
-import { formatCurrency } from '../../../utils/calculations';
+import { formatCurrency, formatTimestamp } from '../../../utils/calculations';
 import {
   POLICY_EXEMPTION_FORM_URL,
   SOFO_SALES_TAX_REIMBURSEMENT_URL,
 } from '../../../utils/constants';
 import { needsTaxReimbursement } from '../../../utils/documentRequirements';
+import { Modal } from '../Modal';
 import styles from './ReconciliationModal.module.css';
 
 interface ReconciliationModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const formatDate = (ts: number) =>
-  new Date(ts).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 
 type Step = 'review' | 'reload';
 
@@ -105,15 +99,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     }
     wasOpenRef.current = isOpen;
   }, [isOpen, coveredIds, uncoveredCount]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
 
   // All uncovered transactions in the list (blocks reconciliation entirely)
   const uncoveredAll = unreconciledTxns.filter((t) => !isCovered(t));
@@ -260,377 +245,349 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     }
   };
 
-  if (!isOpen) return null;
-
   const lastDate = activeOrganization?.lastReconciliationDate;
 
   return (
-    <div className="wl-modal-root">
-      <div className="wl-modal-overlay" aria-hidden="true" onClick={onClose} />
-      <div
-        className="wl-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="recon-title"
-      >
-        <div className="wl-modal-header">
-          <h2 id="recon-title" className="wl-modal-title">
-            Reconcile Debit Card
-          </h2>
-          <button
-            type="button"
-            className="wl-modal-close"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            ×
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="recon-title"
+      title="Reconcile Debit Card"
+    >
+      {step === 'review' && (
+        <>
+          <p className={styles['wl-recon-subtitle']}>
+            {lastDate
+              ? `Showing unreconciled transactions since ${formatTimestamp(lastDate)}.`
+              : 'Showing all unreconciled debit card transactions.'}
+          </p>
 
-        <div className="wl-modal-body">
-          {step === 'review' && (
+          {unreconciledTxns.length === 0 ? (
+            <div className={styles['wl-recon-empty']}>
+              <span className={styles['wl-recon-empty-icon']}>✓</span>
+              <p>All debit card transactions are already reconciled.</p>
+            </div>
+          ) : (
             <>
-              <p className={styles['wl-recon-subtitle']}>
-                {lastDate
-                  ? `Showing unreconciled transactions since ${formatDate(lastDate)}.`
-                  : 'Showing all unreconciled debit card transactions.'}
-              </p>
+              <div className={styles['wl-recon-list']}>
+                {unreconciledTxns.map((t) => {
+                  const isMissing = !isCovered(t);
+                  const needsTax = needsTaxReimbursement(t);
+                  const pending = pendingChangeFor(t);
+                  const isBlocking = isMissing || needsTax || !!pending;
 
-              {unreconciledTxns.length === 0 ? (
-                <div className={styles['wl-recon-empty']}>
-                  <span className={styles['wl-recon-empty-icon']}>✓</span>
-                  <p>All debit card transactions are already reconciled.</p>
-                </div>
-              ) : (
-                <>
-                  <div className={styles['wl-recon-list']}>
-                    {unreconciledTxns.map((t) => {
-                      const isMissing = !isCovered(t);
-                      const needsTax = needsTaxReimbursement(t);
-                      const pending = pendingChangeFor(t);
-                      const isBlocking = isMissing || needsTax || !!pending;
-
-                      return (
-                        <div
-                          key={t.id}
-                          className={`${styles['wl-recon-item']}${isBlocking ? ` ${styles['wl-recon-item--warning']}` : ''}`}
-                        >
-                          <div
-                            className={`${styles['wl-recon-row']}${isBlocking ? ` ${styles['wl-recon-row--disabled']}` : ''}`}
-                          >
-                            <span className={styles['wl-recon-row-title']}>
-                              {t.title}
-                            </span>
-                            {t.receiptFileUrl && (
-                              <span
-                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--ok']}`}
-                                title="Receipt uploaded"
-                              >
-                                🧾
-                              </span>
-                            )}
-                            {t.exemptionFormUrl && (
-                              <span
-                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--ok']}`}
-                                title="Exemption form attached"
-                              >
-                                📋
-                              </span>
-                            )}
-                            {isMissing && (
-                              <span
-                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
-                                title={
-                                  t.noReceiptAcknowledged
-                                    ? 'Submitted without receipt — attach completed PERF to reconcile'
-                                    : 'Missing receipt — attach receipt or completed PERF to reconcile'
-                                }
-                              >
-                                ⚠
-                              </span>
-                            )}
-                            {needsTax && (
-                              <span
-                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
-                                title="Owes an unresolved tax reimbursement to SOFO"
-                              >
-                                💲
-                              </span>
-                            )}
-                            {pending && (
-                              <span
-                                className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
-                                title="Awaiting approval — resolve before reconciling"
-                              >
-                                ⏳
-                              </span>
-                            )}
-                            <span className={styles['wl-recon-row-amount']}>
-                              {t.direction === 'Outflow' ? '−' : '+'}
-                              {formatCurrency(t.amount)}
-                            </span>
-                          </div>
-
-                          {isMissing && (
-                            <div className={styles['wl-recon-missing']}>
-                              <p className={styles['wl-recon-missing-msg']}>
-                                {t.noReceiptAcknowledged
-                                  ? 'Submitted without receipt. '
-                                  : 'No receipt on file. '}
-                                <a
-                                  href={POLICY_EXEMPTION_FORM_URL}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={styles['wl-recon-exemption-link']}
-                                >
-                                  {t.noReceiptAcknowledged
-                                    ? 'Attach completed Policy Exemption Request Form ↗'
-                                    : 'Submit Policy Exemption Request Form ↗'}
-                                </a>
-                              </p>
-                              <div className={styles['wl-recon-upload-row']}>
-                                <input
-                                  ref={(el) => {
-                                    fileInputRefs.current[t.id] = el;
-                                  }}
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  style={{ display: 'none' }}
-                                  onChange={(e) =>
-                                    handleFileChange(t.id, e.target.files?.[0] ?? null)
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  className={styles['wl-btn-upload-exemption']}
-                                  onClick={() => fileInputRefs.current[t.id]?.click()}
-                                  disabled={uploading[t.id]}
-                                >
-                                  {uploading[t.id]
-                                    ? 'Uploading…'
-                                    : '↑ Attach Completed Exemption Form'}
-                                </button>
-                                {uploadError[t.id] && (
-                                  <span className={styles['wl-recon-upload-error']}>
-                                    {uploadError[t.id]}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {needsTax && (
-                            <div className={styles['wl-recon-missing']}>
-                              <p className={styles['wl-recon-missing-msg']}>
-                                Owes {formatCurrency(t.taxAmount ?? 0)} in tax to SOFO —{' '}
-                                <a
-                                  href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={styles['wl-recon-exemption-link']}
-                                >
-                                  Submit to SOFO ↗
-                                </a>
-                              </p>
-                              <div className={styles['wl-recon-upload-row']}>
-                                <button
-                                  type="button"
-                                  className={styles['wl-btn-upload-exemption']}
-                                  onClick={() => handleMarkReimbursed(t.id)}
-                                  disabled={reimbursing[t.id]}
-                                >
-                                  {reimbursing[t.id] ? 'Marking…' : 'Mark as Reimbursed'}
-                                </button>
-                                {reimburseError[t.id] && (
-                                  <span className={styles['wl-recon-upload-error']}>
-                                    {reimburseError[t.id]}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {pending && (
-                            <div className={styles['wl-recon-missing']}>
-                              <p className={styles['wl-recon-missing-msg']}>
-                                Has a pending{' '}
-                                {pending.type === 'delete' ? 'delete' : 'edit'} request
-                                awaiting approval — resolve it from the dashboard, then
-                                reopen this dialog.
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {uncoveredAll.length > 0 && (
-                    <div className={styles['wl-recon-block-warning']}>
-                      ⚠ {uncoveredAll.length} transaction
-                      {uncoveredAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
-                      {uncoveredAll.length === 1 ? 'it has' : 'they have'} a receipt or
-                      attached exemption form.
-                    </div>
-                  )}
-
-                  {unresolvedTaxAll.length > 0 && (
-                    <div className={styles['wl-recon-block-warning']}>
-                      ⚠ {unresolvedTaxAll.length} transaction
-                      {unresolvedTaxAll.length !== 1 ? 's' : ''} cannot be reconciled
-                      until {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax
-                      reimbursement to SOFO is resolved.
-                    </div>
-                  )}
-
-                  {pendingAll.length > 0 && (
-                    <div className={styles['wl-recon-block-warning']}>
-                      ⚠ {pendingAll.length} transaction
-                      {pendingAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
-                      {pendingAll.length === 1 ? 'its' : 'their'} pending edit or delete
-                      request {pendingAll.length === 1 ? 'is' : 'are'} resolved.
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="wl-form-error" style={{ marginTop: 12 }}>
-                      {error}
-                    </div>
-                  )}
-
-                  <div className={styles['wl-recon-actions']}>
-                    <button
-                      type="button"
-                      className="wl-btn-primary"
-                      onClick={handleConfirm}
-                      disabled={submitting || !canConfirm || hideCheckboxes}
-                      title={
-                        hideCheckboxes
-                          ? 'Resolve all missing receipts before reconciling'
-                          : undefined
-                      }
+                  return (
+                    <div
+                      key={t.id}
+                      className={`${styles['wl-recon-item']}${isBlocking ? ` ${styles['wl-recon-item--warning']}` : ''}`}
                     >
-                      {submitting
-                        ? 'Reconciling…'
-                        : `Confirm & Reconcile (${displayCount})`}
-                    </button>
-                    <button
-                      type="button"
-                      className="wl-btn-cancel"
-                      onClick={onClose}
-                      disabled={submitting}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {step === 'reload' && reconSummary && (
-            <>
-              <div className={styles['wl-recon-success']}>
-                <span className={styles['wl-recon-success-icon']}>✓</span>
-                <p className={styles['wl-recon-success-title']}>
-                  Reconciliation complete!
-                </p>
-                <div className={styles['wl-recon-success-stats']}>
-                  <div className={styles['wl-recon-success-stat']}>
-                    <span className={styles['wl-recon-success-stat-value']}>
-                      {reconSummary.transactionCount}
-                    </span>
-                    <span className={styles['wl-recon-success-stat-label']}>
-                      transaction{reconSummary.transactionCount !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className={styles['wl-recon-success-stat']}>
-                    <span className={styles['wl-recon-success-stat-value']}>
-                      {formatCurrency(reconSummary.totalAmount)}
-                    </span>
-                    <span className={styles['wl-recon-success-stat-label']}>total</span>
-                  </div>
-                  {reconSummary.exemptionCount > 0 && (
-                    <div className={styles['wl-recon-success-stat']}>
-                      <span className={styles['wl-recon-success-stat-value']}>
-                        {reconSummary.exemptionCount}
-                      </span>
-                      <span className={styles['wl-recon-success-stat-label']}>
-                        exemption{reconSummary.exemptionCount !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles['wl-recon-reload']}>
-                <h3 className={styles['wl-recon-reload-title']}>
-                  Request a Debit Card Reload
-                </h3>
-                {reloadRequested ? (
-                  <p className={styles['wl-recon-reload-confirm']}>
-                    ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added —
-                    pending approval.
-                  </p>
-                ) : (
-                  <>
-                    <p className={styles['wl-recon-reload-hint']}>
-                      Creates a Deposit transaction on the Debit Card line, which counts
-                      toward the balance once approved and paid.
-                    </p>
-                    <div className={styles['wl-recon-reload-row']}>
-                      <div className="wl-form-group">
-                        <label className="wl-form-label" htmlFor="reload-amount">
-                          Amount
-                        </label>
-                        <div className={styles['wl-amount-input-wrap']}>
-                          <span className={styles['wl-amount-input-prefix']}>$</span>
-                          <input
-                            id="reload-amount"
-                            type="text"
-                            inputMode="decimal"
-                            className={`wl-form-input ${styles['wl-amount-input']}`}
-                            placeholder="0.00"
-                            value={reloadAmountInput}
-                            onChange={(e) => setReloadAmountInput(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className={styles['wl-btn-download-zip']}
-                        onClick={handleRequestReload}
-                        disabled={requestingReload}
+                      <div
+                        className={`${styles['wl-recon-row']}${isBlocking ? ` ${styles['wl-recon-row--disabled']}` : ''}`}
                       >
-                        {requestingReload ? 'Submitting…' : 'Request Reload'}
-                      </button>
+                        <span className={styles['wl-recon-row-title']}>{t.title}</span>
+                        {t.receiptFileUrl && (
+                          <span
+                            className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--ok']}`}
+                            title="Receipt uploaded"
+                          >
+                            🧾
+                          </span>
+                        )}
+                        {t.exemptionFormUrl && (
+                          <span
+                            className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--ok']}`}
+                            title="Exemption form attached"
+                          >
+                            📋
+                          </span>
+                        )}
+                        {isMissing && (
+                          <span
+                            className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
+                            title={
+                              t.noReceiptAcknowledged
+                                ? 'Submitted without receipt — attach completed PERF to reconcile'
+                                : 'Missing receipt — attach receipt or completed PERF to reconcile'
+                            }
+                          >
+                            ⚠
+                          </span>
+                        )}
+                        {needsTax && (
+                          <span
+                            className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
+                            title="Owes an unresolved tax reimbursement to SOFO"
+                          >
+                            💲
+                          </span>
+                        )}
+                        {pending && (
+                          <span
+                            className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
+                            title="Awaiting approval — resolve before reconciling"
+                          >
+                            ⏳
+                          </span>
+                        )}
+                        <span className={styles['wl-recon-row-amount']}>
+                          {t.direction === 'Outflow' ? '−' : '+'}
+                          {formatCurrency(t.amount)}
+                        </span>
+                      </div>
+
+                      {isMissing && (
+                        <div className={styles['wl-recon-missing']}>
+                          <p className={styles['wl-recon-missing-msg']}>
+                            {t.noReceiptAcknowledged
+                              ? 'Submitted without receipt. '
+                              : 'No receipt on file. '}
+                            <a
+                              href={POLICY_EXEMPTION_FORM_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles['wl-recon-exemption-link']}
+                            >
+                              {t.noReceiptAcknowledged
+                                ? 'Attach completed Policy Exemption Request Form ↗'
+                                : 'Submit Policy Exemption Request Form ↗'}
+                            </a>
+                          </p>
+                          <div className={styles['wl-recon-upload-row']}>
+                            <input
+                              ref={(el) => {
+                                fileInputRefs.current[t.id] = el;
+                              }}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              style={{ display: 'none' }}
+                              onChange={(e) =>
+                                handleFileChange(t.id, e.target.files?.[0] ?? null)
+                              }
+                            />
+                            <button
+                              type="button"
+                              className={styles['wl-btn-upload-exemption']}
+                              onClick={() => fileInputRefs.current[t.id]?.click()}
+                              disabled={uploading[t.id]}
+                            >
+                              {uploading[t.id]
+                                ? 'Uploading…'
+                                : '↑ Attach Completed Exemption Form'}
+                            </button>
+                            {uploadError[t.id] && (
+                              <span className={styles['wl-recon-upload-error']}>
+                                {uploadError[t.id]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {needsTax && (
+                        <div className={styles['wl-recon-missing']}>
+                          <p className={styles['wl-recon-missing-msg']}>
+                            Owes {formatCurrency(t.taxAmount ?? 0)} in tax to SOFO —{' '}
+                            <a
+                              href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles['wl-recon-exemption-link']}
+                            >
+                              Submit to SOFO ↗
+                            </a>
+                          </p>
+                          <div className={styles['wl-recon-upload-row']}>
+                            <button
+                              type="button"
+                              className={styles['wl-btn-upload-exemption']}
+                              onClick={() => handleMarkReimbursed(t.id)}
+                              disabled={reimbursing[t.id]}
+                            >
+                              {reimbursing[t.id] ? 'Marking…' : 'Mark as Reimbursed'}
+                            </button>
+                            {reimburseError[t.id] && (
+                              <span className={styles['wl-recon-upload-error']}>
+                                {reimburseError[t.id]}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {pending && (
+                        <div className={styles['wl-recon-missing']}>
+                          <p className={styles['wl-recon-missing-msg']}>
+                            Has a pending {pending.type === 'delete' ? 'delete' : 'edit'}{' '}
+                            request awaiting approval — resolve it from the dashboard,
+                            then reopen this dialog.
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {reloadError && <div className="wl-form-error">{reloadError}</div>}
-                  </>
-                )}
+                  );
+                })}
               </div>
+
+              {uncoveredAll.length > 0 && (
+                <div className={styles['wl-recon-block-warning']}>
+                  ⚠ {uncoveredAll.length} transaction
+                  {uncoveredAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
+                  {uncoveredAll.length === 1 ? 'it has' : 'they have'} a receipt or
+                  attached exemption form.
+                </div>
+              )}
+
+              {unresolvedTaxAll.length > 0 && (
+                <div className={styles['wl-recon-block-warning']}>
+                  ⚠ {unresolvedTaxAll.length} transaction
+                  {unresolvedTaxAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
+                  {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax reimbursement to
+                  SOFO is resolved.
+                </div>
+              )}
+
+              {pendingAll.length > 0 && (
+                <div className={styles['wl-recon-block-warning']}>
+                  ⚠ {pendingAll.length} transaction
+                  {pendingAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
+                  {pendingAll.length === 1 ? 'its' : 'their'} pending edit or delete
+                  request {pendingAll.length === 1 ? 'is' : 'are'} resolved.
+                </div>
+              )}
+
+              {error && (
+                <div className="wl-form-error" style={{ marginTop: 12 }}>
+                  {error}
+                </div>
+              )}
 
               <div className={styles['wl-recon-actions']}>
-                {snapshotTxnsWithReceipts.length > 0 && (
-                  <button
-                    type="button"
-                    className={styles['wl-btn-download-zip']}
-                    onClick={handleDownloadZip}
-                    disabled={zipping}
-                  >
-                    {zipping
-                      ? 'Bundling…'
-                      : `⬇ Receipts ZIP (${snapshotTxnsWithReceipts.length})`}
-                  </button>
-                )}
-                <button type="button" className="wl-btn-primary" onClick={onClose}>
-                  Done
+                <button
+                  type="button"
+                  className="wl-btn-primary"
+                  onClick={handleConfirm}
+                  disabled={submitting || !canConfirm || hideCheckboxes}
+                  title={
+                    hideCheckboxes
+                      ? 'Resolve all missing receipts before reconciling'
+                      : undefined
+                  }
+                >
+                  {submitting ? 'Reconciling…' : `Confirm & Reconcile (${displayCount})`}
+                </button>
+                <button
+                  type="button"
+                  className="wl-btn-cancel"
+                  onClick={onClose}
+                  disabled={submitting}
+                >
+                  Cancel
                 </button>
               </div>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      )}
+
+      {step === 'reload' && reconSummary && (
+        <>
+          <div className={styles['wl-recon-success']}>
+            <span className={styles['wl-recon-success-icon']}>✓</span>
+            <p className={styles['wl-recon-success-title']}>Reconciliation complete!</p>
+            <div className={styles['wl-recon-success-stats']}>
+              <div className={styles['wl-recon-success-stat']}>
+                <span className={styles['wl-recon-success-stat-value']}>
+                  {reconSummary.transactionCount}
+                </span>
+                <span className={styles['wl-recon-success-stat-label']}>
+                  transaction{reconSummary.transactionCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className={styles['wl-recon-success-stat']}>
+                <span className={styles['wl-recon-success-stat-value']}>
+                  {formatCurrency(reconSummary.totalAmount)}
+                </span>
+                <span className={styles['wl-recon-success-stat-label']}>total</span>
+              </div>
+              {reconSummary.exemptionCount > 0 && (
+                <div className={styles['wl-recon-success-stat']}>
+                  <span className={styles['wl-recon-success-stat-value']}>
+                    {reconSummary.exemptionCount}
+                  </span>
+                  <span className={styles['wl-recon-success-stat-label']}>
+                    exemption{reconSummary.exemptionCount !== 1 ? 's' : ''}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles['wl-recon-reload']}>
+            <h3 className={styles['wl-recon-reload-title']}>
+              Request a Debit Card Reload
+            </h3>
+            {reloadRequested ? (
+              <p className={styles['wl-recon-reload-confirm']}>
+                ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added —
+                pending approval.
+              </p>
+            ) : (
+              <>
+                <p className={styles['wl-recon-reload-hint']}>
+                  Creates a Deposit transaction on the Debit Card line, which counts
+                  toward the balance once approved and paid.
+                </p>
+                <div className={styles['wl-recon-reload-row']}>
+                  <div className="wl-form-group">
+                    <label className="wl-form-label" htmlFor="reload-amount">
+                      Amount
+                    </label>
+                    <div className={styles['wl-amount-input-wrap']}>
+                      <span className={styles['wl-amount-input-prefix']}>$</span>
+                      <input
+                        id="reload-amount"
+                        type="text"
+                        inputMode="decimal"
+                        className={`wl-form-input ${styles['wl-amount-input']}`}
+                        placeholder="0.00"
+                        value={reloadAmountInput}
+                        onChange={(e) => setReloadAmountInput(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles['wl-btn-download-zip']}
+                    onClick={handleRequestReload}
+                    disabled={requestingReload}
+                  >
+                    {requestingReload ? 'Submitting…' : 'Request Reload'}
+                  </button>
+                </div>
+                {reloadError && <div className="wl-form-error">{reloadError}</div>}
+              </>
+            )}
+          </div>
+
+          <div className={styles['wl-recon-actions']}>
+            {snapshotTxnsWithReceipts.length > 0 && (
+              <button
+                type="button"
+                className={styles['wl-btn-download-zip']}
+                onClick={handleDownloadZip}
+                disabled={zipping}
+              >
+                {zipping
+                  ? 'Bundling…'
+                  : `⬇ Receipts ZIP (${snapshotTxnsWithReceipts.length})`}
+              </button>
+            )}
+            <button type="button" className="wl-btn-primary" onClick={onClose}>
+              Done
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
   );
 };

@@ -1,5 +1,7 @@
 import { User } from '@supabase/supabase-js';
+import { render } from '@testing-library/react';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 
 import { AuthContext } from '../features/authentication/stores/AuthContext';
@@ -58,6 +60,7 @@ export const buildMockLedgerContext = (
   setActiveOrganizationId: vi.fn(),
   activeOrganization: null,
   userRole: null,
+  canEdit: false,
   peopleNames: {},
   generateTransactionId: vi.fn(() => 'generated-id'),
   addTransaction: vi.fn().mockResolvedValue(undefined),
@@ -144,6 +147,14 @@ export const buildMockAuditEntry = (overrides: Partial<AuditEntry> = {}): AuditE
   after: buildMockTransaction(),
   ...overrides,
 });
+
+// Wraps a component in MemoryRouter for tests that render it standalone
+// (rather than through the app's real router). The `vi.mock('react-router-dom', ...)`
+// call each test file uses to stub useNavigate has to stay in that file --
+// Vitest only hoists mock calls it can see at the top of the file being
+// tested -- so only the wrapper half is shared here.
+export const renderWithRouter = (ui: React.ReactElement, route = '/') =>
+  render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
 
 export const MockLedgerProvider = ({
   value,

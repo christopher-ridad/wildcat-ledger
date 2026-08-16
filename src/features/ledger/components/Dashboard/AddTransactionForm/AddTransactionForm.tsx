@@ -5,6 +5,7 @@ import { useLedger } from '../../../hooks/useLedger';
 import { parseReceipt } from '../../../services/parseReceipt';
 import { documentPath, uploadDocument } from '../../../services/storage';
 import { Transaction } from '../../../types';
+import { DOCUMENT_REQUIREMENTS_BY_KEY } from '../../../utils/documentRequirements';
 import styles from './AddTransactionForm.module.css';
 import { DebitCardFields } from './DebitCardFields';
 import { DirectPaymentFields } from './DirectPaymentFields';
@@ -226,24 +227,29 @@ export const AddTransactionForm = ({
 
       // Upload any new files to Storage and get their object paths.
       // If editing and no new file was selected, preserve the existing path.
+      // Receipt is handled separately since it also drives OCR (see
+      // handleReceiptChange); every other document type follows the same
+      // upload-or-keep-existing shape, so loop over the shared requirement
+      // list instead of repeating that shape once per document.
       const receiptFileUrl = form.receiptFile
         ? await uploadFile(form.receiptFile, 'receipt', txnId)
         : existingTransaction?.receiptFileUrl;
-      const contractFileUrl = form.contractFile
-        ? await uploadFile(form.contractFile, 'contract', txnId)
-        : existingTransaction?.contractFileUrl;
-      const w9FileUrl = form.w9File
-        ? await uploadFile(form.w9File, 'w9', txnId)
-        : existingTransaction?.w9FileUrl;
-      const contractedServicesFileUrl = form.contractedServicesFile
-        ? await uploadFile(form.contractedServicesFile, 'contractedServices', txnId)
-        : existingTransaction?.contractedServicesFileUrl;
-      const conflictOfInterestFileUrl = form.conflictOfInterestFile
-        ? await uploadFile(form.conflictOfInterestFile, 'conflictOfInterest', txnId)
-        : existingTransaction?.conflictOfInterestFileUrl;
-      const specialPayFormUrl = form.specialPayFormFile
-        ? await uploadFile(form.specialPayFormFile, 'specialPayForm', txnId)
-        : existingTransaction?.specialPayFormUrl;
+
+      const uploadedFileUrls: Record<string, string | undefined> = {};
+      for (const doc of Object.values(DOCUMENT_REQUIREMENTS_BY_KEY)) {
+        if (doc.key === 'receipt') continue;
+        const file = form[doc.formField] as File | null;
+        uploadedFileUrls[doc.field] = file
+          ? await uploadFile(file, doc.key, txnId)
+          : (existingTransaction?.[doc.field] as string | undefined);
+      }
+      const {
+        contractFileUrl,
+        w9FileUrl,
+        contractedServicesFileUrl,
+        conflictOfInterestFileUrl,
+        specialPayFormUrl,
+      } = uploadedFileUrls;
 
       const newTransaction: Omit<Transaction, 'id'> = {
         title: form.title.trim(),

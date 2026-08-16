@@ -11,7 +11,7 @@ export const TransactionList = () => {
   const {
     filteredTransactions,
     deleteTransaction,
-    userRole,
+    canEdit,
     pendingChanges,
     approvePendingChange,
     rejectPendingChange,
@@ -19,7 +19,6 @@ export const TransactionList = () => {
     updatePaymentStatus,
     markTaxReimbursed,
   } = useLedger();
-  const canEdit = userRole === 'sofoApprover';
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(
     null,

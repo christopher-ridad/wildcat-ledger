@@ -2,8 +2,11 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
 
 import { buildMockAuditEntry, buildMockTransaction } from '../../../../../test/mocks';
-import { AuditAction } from '../../../types';
+import { AuditAction, AuditEntry } from '../../../types';
 import { AuditEntryCard } from './AuditEntryCard';
+
+const renderCard = (entry: AuditEntry, peopleNames: Record<string, string> = {}) =>
+  render(<AuditEntryCard entry={entry} peopleNames={peopleNames} />);
 
 describe('AuditEntryCard', () => {
   test.each<[AuditAction, string]>([
@@ -17,45 +20,43 @@ describe('AuditEntryCard', () => {
     ['payment_status_change', 'Payment Status Updated'],
     ['tax_reimbursed', 'Tax Reimbursed to SOFO'],
   ])('renders the %s badge as "%s"', (action, label) => {
-    render(<AuditEntryCard entry={buildMockAuditEntry({ action })} />);
+    renderCard(buildMockAuditEntry({ action }));
     expect(screen.getByText(label)).toBeInTheDocument();
   });
 
   test('labels an approve action with a non-null after as "Approved Edit"', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({ action: 'approve', after: buildMockTransaction() })}
-      />,
-    );
+    renderCard(buildMockAuditEntry({ action: 'approve', after: buildMockTransaction() }));
     expect(screen.getByText('Approved Edit')).toBeInTheDocument();
   });
 
   test('labels an approve action with a null after as "Approved Delete"', () => {
-    render(
-      <AuditEntryCard entry={buildMockAuditEntry({ action: 'approve', after: null })} />,
-    );
+    renderCard(buildMockAuditEntry({ action: 'approve', after: null }));
     expect(screen.getByText('Approved Delete')).toBeInTheDocument();
   });
 
   test('shows the transaction title and performer', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({
-          transactionTitle: 'Office Supplies',
-          performedBy: 'president@example.com',
-        })}
-      />,
+    renderCard(
+      buildMockAuditEntry({
+        transactionTitle: 'Office Supplies',
+        performedBy: 'president@example.com',
+      }),
     );
     expect(screen.getByText('Office Supplies')).toBeInTheDocument();
     expect(screen.getByText('president@example.com')).toBeInTheDocument();
   });
 
+  test('resolves the performer to a name from the people directory, when known', () => {
+    renderCard(buildMockAuditEntry({ performedBy: 'president@example.com' }), {
+      'president@example.com': 'Jane Smith',
+    });
+    expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+    expect(screen.queryByText('president@example.com')).not.toBeInTheDocument();
+  });
+
   test('renders a before/after diff for edits with changed fields', () => {
     const before = buildMockTransaction({ amount: 10, title: 'Original' });
     const after = buildMockTransaction({ amount: 20, title: 'Original' });
-    render(
-      <AuditEntryCard entry={buildMockAuditEntry({ action: 'edit', before, after })} />,
-    );
+    renderCard(buildMockAuditEntry({ action: 'edit', before, after }));
     expect(screen.getByText('Before')).toBeInTheDocument();
     expect(screen.getByText('After')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
@@ -65,11 +66,7 @@ describe('AuditEntryCard', () => {
   test('renders a before/after diff for a payment status change', () => {
     const before = buildMockTransaction({ paymentStatus: 'Pending' });
     const after = buildMockTransaction({ paymentStatus: 'Approved' });
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({ action: 'payment_status_change', before, after })}
-      />,
-    );
+    renderCard(buildMockAuditEntry({ action: 'payment_status_change', before, after }));
     expect(screen.getByText('Before')).toBeInTheDocument();
     expect(screen.getByText('Pending')).toBeInTheDocument();
     expect(screen.getByText('Approved')).toBeInTheDocument();
@@ -78,11 +75,7 @@ describe('AuditEntryCard', () => {
   test('renders a before/after diff for a tax reimbursement', () => {
     const before = buildMockTransaction({ taxReimbursed: false });
     const after = buildMockTransaction({ taxReimbursed: true });
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({ action: 'tax_reimbursed', before, after })}
-      />,
-    );
+    renderCard(buildMockAuditEntry({ action: 'tax_reimbursed', before, after }));
     expect(screen.getByText('Before')).toBeInTheDocument();
     expect(screen.getByText('false')).toBeInTheDocument();
     expect(screen.getByText('true')).toBeInTheDocument();
@@ -90,40 +83,32 @@ describe('AuditEntryCard', () => {
 
   test('does not render a diff for edits with no changed fields', () => {
     const same = buildMockTransaction();
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({ action: 'edit', before: same, after: same })}
-      />,
-    );
+    renderCard(buildMockAuditEntry({ action: 'edit', before: same, after: same }));
     expect(screen.queryByText('Before')).not.toBeInTheDocument();
   });
 
   test('does not render a diff for a create action even if before/after differ', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({
-          action: 'create',
-          before: buildMockTransaction({ amount: 1 }),
-          after: buildMockTransaction({ amount: 2 }),
-        })}
-      />,
+    renderCard(
+      buildMockAuditEntry({
+        action: 'create',
+        before: buildMockTransaction({ amount: 1 }),
+        after: buildMockTransaction({ amount: 2 }),
+      }),
     );
     expect(screen.queryByText('Before')).not.toBeInTheDocument();
   });
 
   test('shows a reconciliation summary with pluralized exemption count', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({
-          action: 'reconcile',
-          reconciliationSummary: {
-            transactionCount: 3,
-            totalAmount: 45.5,
-            exemptionCount: 2,
-            transactionIds: ['a', 'b', 'c'],
-          },
-        })}
-      />,
+    renderCard(
+      buildMockAuditEntry({
+        action: 'reconcile',
+        reconciliationSummary: {
+          transactionCount: 3,
+          totalAmount: 45.5,
+          exemptionCount: 2,
+          transactionIds: ['a', 'b', 'c'],
+        },
+      }),
     );
     expect(screen.getByText('3 transactions')).toBeInTheDocument();
     expect(screen.getByText('$45.50 total')).toBeInTheDocument();
@@ -131,35 +116,31 @@ describe('AuditEntryCard', () => {
   });
 
   test('uses singular "exemption" when the count is 1', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({
-          action: 'reconcile',
-          reconciliationSummary: {
-            transactionCount: 1,
-            totalAmount: 10,
-            exemptionCount: 1,
-            transactionIds: ['a'],
-          },
-        })}
-      />,
+    renderCard(
+      buildMockAuditEntry({
+        action: 'reconcile',
+        reconciliationSummary: {
+          transactionCount: 1,
+          totalAmount: 10,
+          exemptionCount: 1,
+          transactionIds: ['a'],
+        },
+      }),
     );
     expect(screen.getByText('1 exemption')).toBeInTheDocument();
   });
 
   test('omits the exemption clause when the count is 0', () => {
-    render(
-      <AuditEntryCard
-        entry={buildMockAuditEntry({
-          action: 'reconcile',
-          reconciliationSummary: {
-            transactionCount: 1,
-            totalAmount: 10,
-            exemptionCount: 0,
-            transactionIds: ['a'],
-          },
-        })}
-      />,
+    renderCard(
+      buildMockAuditEntry({
+        action: 'reconcile',
+        reconciliationSummary: {
+          transactionCount: 1,
+          totalAmount: 10,
+          exemptionCount: 0,
+          transactionIds: ['a'],
+        },
+      }),
     );
     expect(screen.queryByText(/exemption/)).not.toBeInTheDocument();
   });

@@ -24,6 +24,7 @@ const baseLedger = {
   filteredTransactions: [] as ReturnType<typeof buildMockTransaction>[],
   deleteTransaction: vi.fn().mockResolvedValue(undefined),
   userRole: 'sofoApprover' as const,
+  canEdit: true,
   pendingChanges: [] as ReturnType<typeof buildMockPendingChange>[],
   approvePendingChange: vi.fn().mockResolvedValue(undefined),
   rejectPendingChange: vi.fn().mockResolvedValue(undefined),
@@ -51,6 +52,7 @@ describe('TransactionList', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'sofoApprover',
+      canEdit: true,
       filteredTransactions: [
         buildMockTransaction({ id: 't1', title: 'Pizza' }),
         buildMockTransaction({ id: 't2', title: 'Banners' }),
@@ -66,6 +68,7 @@ describe('TransactionList', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'officer',
+      canEdit: false,
       filteredTransactions: [buildMockTransaction()],
     } as never);
     render(<TransactionList />);
@@ -77,6 +80,7 @@ describe('TransactionList', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'sofoApprover',
+      canEdit: true,
       deleteTransaction,
       filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
     } as never);
@@ -94,6 +98,7 @@ describe('TransactionList', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'sofoApprover',
+      canEdit: true,
       deleteTransaction,
       filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
     } as never);
@@ -110,6 +115,7 @@ describe('TransactionList', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'sofoApprover',
+      canEdit: true,
       filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
     } as never);
     render(<TransactionList />);
@@ -124,6 +130,7 @@ describe('TransactionList', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'sofoApprover',
+      canEdit: true,
       updatePaymentStatus,
       filteredTransactions: [
         buildMockTransaction({

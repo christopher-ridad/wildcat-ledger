@@ -26,6 +26,22 @@ import { EMPTY_ALLOCATIONS } from '../utils/constants';
 
 export const LedgerContext = createContext<LedgerContextValue | undefined>(undefined);
 
+// Shared by the three org-scoped Realtime-backed loaders below (transactions,
+// audit_log, pending_changes), which otherwise repeated this same
+// select-by-org_id-and-map query shape.
+async function fetchOrgRows<T>(
+  table: string,
+  orgId: string,
+  mapRow: (row: Record<string, unknown>) => T,
+  orderBy?: { column: string; ascending: boolean },
+): Promise<T[]> {
+  const query = supabase.from(table).select('*').eq('org_id', orgId);
+  const { data } = orderBy
+    ? await query.order(orderBy.column, { ascending: orderBy.ascending })
+    : await query;
+  return (data ?? []).map(mapRow);
+}
+
 export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const userEmail = user?.email ?? null;
@@ -122,32 +138,32 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (!activeOrganizationId) return;
 
     const loadTransactions = async () => {
-      const { data } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('org_id', activeOrganizationId);
-      const transactions = (data ?? []).map(rowToTransaction);
+      const transactions = await fetchOrgRows(
+        'transactions',
+        activeOrganizationId,
+        rowToTransaction,
+      );
       setOrganizations((prev) =>
         prev.map((o) => (o.id === activeOrganizationId ? { ...o, transactions } : o)),
       );
     };
 
     const loadAuditLog = async () => {
-      const { data } = await supabase
-        .from('audit_log')
-        .select('*')
-        .eq('org_id', activeOrganizationId)
-        .order('timestamp', { ascending: false });
-      setAuditLog((data ?? []).map(rowToAuditEntry));
+      setAuditLog(
+        await fetchOrgRows('audit_log', activeOrganizationId, rowToAuditEntry, {
+          column: 'timestamp',
+          ascending: false,
+        }),
+      );
     };
 
     const loadPendingChanges = async () => {
-      const { data } = await supabase
-        .from('pending_changes')
-        .select('*')
-        .eq('org_id', activeOrganizationId)
-        .order('requested_at', { ascending: false });
-      setPendingChanges((data ?? []).map(rowToPendingChange));
+      setPendingChanges(
+        await fetchOrgRows('pending_changes', activeOrganizationId, rowToPendingChange, {
+          column: 'requested_at',
+          ascending: false,
+        }),
+      );
     };
 
     loadTransactions();
@@ -367,6 +383,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     if (activeOrganization.officers?.includes(userEmail)) return 'officer';
     return null;
   })();
+  const canEdit = userRole === 'sofoApprover';
 
   const transactions = activeOrganization?.transactions ?? [];
   const budgetAllocations = activeOrganization?.budgetAllocations ?? EMPTY_ALLOCATIONS;
@@ -390,6 +407,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     setActiveOrganizationId,
     activeOrganization,
     userRole,
+    canEdit,
     peopleNames,
     generateTransactionId,
     addTransaction,

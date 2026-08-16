@@ -4,19 +4,12 @@
  * and extracts Operating, ASG, and Gifts amounts.
  */
 
+import { callVisionApi, extractFullText, fileToBase64 } from './visionApi';
+
 export interface BudgetScanResult {
   ASG: number;
   Operating: number;
   Gifts: number;
-}
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }
 
 /**
@@ -58,72 +51,46 @@ function findAmountNear(lines: string[], keyword: RegExp): number {
 
 /** Extract full text from all pages of a PDF via Vision files:annotate */
 async function extractTextFromPdf(base64: string, apiKey: string): Promise<string> {
-  const response = await fetch(
-    `https://vision.googleapis.com/v1/files:annotate?key=${apiKey}`,
+  const data = await callVisionApi(
+    'files',
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: [
-          {
-            inputConfig: {
-              content: base64,
-              mimeType: 'application/pdf',
-            },
-            features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
-            // Read up to 5 pages
-            pages: [1, 2, 3, 4, 5],
+      requests: [
+        {
+          inputConfig: {
+            content: base64,
+            mimeType: 'application/pdf',
           },
-        ],
-      }),
+          features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+          // Read up to 5 pages
+          pages: [1, 2, 3, 4, 5],
+        },
+      ],
     },
+    apiKey,
+    'Vision API PDF request failed',
   );
 
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err?.error?.message ?? 'Vision API PDF request failed');
-  }
-
-  const data = await response.json();
   // files:annotate response: data.responses[0].responses[page].fullTextAnnotation.text
-  const pageResponses: unknown[] = data.responses?.[0]?.responses ?? [];
-  return pageResponses
-    .map(
-      (p) =>
-        (p as { fullTextAnnotation?: { text?: string } }).fullTextAnnotation?.text ?? '',
-    )
-    .join('\n');
+  const pageResponses = data.responses?.[0]?.responses ?? [];
+  return pageResponses.map((p) => p.fullTextAnnotation?.text ?? '').join('\n');
 }
 
 /** Extract full text from an image via Vision images:annotate */
 async function extractTextFromImage(base64: string, apiKey: string): Promise<string> {
-  const response = await fetch(
-    `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+  const data = await callVisionApi(
+    'images',
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requests: [
-          {
-            image: { content: base64 },
-            features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
-          },
-        ],
-      }),
+      requests: [
+        {
+          image: { content: base64 },
+          features: [{ type: 'DOCUMENT_TEXT_DETECTION', maxResults: 1 }],
+        },
+      ],
     },
+    apiKey,
+    'Vision API image request failed',
   );
-
-  if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err?.error?.message ?? 'Vision API image request failed');
-  }
-
-  const data = await response.json();
-  return (
-    data.responses?.[0]?.fullTextAnnotation?.text ??
-    data.responses?.[0]?.textAnnotations?.[0]?.description ??
-    ''
-  );
+  return extractFullText(data);
 }
 
 export async function parseBudgetAllocation(file: File): Promise<BudgetScanResult> {

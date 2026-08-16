@@ -4,46 +4,32 @@ import { buildMockTransaction } from '../../../test/mocks';
 import { getMissingDocuments, getRequiredDocuments } from './documentRequirements';
 
 describe('getRequiredDocuments', () => {
-  test('Debit Card requires only a receipt', () => {
-    const t = buildMockTransaction({ type: 'Debit Card' });
-    expect(getRequiredDocuments(t).map((d) => d.key)).toEqual(['receipt']);
-  });
-
-  test('Non-Officer Reimbursement requires only a receipt', () => {
-    const t = buildMockTransaction({ type: 'Non-Officer Reimbursement' });
-    expect(getRequiredDocuments(t).map((d) => d.key)).toEqual(['receipt']);
-  });
-
-  test('Payment Request requires contract and W-9 for a non-individual vendor', () => {
-    const t = buildMockTransaction({
-      type: 'Payment Request',
-      isIndividualVendor: false,
-    });
-    expect(getRequiredDocuments(t).map((d) => d.key)).toEqual(['contract', 'w9']);
-  });
-
-  test('Payment Request additionally requires CSF and COI for an individual vendor', () => {
-    const t = buildMockTransaction({ type: 'Payment Request', isIndividualVendor: true });
-    expect(getRequiredDocuments(t).map((d) => d.key)).toEqual([
-      'contract',
-      'w9',
-      'contractedServices',
-      'conflictOfInterest',
-    ]);
-  });
-
-  test('Payment to NU Employee requires contract, W-9, and Special Pay Form', () => {
-    const t = buildMockTransaction({ type: 'Payment to NU Employee' });
-    expect(getRequiredDocuments(t).map((d) => d.key)).toEqual([
-      'contract',
-      'w9',
-      'specialPayForm',
-    ]);
-  });
-
-  test('Deposit requires nothing', () => {
-    const t = buildMockTransaction({ type: 'Deposit' });
-    expect(getRequiredDocuments(t)).toEqual([]);
+  test.each([
+    ['Debit Card requires only a receipt', { type: 'Debit Card' }, ['receipt']],
+    [
+      'Non-Officer Reimbursement requires only a receipt',
+      { type: 'Non-Officer Reimbursement' },
+      ['receipt'],
+    ],
+    [
+      'Payment Request requires contract and W-9 for a non-individual vendor',
+      { type: 'Payment Request', isIndividualVendor: false },
+      ['contract', 'w9'],
+    ],
+    [
+      'Payment Request additionally requires CSF and COI for an individual vendor',
+      { type: 'Payment Request', isIndividualVendor: true },
+      ['contract', 'w9', 'contractedServices', 'conflictOfInterest'],
+    ],
+    [
+      'Payment to NU Employee requires contract, W-9, and Special Pay Form',
+      { type: 'Payment to NU Employee' },
+      ['contract', 'w9', 'specialPayForm'],
+    ],
+    ['Deposit requires nothing', { type: 'Deposit' }, []],
+  ] as const)('%s', (_description, overrides, expectedKeys) => {
+    const t = buildMockTransaction(overrides);
+    expect(getRequiredDocuments(t).map((d) => d.key)).toEqual(expectedKeys);
   });
 });
 

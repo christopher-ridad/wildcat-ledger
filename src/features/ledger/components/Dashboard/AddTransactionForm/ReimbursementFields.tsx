@@ -58,12 +58,12 @@ export const ReimbursementFields = ({
           disabled={form.noReceiptAcknowledged}
           onChange={onReceiptChange}
         />
+        {isEditing && existingTransaction?.receiptFileUrl && (
+          <span className={styles['wl-form-file-existing']}>
+            Current: <ExistingFileLink path={existingTransaction.receiptFileUrl} />
+          </span>
+        )}
       </div>
-      {isEditing && existingTransaction?.receiptFileUrl && (
-        <span className={styles['wl-form-file-existing']}>
-          Current: <ExistingFileLink path={existingTransaction.receiptFileUrl} />
-        </span>
-      )}
     </div>
 
     {!form.receiptFile && !(isEditing && existingTransaction?.receiptFileUrl) && (

@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
 import { useLedger } from '../../../hooks/useLedger';
+import { Modal } from '../Modal';
 import styles from './DebitCardSettingsModal.module.css';
 
 interface DebitCardSettingsModalProps {
@@ -53,17 +54,6 @@ export const DebitCardSettingsModal = ({
     }
     wasOpenRef.current = isOpen;
   }, [isOpen, settings]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleKey);
-    return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
 
   const handleProjectIdChange = (e: ChangeEvent<HTMLInputElement>) => {
     setProjectId(e.target.value.replace(/\D/g, '').slice(0, 8));
@@ -120,145 +110,126 @@ export const DebitCardSettingsModal = ({
   };
 
   return (
-    <div className="wl-modal-root">
-      <div className="wl-modal-overlay" aria-hidden="true" onClick={onClose} />
-      <div
-        className="wl-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="debit-card-settings-title"
-      >
-        <div className="wl-modal-header">
-          <h2 id="debit-card-settings-title" className="wl-modal-title">
-            SOFO / Cashier&apos;s Office Settings
-          </h2>
-          <button
-            type="button"
-            className="wl-modal-close"
-            onClick={onClose}
-            aria-label="Close modal"
-          >
-            ×
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="debit-card-settings-title"
+      title="SOFO / Cashier's Office Settings"
+    >
+      <p className={styles['wl-settings-hint']}>
+        Used to pre-fill the official SOFO debit card reconciliation form.
+      </p>
+
+      <div className={styles['wl-settings-section']}>
+        <h3 className={styles['wl-settings-section-title']}>SOFO Settings</h3>
+
+        <div className="wl-form-group">
+          <label className="wl-form-label" htmlFor="sofo-project-id">
+            Project ID
+          </label>
+          <input
+            id="sofo-project-id"
+            type="text"
+            inputMode="numeric"
+            className="wl-form-input"
+            value={projectId}
+            placeholder="70000000"
+            onChange={handleProjectIdChange}
+          />
         </div>
 
-        <div className="wl-modal-body">
-          <p className={styles['wl-settings-hint']}>
-            Used to pre-fill the official SOFO debit card reconciliation form.
-          </p>
+        <div className="wl-form-group">
+          <label className="wl-form-label" htmlFor="sofo-account-number">
+            Account No.
+          </label>
+          <input
+            id="sofo-account-number"
+            type="text"
+            inputMode="numeric"
+            className="wl-form-input"
+            value={accountNumber}
+            placeholder="2000-000"
+            onChange={handleAccountNumberChange}
+          />
+        </div>
 
-          <div className={styles['wl-settings-section']}>
-            <h3 className={styles['wl-settings-section-title']}>SOFO Settings</h3>
-
-            <div className="wl-form-group">
-              <label className="wl-form-label" htmlFor="sofo-project-id">
-                Project ID
-              </label>
-              <input
-                id="sofo-project-id"
-                type="text"
-                inputMode="numeric"
-                className="wl-form-input"
-                value={projectId}
-                placeholder="70000000"
-                onChange={handleProjectIdChange}
-              />
-            </div>
-
-            <div className="wl-form-group">
-              <label className="wl-form-label" htmlFor="sofo-account-number">
-                Account No.
-              </label>
-              <input
-                id="sofo-account-number"
-                type="text"
-                inputMode="numeric"
-                className="wl-form-input"
-                value={accountNumber}
-                placeholder="2000-000"
-                onChange={handleAccountNumberChange}
-              />
-            </div>
-
-            <div className="wl-form-group">
-              <label className="wl-form-label" htmlFor="sofo-icn">
-                Inventory Control No.
-              </label>
-              <input
-                id="sofo-icn"
-                type="text"
-                inputMode="numeric"
-                className="wl-form-input"
-                value={inventoryControlNumber}
-                placeholder="12345678-1234567"
-                onChange={handleInventoryControlNumberChange}
-              />
-            </div>
-          </div>
-
-          <div className={styles['wl-settings-section']}>
-            <h3 className={styles['wl-settings-section-title']}>Cashier&apos;s Office</h3>
-
-            <div className="wl-form-group">
-              <label className="wl-form-label" htmlFor="debit-card-last-four">
-                Last 4 Digits of Card
-              </label>
-              <input
-                id="debit-card-last-four"
-                type="text"
-                inputMode="numeric"
-                maxLength={4}
-                className="wl-form-input"
-                value={lastFourDigits}
-                placeholder="1234"
-                onChange={(e) => setLastFourDigits(e.target.value.replace(/\D/g, ''))}
-              />
-            </div>
-
-            <div className="wl-form-group">
-              <label className="wl-form-label" htmlFor="debit-card-load-balance">
-                Load Balance
-              </label>
-              <input
-                id="debit-card-load-balance"
-                type="text"
-                inputMode="decimal"
-                className="wl-form-input"
-                value={loadBalance}
-                placeholder="0.00"
-                onChange={(e) => setLoadBalance(e.target.value)}
-              />
-              <p className={styles['wl-settings-hint']}>
-                The card&apos;s fixed limit (the max amount ever on the card), not its
-                current balance.
-              </p>
-            </div>
-          </div>
-
-          {error && (
-            <div className={`wl-form-error ${styles['wl-settings-error']}`}>{error}</div>
-          )}
-
-          <div className={styles['wl-settings-actions']}>
-            <button
-              type="button"
-              className="wl-btn-primary"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? 'Saving…' : 'Save'}
-            </button>
-            <button
-              type="button"
-              className="wl-btn-cancel"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancel
-            </button>
-          </div>
+        <div className="wl-form-group">
+          <label className="wl-form-label" htmlFor="sofo-icn">
+            Inventory Control No.
+          </label>
+          <input
+            id="sofo-icn"
+            type="text"
+            inputMode="numeric"
+            className="wl-form-input"
+            value={inventoryControlNumber}
+            placeholder="12345678-1234567"
+            onChange={handleInventoryControlNumberChange}
+          />
         </div>
       </div>
-    </div>
+
+      <div className={styles['wl-settings-section']}>
+        <h3 className={styles['wl-settings-section-title']}>Cashier&apos;s Office</h3>
+
+        <div className="wl-form-group">
+          <label className="wl-form-label" htmlFor="debit-card-last-four">
+            Last 4 Digits of Card
+          </label>
+          <input
+            id="debit-card-last-four"
+            type="text"
+            inputMode="numeric"
+            maxLength={4}
+            className="wl-form-input"
+            value={lastFourDigits}
+            placeholder="1234"
+            onChange={(e) => setLastFourDigits(e.target.value.replace(/\D/g, ''))}
+          />
+        </div>
+
+        <div className="wl-form-group">
+          <label className="wl-form-label" htmlFor="debit-card-load-balance">
+            Load Balance
+          </label>
+          <input
+            id="debit-card-load-balance"
+            type="text"
+            inputMode="decimal"
+            className="wl-form-input"
+            value={loadBalance}
+            placeholder="0.00"
+            onChange={(e) => setLoadBalance(e.target.value)}
+          />
+          <p className={styles['wl-settings-hint']}>
+            The card&apos;s fixed limit (the max amount ever on the card), not its current
+            balance.
+          </p>
+        </div>
+      </div>
+
+      {error && (
+        <div className={`wl-form-error ${styles['wl-settings-error']}`}>{error}</div>
+      )}
+
+      <div className={styles['wl-settings-actions']}>
+        <button
+          type="button"
+          className="wl-btn-primary"
+          onClick={handleSave}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        <button
+          type="button"
+          className="wl-btn-cancel"
+          onClick={onClose}
+          disabled={saving}
+        >
+          Cancel
+        </button>
+      </div>
+    </Modal>
   );
 };

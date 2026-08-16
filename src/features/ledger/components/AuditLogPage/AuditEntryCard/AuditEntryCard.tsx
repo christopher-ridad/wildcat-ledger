@@ -1,15 +1,7 @@
 import { AuditAction, AuditEntry } from '../../../types';
+import { formatTimestamp } from '../../../utils/calculations';
 import { diffChangedKeys } from '../../../utils/diff';
 import styles from './AuditEntryCard.module.css';
-
-const formatTimestamp = (ts: number) =>
-  new Date(ts).toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
 
 interface ActionDisplay {
   label: string;
@@ -146,7 +138,13 @@ const EditDiff = ({
   </div>
 );
 
-export const AuditEntryCard = ({ entry }: { entry: AuditEntry }) => {
+export const AuditEntryCard = ({
+  entry,
+  peopleNames,
+}: {
+  entry: AuditEntry;
+  peopleNames: Record<string, string>;
+}) => {
   const { label, icon, className, entryClass } = actionLabel(entry.action, entry.after);
   const changedKeys =
     entry.action === 'edit' ||
@@ -166,10 +164,12 @@ export const AuditEntryCard = ({ entry }: { entry: AuditEntry }) => {
         </span>
         <span className={styles['wl-audit-title']}>{entry.transactionTitle}</span>
         <div className={styles['wl-audit-meta']}>
-          <span className={styles['wl-audit-meta-user']}>{entry.performedBy}</span>
+          <span className={styles['wl-audit-meta-user']}>
+            {peopleNames[entry.performedBy] ?? entry.performedBy}
+          </span>
           <span className={styles['wl-audit-meta-sep']}>·</span>
           <span className={styles['wl-audit-meta-time']}>
-            {formatTimestamp(entry.timestamp)}
+            {formatTimestamp(entry.timestamp, { includeTime: true })}
           </span>
         </div>
       </div>
