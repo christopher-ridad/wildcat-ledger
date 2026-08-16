@@ -52,7 +52,6 @@ export const BudgetAllocationForm = ({
       </div>
     ))}
 
-    {/* Debit Card always $0 */}
     <div
       className={`${styles['wl-budget-allocation-row']} ${styles['wl-budget-allocation-fixed']}`}
     >

@@ -28,10 +28,8 @@ export type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
 export interface DocumentRequirement {
   key: DocumentTypeKey;
   field: keyof Transaction;
-  // An alternate field that also satisfies this requirement (e.g. a Debit
-  // Card purchase's receipt requirement is equally satisfied by an attached
-  // Policy Exemption Form -- see ReconciliationModal's own isCovered check,
-  // which already treats the two as interchangeable).
+  // An alternate field that also satisfies this requirement -- see
+  // docs/BUSINESS_RULES.md#debit-card-reconciliation.
   alternateField?: keyof Transaction;
   acknowledgedMissingField?: keyof Transaction;
   label: string;
@@ -178,3 +176,10 @@ export const DOCUMENT_REQUIREMENTS_BY_KEY: Record<DocumentTypeKey, DocumentRequi
     conflictOfInterest: CONFLICT_OF_INTEREST,
     specialPayForm: SPECIAL_PAY_FORM,
   };
+
+// See docs/BUSINESS_RULES.md#tax-exemption--sofo-reimbursement.
+export const needsTaxReimbursement = (t: Transaction): boolean =>
+  t.type === 'Debit Card' &&
+  !t.taxExemptFormSubmitted &&
+  (t.taxAmount ?? 0) > 0 &&
+  !t.taxReimbursed;

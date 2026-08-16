@@ -8,6 +8,7 @@ import {
   POLICY_EXEMPTION_FORM_URL,
   SOFO_SALES_TAX_REIMBURSEMENT_URL,
 } from '../../../utils/constants';
+import { needsTaxReimbursement } from '../../../utils/documentRequirements';
 import styles from './ReconciliationModal.module.css';
 
 interface ReconciliationModalProps {
@@ -67,20 +68,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [requestingReload, setRequestingReload] = useState(false);
   const [reloadRequested, setReloadRequested] = useState(false);
   const [reloadError, setReloadError] = useState<string | null>(null);
-  // A transaction is "covered" if it has a receipt or an attached exemption form
+  // "Covered" per docs/BUSINESS_RULES.md#debit-card-reconciliation.
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
-  // Debit Card purchases should never carry tax; when one does (no
-  // exemption form submitted, tax on the receipt), it blocks reconciliation
-  // until self-attested as reimbursed to SOFO.
-  const needsTaxReimbursement = (t: Transaction) =>
-    t.type === 'Debit Card' &&
-    !t.taxExemptFormSubmitted &&
-    (t.taxAmount ?? 0) > 0 &&
-    !t.taxReimbursed;
-  // A reconciled Debit Card transaction can never be edited or have its
-  // pending change resolved afterward (both RPCs refuse to touch it), so an
-  // outstanding edit/delete request needs to be resolved -- on the
-  // dashboard, not from inside this modal -- before reconciling.
+  // See docs/BUSINESS_RULES.md#dual-approval-workflow -- a reconciled
+  // transaction can never be edited/deleted, so an outstanding request
+  // needs resolving from the dashboard before reconciling.
   const pendingChangeFor = (t: Transaction) =>
     pendingChanges.find((p) => p.transactionId === t.id);
 
@@ -379,7 +371,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                             </span>
                           </div>
 
-                          {/* Missing receipt sub-panel */}
                           {isMissing && (
                             <div className={styles['wl-recon-missing']}>
                               <p className={styles['wl-recon-missing-msg']}>
@@ -428,7 +419,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                             </div>
                           )}
 
-                          {/* Unresolved tax reimbursement sub-panel */}
                           {needsTax && (
                             <div className={styles['wl-recon-missing']}>
                               <p className={styles['wl-recon-missing-msg']}>
@@ -460,7 +450,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                             </div>
                           )}
 
-                          {/* Pending edit/delete request sub-panel */}
                           {pending && (
                             <div className={styles['wl-recon-missing']}>
                               <p className={styles['wl-recon-missing-msg']}>

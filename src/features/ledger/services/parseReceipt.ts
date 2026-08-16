@@ -9,13 +9,11 @@ export interface ReceiptData {
   amount: string;
 }
 
-// Convert a File to a base64 string (without the data: prefix)
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Strip "data:image/...;base64," prefix
       resolve(result.split(',')[1]);
     };
     reader.onerror = reject;
@@ -28,7 +26,6 @@ function fileToBase64(file: File): Promise<string> {
 function extractAmount(text: string): string {
   const lines = text.split('\n').map((l) => l.trim());
 
-  // Priority 1: lines that contain total-like keywords + a dollar amount
   const totalKeywords = /total|amount due|balance due|grand total|subtotal/i;
   const dollarPattern = /\$?\s*(\d{1,4}[.,]\d{2})\b/;
 
@@ -39,7 +36,6 @@ function extractAmount(text: string): string {
     }
   }
 
-  // Priority 2: largest dollar amount on any line
   let largest = 0;
   let largestStr = '';
   for (const line of lines) {
@@ -68,7 +64,6 @@ function extractTitle(text: string): string {
 
   for (const line of lines) {
     if (!skipPatterns.test(line) && /[a-zA-Z]/.test(line)) {
-      // Truncate to reasonable title length
       return line.slice(0, 60);
     }
   }

@@ -101,7 +101,7 @@ export const AddTransactionForm = ({
         amount: amount || prev.amount,
       }));
     } catch (err) {
-      // OCR failed — silently ignore, user can fill fields manually
+      // Non-fatal -- user can still fill the fields in manually.
       console.warn('OCR failed:', err);
     } finally {
       setScanning(false);
@@ -140,10 +140,9 @@ export const AddTransactionForm = ({
     setForm((prev) => ({
       ...prev,
       type: newType,
-      // Reset deposit funding to a valid option (no ASG for Deposit)
+      // Deposits can't be funded from ASG -- see docs/BUSINESS_RULES.md#transaction-types--their-documents.
       funding:
         newType === 'Deposit' && prev.funding === 'ASG' ? 'Operating' : prev.funding,
-      // Clear files when type changes
       receiptFile: null,
       noReceiptAcknowledged: false,
       taxExemptFormSubmitted: false,
@@ -347,7 +346,6 @@ export const AddTransactionForm = ({
 
   return (
     <form onSubmit={handleSubmit} className={styles['wl-form']} noValidate>
-      {/* ── Always-visible fields ── */}
       <div className="wl-form-group">
         <label className="wl-form-label" htmlFor="title">
           Title <span className={styles['wl-form-required']}>*</span>
@@ -413,9 +411,7 @@ export const AddTransactionForm = ({
         </select>
       </div>
 
-      {/* ── Conditional expanded section ── */}
       <div className={styles['wl-form-section']}>
-        {/* Funding source (all types except Debit Card) */}
         {showFunding && (
           <div className="wl-form-group">
             <label className="wl-form-label" htmlFor="funding">

@@ -22,15 +22,9 @@ import {
   UserRole,
 } from '../types';
 import { applyFilters, calculateBudgetLineSummaries } from '../utils/calculations';
+import { EMPTY_ALLOCATIONS } from '../utils/constants';
 
 export const LedgerContext = createContext<LedgerContextValue | undefined>(undefined);
-
-const EMPTY_ALLOCATIONS: BudgetAllocations = {
-  ASG: 0,
-  Operating: 0,
-  Gifts: 0,
-  'Debit Card': 0,
-};
 
 export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();

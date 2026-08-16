@@ -9,13 +9,11 @@ interface DebitCardSettingsModalProps {
   onClose: () => void;
 }
 
-// 8-digit number starting with 7, i.e. 70000000-79999999 (per the official
-// SOFO form's own validation on this field).
-const PROJECT_ID_PATTERN = /^7\d{7}$/;
-// "20" + 2 digits + "-" + 3 digits, e.g. 2000-000.
-const ACCOUNT_NUMBER_PATTERN = /^20\d{2}-\d{3}$/;
-// 8 digits + "-" + 7 digits, e.g. 12345678-1234567.
-const ICN_PATTERN = /^\d{8}-\d{7}$/;
+// Formats sourced from the official SOFO form's own validation -- see
+// docs/BUSINESS_RULES.md#sofo--cashiers-office-settings.
+const PROJECT_ID_PATTERN = /^7\d{7}$/; // 70000000-79999999
+const ACCOUNT_NUMBER_PATTERN = /^20\d{2}-\d{3}$/; // e.g. 2000-000
+const ICN_PATTERN = /^\d{8}-\d{7}$/; // e.g. 12345678-1234567
 
 const formatWithDash = (raw: string, digitsBeforeDash: number, maxDigits: number) => {
   const digits = raw.replace(/\D/g, '').slice(0, maxDigits);

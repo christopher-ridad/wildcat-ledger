@@ -1,8 +1,15 @@
+import { BudgetAllocations } from '../types';
+
 export const POLICY_EXEMPTION_FORM_URL =
   'https://www.northwestern.edu/financial-operations/policies-procedures/forms/policy_exception.pdf';
 
-// SOFO's external CardPointe payment portal for reimbursing tax mistakenly
-// charged on a Debit Card purchase. No integration/callback exists here --
-// clearing the reimbursement flag in-app is a separate, self-attested step.
+// See docs/BUSINESS_RULES.md#tax-exemption--sofo-reimbursement.
 export const SOFO_SALES_TAX_REIMBURSEMENT_URL =
   'https://sofosalestax.securepayments.cardpointe.com/pay';
+
+export const EMPTY_ALLOCATIONS: BudgetAllocations = {
+  ASG: 0,
+  Operating: 0,
+  Gifts: 0,
+  'Debit Card': 0,
+};

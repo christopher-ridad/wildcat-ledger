@@ -66,7 +66,6 @@ export const ReimbursementFields = ({
       )}
     </div>
 
-    {/* Only show "no receipt" option when there's no receipt on file */}
     {!form.receiptFile && !(isEditing && existingTransaction?.receiptFileUrl) && (
       <div className={styles['wl-form-no-receipt']}>
         <label className={styles['wl-form-checkbox']}>
