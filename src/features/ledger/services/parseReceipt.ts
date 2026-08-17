@@ -18,7 +18,7 @@ export interface ReceiptData {
 
 // Extract the best total dollar amount from OCR text.
 // Prioritises lines containing "total", "amount due", "balance due", "grand total".
-function extractAmount(text: string): string {
+export function extractAmount(text: string): string {
   const lines = text.split('\n').map((l) => l.trim());
 
   const totalKeywords = /total|amount due|balance due|grand total|subtotal/i;
@@ -48,7 +48,7 @@ function extractAmount(text: string): string {
 
 // Extract a vendor / title from OCR text.
 // Usually the first non-empty, non-numeric, non-address line.
-function extractTitle(text: string): string {
+export function extractTitle(text: string): string {
   const lines = text
     .split('\n')
     .map((l) => l.trim())

@@ -12,6 +12,7 @@ const renderFields = (overrides: Partial<ComponentProps<typeof DebitCardFields>>
       form={initialForm}
       isEditing={false}
       scanning={false}
+      ocrError={null}
       onReceiptChange={vi.fn()}
       onChange={vi.fn()}
       {...overrides}
@@ -36,6 +37,19 @@ describe('DebitCardFields', () => {
   test('shows a scanning indicator when scanning', () => {
     renderFields({ scanning: true });
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
+  });
+
+  test('shows a non-blocking notice when OCR fails', () => {
+    renderFields({ ocrError: 'Vision API request failed' });
+    expect(screen.getByText(/Vision API request failed/)).toBeInTheDocument();
+    expect(screen.getByText(/enter the title\/amount manually/)).toBeInTheDocument();
+  });
+
+  test('shows no OCR error notice by default', () => {
+    renderFields();
+    expect(
+      screen.queryByText(/enter the title\/amount manually/),
+    ).not.toBeInTheDocument();
   });
 
   test('shows the "no receipt" checkbox and warning notice when checked', () => {

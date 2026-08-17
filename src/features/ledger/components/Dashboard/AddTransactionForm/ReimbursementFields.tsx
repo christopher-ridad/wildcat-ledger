@@ -10,6 +10,7 @@ interface ReimbursementFieldsProps {
   isEditing: boolean;
   existingTransaction?: Transaction;
   scanning: boolean;
+  ocrError: string | null;
   onReceiptChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }
@@ -19,6 +20,7 @@ export const ReimbursementFields = ({
   isEditing,
   existingTransaction,
   scanning,
+  ocrError,
   onReceiptChange,
   onChange,
 }: ReimbursementFieldsProps) => (
@@ -44,6 +46,7 @@ export const ReimbursementFields = ({
       isEditing={isEditing}
       existingTransaction={existingTransaction}
       scanning={scanning}
+      ocrError={ocrError}
       onReceiptChange={onReceiptChange}
       onChange={onChange}
       hint="Tax cannot be reimbursed."

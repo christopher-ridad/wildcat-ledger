@@ -14,6 +14,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     isEditing,
     submitting,
     scanning,
+    ocrError,
     error,
     overdraftWarning,
     pendingTransaction,
@@ -138,6 +139,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
             isEditing={isEditing}
             existingTransaction={existingTransaction}
             scanning={scanning}
+            ocrError={ocrError}
             onReceiptChange={handleReceiptChange}
             onChange={handleChange}
           />
@@ -167,6 +169,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
             isEditing={isEditing}
             existingTransaction={existingTransaction}
             scanning={scanning}
+            ocrError={ocrError}
             onReceiptChange={handleReceiptChange}
             onChange={handleChange}
           />

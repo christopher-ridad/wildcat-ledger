@@ -11,6 +11,7 @@ interface DebitCardFieldsProps {
   isEditing: boolean;
   existingTransaction?: Transaction;
   scanning: boolean;
+  ocrError: string | null;
   onReceiptChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }
@@ -20,6 +21,7 @@ export const DebitCardFields = ({
   isEditing,
   existingTransaction,
   scanning,
+  ocrError,
   onReceiptChange,
   onChange,
 }: DebitCardFieldsProps) => (
@@ -29,6 +31,7 @@ export const DebitCardFields = ({
       isEditing={isEditing}
       existingTransaction={existingTransaction}
       scanning={scanning}
+      ocrError={ocrError}
       onReceiptChange={onReceiptChange}
       onChange={onChange}
       hint="Tax cannot be paid by the debit card."
