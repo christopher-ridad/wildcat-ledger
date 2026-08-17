@@ -18,3 +18,5 @@ CLAUDE.md
 .env.*.local
 .claude/
 backups/
+.vercel
+.env*
