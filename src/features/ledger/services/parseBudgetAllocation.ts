@@ -22,7 +22,7 @@ export interface BudgetScanResult {
  * Also checks the next 2 lines after a keyword match (for table formats where
  * the label and value are on separate lines).
  */
-function findAmountNear(lines: string[], keyword: RegExp): number {
+export function findAmountNear(lines: string[], keyword: RegExp): number {
   // Only match values that look like actual dollar amounts — must have one of:
   //   - a $ prefix                     → $1234  $1,234.56
   //   - comma thousands separator      → 1,234  1,234.56

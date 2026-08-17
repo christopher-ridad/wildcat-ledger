@@ -14,6 +14,7 @@ const renderFields = (
       form={initialForm}
       isEditing={false}
       scanning={false}
+      ocrError={null}
       onReceiptChange={vi.fn()}
       onChange={vi.fn()}
       {...overrides}
@@ -67,6 +68,11 @@ describe('ReimbursementFields', () => {
   test('shows a scanning indicator while scanning', () => {
     renderFields({ scanning: true });
     expect(screen.getByText('Scanning…')).toBeInTheDocument();
+  });
+
+  test('shows a non-blocking notice when OCR fails', () => {
+    renderFields({ ocrError: 'Vision API request failed' });
+    expect(screen.getByText(/Vision API request failed/)).toBeInTheDocument();
   });
 
   test('typing the reimbursed member name calls onChange', () => {

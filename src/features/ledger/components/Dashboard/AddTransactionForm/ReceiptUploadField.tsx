@@ -10,6 +10,7 @@ interface ReceiptUploadFieldProps {
   isEditing: boolean;
   existingTransaction?: Transaction;
   scanning: boolean;
+  ocrError: string | null;
   onReceiptChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   hint: string;
@@ -25,6 +26,7 @@ export const ReceiptUploadField = ({
   isEditing,
   existingTransaction,
   scanning,
+  ocrError,
   onReceiptChange,
   onChange,
   hint,
@@ -57,6 +59,11 @@ export const ReceiptUploadField = ({
           </span>
         )}
       </div>
+      {ocrError && (
+        <div className="wl-form-error" style={{ marginTop: 8 }}>
+          {ocrError} — you can enter the title/amount manually.
+        </div>
+      )}
     </div>
 
     {!form.receiptFile && !(isEditing && existingTransaction?.receiptFileUrl) && (

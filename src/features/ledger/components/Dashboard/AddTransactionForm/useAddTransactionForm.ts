@@ -80,6 +80,7 @@ export function useAddTransactionForm({
   const [submitting, setSubmitting] = useState(false);
   const submitGuard = useRef(false);
   const [scanning, setScanning] = useState(false);
+  const [ocrError, setOcrError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [overdraftWarning, setOverdraftWarning] = useState<string | null>(null);
   const [pendingTransaction, setPendingTransaction] = useState<{
@@ -92,6 +93,7 @@ export function useAddTransactionForm({
     const file = e.target.files?.[0] ?? null;
     setForm((prev) => ({ ...prev, receiptFile: file }));
     setError(null);
+    setOcrError(null);
     if (!file) return;
 
     try {
@@ -103,8 +105,11 @@ export function useAddTransactionForm({
         amount: amount || prev.amount,
       }));
     } catch (err) {
-      // Non-fatal -- user can still fill the fields in manually.
-      console.warn('OCR failed:', err);
+      // Non-fatal -- the receipt itself still uploads fine and the user can
+      // still fill the fields in manually, so this only surfaces as a small
+      // inline notice rather than blocking the form (see getErrorMessage's
+      // fallback for why err.message can't be trusted blindly).
+      setOcrError(getErrorMessage(err, "Couldn't auto-fill from this receipt"));
     } finally {
       setScanning(false);
     }
@@ -164,6 +169,7 @@ export function useAddTransactionForm({
       reimbursedMemberName: '',
     }));
     setError(null);
+    setOcrError(null);
   };
 
   const submitTransaction = async (transaction: Omit<Transaction, 'id'>, id?: string) => {
@@ -179,6 +185,7 @@ export function useAddTransactionForm({
       setPreGeneratedId(null);
       setPendingTransaction(null);
       setOverdraftWarning(null);
+      setOcrError(null);
       onSuccess?.();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to save transaction. Please try again.'));
@@ -335,6 +342,7 @@ export function useAddTransactionForm({
     isEditing,
     submitting,
     scanning,
+    ocrError,
     error,
     overdraftWarning,
     pendingTransaction,
