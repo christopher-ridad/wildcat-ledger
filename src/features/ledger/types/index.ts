@@ -99,7 +99,12 @@ export type AuditAction =
   | 'cancel'
   | 'reconcile'
   | 'payment_status_change'
-  | 'tax_reimbursed';
+  | 'tax_reimbursed'
+  // Written by the now-unused request_reload_with_audit RPC (superseded by
+  // 0009_reload_as_transaction.sql, which folded reloads into ordinary
+  // Deposit transactions instead) -- kept here purely so historical
+  // audit_log rows from before that migration still render correctly.
+  | 'reload_request';
 
 export interface AuditEntry {
   id: string;
