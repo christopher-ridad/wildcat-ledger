@@ -19,9 +19,18 @@ describe('AuditEntryCard', () => {
     ['reconcile', 'Reconciled'],
     ['payment_status_change', 'Payment Status Updated'],
     ['tax_reimbursed', 'Tax Reimbursed to SOFO'],
+    ['reload_request', 'Reload Requested'],
   ])('renders the %s badge as "%s"', (action, label) => {
     renderCard(buildMockAuditEntry({ action }));
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  test('falls back to a generic label instead of crashing on an unrecognized action', () => {
+    // audit_log.action has no DB constraint tying it to the AuditAction union,
+    // so a legacy/unknown value (e.g. from since-removed code) can reach this
+    // component in production -- this cast simulates that.
+    renderCard(buildMockAuditEntry({ action: 'some_legacy_action' as AuditAction }));
+    expect(screen.getByText('Updated')).toBeInTheDocument();
   });
 
   test('labels an approve action with a non-null after as "Approved Edit"', () => {

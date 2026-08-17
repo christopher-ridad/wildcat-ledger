@@ -82,10 +82,30 @@ const ACTION_LABELS: Record<AuditAction, ActionDisplay> = {
     className: 'wl-audit-badge--approve',
     entryClass: 'wl-audit-entry--approve',
   },
+  reload_request: {
+    label: 'Reload Requested',
+    icon: '?',
+    className: 'wl-audit-badge--request',
+    entryClass: 'wl-audit-entry--request',
+  },
+};
+
+// audit_log.action is a plain text column with no CHECK constraint (and
+// AuditEntry['action'] is only a type-level promise, not a runtime
+// guarantee) -- a row written by since-removed/renamed code, or anything
+// else ACTION_LABELS doesn't happen to cover yet, would otherwise crash the
+// whole page rather than just rendering that one entry oddly. Confirmed
+// happening in production (Sentry) from a legacy 'reload_request' row
+// before that action was added above.
+const FALLBACK_ACTION_DISPLAY: ActionDisplay = {
+  label: 'Updated',
+  icon: '•',
+  className: 'wl-audit-badge--edit',
+  entryClass: 'wl-audit-entry--edit',
 };
 
 const actionLabel = (action: AuditAction, after: AuditEntry['after']): ActionDisplay => {
-  const display = ACTION_LABELS[action];
+  const display = ACTION_LABELS[action] ?? FALLBACK_ACTION_DISPLAY;
   if (action === 'approve') {
     return { ...display, label: after === null ? 'Approved Delete' : 'Approved Edit' };
   }
