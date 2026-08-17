@@ -51,11 +51,11 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "globals": "^17.11.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.1.1",
+    "jsdom": "^30.0.1",
     "lint-staged": "^17.0.8",
     "prettier": "^3.9.5",
     "typescript": "^5.9.3",
-    "vite": "^8.1.4",
+    "vite": "^8.2.1",
     "vitest": "^4.1.1"
   },
   "license": "MIT"
