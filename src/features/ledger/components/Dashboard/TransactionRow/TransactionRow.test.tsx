@@ -89,6 +89,30 @@ describe('TransactionRow', () => {
     expect(screen.getByLabelText('View 1 attached file')).toBeInTheDocument();
   });
 
+  test('pluralizes the file-count label for more than one attached file', () => {
+    renderRow({
+      canEdit: true,
+      t: buildMockTransaction({
+        receiptFileUrl: 'orgs/1/receipt.png',
+        contractFileUrl: 'orgs/1/contract.pdf',
+      }),
+    });
+    expect(screen.getByLabelText('View 2 attached files')).toBeInTheDocument();
+  });
+
+  test('clicking the file-count button calls onViewFiles with the transaction', () => {
+    const onViewFiles = vi.fn();
+    const t = buildMockTransaction({ receiptFileUrl: 'orgs/1/receipt.png' });
+    renderRow({ canEdit: true, t, onViewFiles });
+    fireEvent.click(screen.getByLabelText('View 1 attached file'));
+    expect(onViewFiles).toHaveBeenCalledWith(t);
+  });
+
+  test('shows a dash for a transaction with no date', () => {
+    renderRow({ t: buildMockTransaction({ date: undefined }) });
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
   test('clicking Edit calls onEdit with the transaction', () => {
     const onEdit = vi.fn();
     const t = buildMockTransaction();
@@ -456,6 +480,17 @@ describe('TransactionRow', () => {
       renderRow({ canEdit: true, pending, onApprove });
       fireEvent.click(screen.getByText('Approve'));
       expect(onApprove).toHaveBeenCalledWith('pending-42');
+    });
+
+    test('clicking Reject calls onReject with the pending id', () => {
+      const onReject = vi.fn().mockResolvedValue(undefined);
+      const pending = buildMockPendingChange({
+        id: 'pending-13',
+        requestedBy: 'someone-else@example.com',
+      });
+      renderRow({ canEdit: true, pending, onReject });
+      fireEvent.click(screen.getByText('Reject'));
+      expect(onReject).toHaveBeenCalledWith('pending-13');
     });
 
     test('clicking Cancel calls onCancel with the pending id', () => {
