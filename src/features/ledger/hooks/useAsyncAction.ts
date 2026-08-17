@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { getErrorMessage } from '../../../utils/errors';
+
 // Shared by the several places that otherwise hand-rolled their own
 // pending/error state around a single async action: set pending, clear the
 // previous error, await the action, capture a thrown Error's message (or
@@ -17,7 +19,7 @@ export function useAsyncAction() {
     try {
       await fn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : fallbackMessage);
+      setError(getErrorMessage(err, fallbackMessage));
     } finally {
       setPending(false);
     }
@@ -45,7 +47,7 @@ export function useAsyncActionMap() {
     } catch (err) {
       setErrorMap((prev) => ({
         ...prev,
-        [key]: err instanceof Error ? err.message : fallbackMessage,
+        [key]: getErrorMessage(err, fallbackMessage),
       }));
     } finally {
       setPendingMap((prev) => ({ ...prev, [key]: false }));

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../features/authentication/hooks/useAuth';
+import { getErrorMessage } from '../utils/errors';
 
 export const LoginPage = () => {
   const { user, sendLoginLink } = useAuth();
@@ -30,7 +31,7 @@ export const LoginPage = () => {
       await sendLoginLink(trimmed);
       setView('sent');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send link. Try again.');
+      setError(getErrorMessage(err, 'Failed to send link. Try again.'));
     } finally {
       setSubmitting(false);
     }

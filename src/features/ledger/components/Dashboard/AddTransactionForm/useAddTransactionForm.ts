@@ -1,6 +1,7 @@
 import type { ChangeEvent, FormEvent } from 'react';
 import { useRef, useState } from 'react';
 
+import { getErrorMessage } from '../../../../../utils/errors';
 import { useLedger } from '../../../hooks/useLedger';
 import { parseReceipt } from '../../../services/parseReceipt';
 import { documentPath, uploadDocument } from '../../../services/storage';
@@ -180,11 +181,7 @@ export function useAddTransactionForm({
       setOverdraftWarning(null);
       onSuccess?.();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to save transaction. Please try again.',
-      );
+      setError(getErrorMessage(err, 'Failed to save transaction. Please try again.'));
     } finally {
       setSubmitting(false);
       submitGuard.current = false;
@@ -327,11 +324,7 @@ export function useAddTransactionForm({
 
       await submitTransaction(newTransaction, txnId);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'Failed to save transaction. Please try again.',
-      );
+      setError(getErrorMessage(err, 'Failed to save transaction. Please try again.'));
     } finally {
       submitGuard.current = false;
     }

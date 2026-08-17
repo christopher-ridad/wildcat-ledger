@@ -49,12 +49,10 @@ jobs:
           echo "Test Files: $FILES_PASSED/$FILES_TOTAL pass $FILES_MARK" >> "$GITHUB_STEP_SUMMARY"
           echo "Tests: $TESTS_PASSED/$TESTS_TOTAL pass $TESTS_MARK" >> "$GITHUB_STEP_SUMMARY"
 
-  dev:
-    name: Dev
+  e2e:
+    name: E2E
     needs: integration
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -67,12 +65,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Applies every migration in supabase/migrations/ to a throwaway local
+      # Postgres+Auth+Storage stack. E2E tests must never run against the
+      # real production project (secrets.VITE_SUPABASE_URL below, used only
+      # by the Dev job's build) -- this is a real financial app for 483
+      # live student orgs, not a sandbox. .env.e2e (committed -- these are
+      # Supabase's well-known local-dev placeholder keys, not secrets)
+      # points the build at this local stack instead.
+      - name: Start local Supabase
+        run: supabase start
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
@@ -99,6 +104,35 @@ jobs:
           TESTS_MARK=✅; [ "$UNEXPECTED" = "0" ] || TESTS_MARK=❌
           echo "Test Files: $FILES_PASSED/$FILES_TOTAL pass $FILES_MARK" >> "$GITHUB_STEP_SUMMARY"
           echo "Tests: $TESTS_PASSED/$TESTS_TOTAL pass $TESTS_MARK" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
+
+  dev:
+    name: Dev
+    needs: [integration, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_GOOGLE_VISION_API_KEY: ${{ secrets.VITE_GOOGLE_VISION_API_KEY }}
 
       # Mirrors whatever just passed onto the dev branch, so its Vercel
       # branch deployment (a stable URL, unlike the per-PR preview) always
