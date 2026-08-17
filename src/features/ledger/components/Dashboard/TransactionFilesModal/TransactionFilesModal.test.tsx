@@ -239,7 +239,7 @@ describe('TransactionFilesModal', () => {
         buildMockTransaction({
           type: 'Payment Request',
           budgetLine: 'Operating',
-          uploadTokens: { w9: 'existing-token' },
+          uploadTokens: { w9: { token: 'existing-token', mintedAt: Date.now() } },
         }),
       );
       expect(screen.getByText('Requested — waiting for upload')).toBeInTheDocument();

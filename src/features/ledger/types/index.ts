@@ -69,11 +69,14 @@ export interface Transaction {
   conflictOfInterestAcknowledgedMissing?: boolean;
   // Payment to NU Employee
   specialPayFormAcknowledgedMissing?: boolean;
-  // Single-use tokens keyed by document type (receipt/contract/w9/...),
-  // minted when a document is requested via email; cleared once that
-  // document is uploaded through the link. Lets the Files modal show
-  // "requested, waiting on upload" instead of a stale Request button.
-  uploadTokens?: Record<string, string>;
+  // Single-use, time-limited tokens keyed by document type
+  // (receipt/contract/w9/...), minted when a document is requested via
+  // email; cleared once that document is uploaded through the link. Lets
+  // the Files modal show "requested, waiting on upload" instead of a stale
+  // Request button. mintedAt is set server-side (see migration 0025) and
+  // only used there for expiry -- the frontend only ever checks a key's
+  // presence, never reads the value.
+  uploadTokens?: Record<string, { token: string; mintedAt: number }>;
   // Debit Card purchase — orgs are tax-exempt when the exemption form is
   // presented at purchase, so tax should never legitimately show up. When
   // it does (no exemption form submitted, tax on the receipt), the full

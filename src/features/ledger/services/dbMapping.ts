@@ -52,7 +52,7 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
     row.conflict_of_interest_acknowledged_missing ?? undefined,
   specialPayFormAcknowledgedMissing:
     row.special_pay_form_acknowledged_missing ?? undefined,
-  uploadTokens: (row.upload_tokens as Record<string, string>) ?? undefined,
+  uploadTokens: row.upload_tokens as Transaction['uploadTokens'],
 });
 
 export const rowToOrganization = (
