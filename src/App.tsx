@@ -1,34 +1,46 @@
 import './App.css';
 
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 
 import { useAuth } from './features/authentication/hooks/useAuth';
 import { AuthProvider } from './features/authentication/stores/AuthContext';
 import { LedgerProvider } from './features/ledger/stores/LedgerContext';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
 // Route-level code splitting -- each page becomes its own chunk instead of
 // all six being bundled into the initial load regardless of which one (if
 // any) the visitor actually needs. Dashboard in particular pulls in the
 // bulk of the app's ledger UI plus jszip (for the receipts-ZIP download),
-// so splitting it out matters most.
-const LoginPage = lazy(() =>
-  import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })),
+// so splitting it out matters most. lazyWithRetry (rather than React's own
+// lazy) handles the resulting "chunk 404s after a new deploy" failure mode
+// -- see its own comment.
+const LoginPage = lazyWithRetry(
+  () => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })),
+  'chunk-retry:LoginPage',
 );
-const UploadDocumentPage = lazy(() =>
-  import('./pages/UploadDocumentPage').then((m) => ({ default: m.UploadDocumentPage })),
+const UploadDocumentPage = lazyWithRetry(
+  () =>
+    import('./pages/UploadDocumentPage').then((m) => ({ default: m.UploadDocumentPage })),
+  'chunk-retry:UploadDocumentPage',
 );
-const OrganizationsPage = lazy(() =>
-  import('./pages/OrganizationsPage').then((m) => ({ default: m.OrganizationsPage })),
+const OrganizationsPage = lazyWithRetry(
+  () =>
+    import('./pages/OrganizationsPage').then((m) => ({ default: m.OrganizationsPage })),
+  'chunk-retry:OrganizationsPage',
 );
-const CreateOrganization = lazy(() =>
-  import('./pages/CreateOrganization').then((m) => ({ default: m.CreateOrganization })),
+const CreateOrganization = lazyWithRetry(
+  () =>
+    import('./pages/CreateOrganization').then((m) => ({ default: m.CreateOrganization })),
+  'chunk-retry:CreateOrganization',
 );
-const Dashboard = lazy(() =>
-  import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })),
+const Dashboard = lazyWithRetry(
+  () => import('./pages/Dashboard').then((m) => ({ default: m.Dashboard })),
+  'chunk-retry:Dashboard',
 );
-const AuditLogPage = lazy(() =>
-  import('./pages/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
+const AuditLogPage = lazyWithRetry(
+  () => import('./pages/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
+  'chunk-retry:AuditLogPage',
 );
 
 const ProtectedLayout = () => {
