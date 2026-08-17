@@ -9,8 +9,20 @@ import { TransactionList } from './TransactionList';
 vi.mock('../../../hooks/useLedger');
 vi.mock('../../../../authentication/hooks/useAuth');
 vi.mock('../TransactionModal', () => ({
-  TransactionModal: ({ isOpen }: { isOpen: boolean }) =>
-    isOpen ? <div data-testid="transaction-modal" /> : null,
+  TransactionModal: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid="transaction-modal">
+        <button onClick={onClose}>Close edit modal</button>
+      </div>
+    ) : null,
+}));
+vi.mock('../TransactionFilesModal', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../TransactionFilesModal')>()),
+  TransactionFilesModal: ({ onClose }: { onClose: () => void }) => (
+    <div data-testid="files-modal">
+      <button onClick={onClose}>Close files modal</button>
+    </div>
+  ),
 }));
 
 const mockUseLedger = vi.mocked(useLedger);
@@ -107,7 +119,7 @@ describe('TransactionList', () => {
     expect(deleteTransaction).not.toHaveBeenCalled();
   });
 
-  test('opens the TransactionModal when a row requests edit', () => {
+  test('opens the TransactionModal when a row requests edit, and closing it clears the editing state', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       userRole: 'sofoApprover',
@@ -119,6 +131,32 @@ describe('TransactionList', () => {
     expect(screen.queryByTestId('transaction-modal')).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Edit transaction'));
     expect(screen.getByTestId('transaction-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Close edit modal'));
+    expect(screen.queryByTestId('transaction-modal')).not.toBeInTheDocument();
+  });
+
+  test('opens the files modal when a row requests it, and closing it dismisses it', () => {
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      userRole: 'sofoApprover',
+      canEdit: true,
+      filteredTransactions: [
+        buildMockTransaction({
+          id: 't1',
+          title: 'Pizza',
+          receiptFileUrl: 'orgs/1/receipt.png',
+        }),
+      ],
+    } as never);
+    render(<TransactionList />);
+
+    expect(screen.queryByTestId('files-modal')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('View 1 attached file'));
+    expect(screen.getByTestId('files-modal')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Close files modal'));
+    expect(screen.queryByTestId('files-modal')).not.toBeInTheDocument();
   });
 
   test("changing a row's payment status calls updatePaymentStatus", () => {

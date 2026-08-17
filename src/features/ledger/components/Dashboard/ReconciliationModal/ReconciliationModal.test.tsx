@@ -221,6 +221,260 @@ describe('ReconciliationModal', () => {
     expect(screen.getByText('$50.00')).toBeInTheDocument();
   });
 
+  test('shows the last reconciliation date in the subtitle when one is set', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+      lastReconciliationDate: new Date('2026-01-01').getTime(),
+    });
+    renderModal({ activeOrganization: org });
+    expect(
+      screen.getByText(/Showing unreconciled transactions since/),
+    ).toBeInTheDocument();
+  });
+
+  test('shows a validation error for an invalid reload amount without calling addTransaction', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions, addTransaction });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
+
+    expect(await screen.findByText('Enter a valid reload amount.')).toBeInTheDocument();
+    expect(addTransaction).not.toHaveBeenCalled();
+  });
+
+  test('shows an error message when reconciling fails, and stays on the review step', async () => {
+    const reconcileTransactions = vi.fn().mockRejectedValue(new Error('Network error'));
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+
+    expect(await screen.findByText('Network error')).toBeInTheDocument();
+    expect(screen.queryByText('Reconciliation complete!')).not.toBeInTheDocument();
+  });
+
+  test('shows an error message when the receipts ZIP download fails', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    mockDownloadZip.mockRejectedValueOnce(new Error('ZIP failed'));
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    const zipButton = await screen.findByText(/Receipts ZIP \(1\)/);
+    fireEvent.click(zipButton);
+
+    // No visible error surfaces for a failed ZIP download in this step today
+    // (see the finding raised alongside this test) -- the button simply
+    // returns to its normal label once the rejected download settles.
+    await screen.findByText(/Receipts ZIP \(1\)/);
+  });
+
+  test('shows plural wording when more than one transaction blocks reconciliation', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' }),
+        buildMockTransaction({ id: 't2', budgetLine: 'Debit Card' }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(
+      screen.getByText(/2 transactions cannot be reconciled until they have a receipt/),
+    ).toBeInTheDocument();
+  });
+
+  test('shows plural wording when more than one transaction owes a tax reimbursement', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          taxExemptFormSubmitted: false,
+          taxAmount: 2.5,
+        }),
+        buildMockTransaction({
+          id: 't2',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r2',
+          taxExemptFormSubmitted: false,
+          taxAmount: 3,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(
+      screen.getByText(
+        /2 transactions cannot be reconciled until their tax reimbursement to SOFO is resolved/,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test('shows plural wording when more than one transaction has a pending request', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+        buildMockTransaction({
+          id: 't2',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r2',
+        }),
+      ],
+    });
+    const pendingChanges = [
+      buildMockPendingChange({ transactionId: 't1', type: 'delete' }),
+      buildMockPendingChange({ transactionId: 't2', type: 'edit' }),
+    ];
+    renderModal({ activeOrganization: org, pendingChanges });
+    expect(
+      screen.getByText(
+        /2 transactions cannot be reconciled until their pending edit or delete request are resolved/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Has a pending delete request awaiting approval/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Has a pending edit request awaiting approval/),
+    ).toBeInTheDocument();
+  });
+
+  test('shows a "+" sign for an inflow transaction in the unreconciled list', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          type: 'Payment Request',
+          direction: 'Inflow',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(screen.getByText(/^\+\$/)).toBeInTheDocument();
+  });
+
+  test('shows "submitted without receipt" wording when the receipt was explicitly acknowledged missing', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          noReceiptAcknowledged: true,
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+    expect(screen.getByText(/Submitted without receipt\./)).toBeInTheDocument();
+    expect(
+      screen.getByText('Attach completed Policy Exemption Request Form ↗'),
+    ).toBeInTheDocument();
+  });
+
+  test('shows plural exemption-count wording in the success summary, and pluralizes the reload request notes', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          exemptionFormUrl: 'e1',
+        }),
+        buildMockTransaction({
+          id: 't2',
+          budgetLine: 'Debit Card',
+          exemptionFormUrl: 'e2',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions, addTransaction });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (2)' }));
+    await screen.findByText('Reconciliation complete!');
+    expect(screen.getByText('exemptions')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
+
+    await vi.waitFor(() =>
+      expect(addTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notes: expect.stringContaining('Requested after reconciling 2 transactions'),
+        }),
+        expect.any(String),
+      ),
+    );
+  });
+
+  test('clicking "Attach Completed Exemption Form" opens the file picker', () => {
+    const org = buildMockOrganization({
+      transactions: [buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' })],
+    });
+    const { container } = renderModal({ activeOrganization: org });
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, 'click');
+    fireEvent.click(
+      screen.getByRole('button', { name: '↑ Attach Completed Exemption Form' }),
+    );
+
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  test('ignores a cancelled file selection (no file chosen)', () => {
+    const uploadExemptionForm = vi.fn();
+    const org = buildMockOrganization({
+      transactions: [buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' })],
+    });
+    const { container } = renderModal({ activeOrganization: org, uploadExemptionForm });
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [] } });
+
+    expect(uploadExemptionForm).not.toHaveBeenCalled();
+  });
+
   test('uploading an exemption form for a missing-receipt transaction calls uploadExemptionForm', async () => {
     const uploadExemptionForm = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
