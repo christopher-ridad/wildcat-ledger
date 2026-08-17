@@ -11,6 +11,7 @@ import { parseBudgetAllocation } from '../features/ledger/services/parseBudgetAl
 import { BudgetAllocations } from '../features/ledger/types';
 import { EMPTY_ALLOCATIONS } from '../features/ledger/utils/constants';
 import { TopNav } from '../layouts/TopNav';
+import { getErrorMessage } from '../utils/errors';
 
 export const CreateOrganization = () => {
   const { activeOrganization, initializeBudgetAllocations, loading } = useLedger();
@@ -60,7 +61,7 @@ export const CreateOrganization = () => {
       });
       setScanState('done');
     } catch (err) {
-      setScanError(err instanceof Error ? err.message : 'Scan failed');
+      setScanError(getErrorMessage(err, 'Scan failed'));
       setScanState('error');
     }
   };

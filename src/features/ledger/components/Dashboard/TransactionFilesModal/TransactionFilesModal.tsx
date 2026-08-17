@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { getErrorMessage } from '../../../../../utils/errors';
 import { useLedger } from '../../../hooks/useLedger';
 import { getSignedFileUrl } from '../../../services/storage';
 import { Transaction } from '../../../types';
@@ -140,9 +141,7 @@ export const TransactionFilesModal = ({
       );
       setJustRequested((prev) => new Set(prev).add(doc.key));
     } catch (err) {
-      setRequestError(
-        err instanceof Error ? err.message : 'Failed to send the document request.',
-      );
+      setRequestError(getErrorMessage(err, 'Failed to send the document request.'));
     } finally {
       setRequesting(null);
     }

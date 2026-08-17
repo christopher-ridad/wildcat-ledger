@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 
+import { getErrorMessage } from '../../../../../utils/errors';
 import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
@@ -181,7 +182,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       setReconSummary(summary);
       setStep('reload');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reconciliation failed.');
+      setError(getErrorMessage(err, 'Reconciliation failed.'));
     } finally {
       setSubmitting(false);
     }
@@ -211,7 +212,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       );
       setReloadRequested(true);
     } catch (err) {
-      setReloadError(err instanceof Error ? err.message : 'Reload request failed.');
+      setReloadError(getErrorMessage(err, 'Reload request failed.'));
     } finally {
       setRequestingReload(false);
     }
@@ -222,7 +223,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     try {
       await downloadReceiptsZip(snapshotTxnsWithReceipts);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not generate ZIP.');
+      setError(getErrorMessage(err, 'Could not generate ZIP.'));
     } finally {
       setZipping(false);
     }

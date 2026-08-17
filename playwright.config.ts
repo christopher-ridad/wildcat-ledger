@@ -1,7 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { AUTH_STATE_PATH } from './e2e/global-setup';
+
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -16,14 +19,28 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run serve',
+    // Rebuilds against local Supabase (see .env.e2e) every fresh run, then
+    // serves the static build -- mirrors how ci.yml's Dev job builds once
+    // and serves the result, just pointed at the local stack instead of
+    // production.
+    command: 'npm run build:e2e && npm run serve:e2e',
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
   },
   projects: [
     {
-      name: 'chromium',
+      // The login page redirects an already-authenticated user away
+      // immediately (see LoginPage.tsx), so this spec needs a clean,
+      // unauthenticated context -- deliberately NOT given storageState.
+      name: 'unauthenticated',
+      testMatch: /login\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'authenticated',
+      testIgnore: /login\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], storageState: AUTH_STATE_PATH },
     },
   ],
 });

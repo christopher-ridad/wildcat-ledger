@@ -11,6 +11,7 @@
 
 import JSZip from 'jszip';
 
+import { getErrorMessage } from '../../../utils/errors';
 import { Transaction } from '../types';
 import { downloadDocument } from './storage';
 
@@ -80,7 +81,7 @@ export async function downloadReceiptsZip(
           } catch (err) {
             folder.file(
               `${name}_unavailable.txt`,
-              `Could not download ${name} for: ${t.title}\nError: ${err instanceof Error ? err.message : String(err)}`,
+              `Could not download ${name} for: ${t.title}\nError: ${getErrorMessage(err, 'Unknown error')}`,
             );
           }
         }),

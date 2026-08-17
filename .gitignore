@@ -9,6 +9,7 @@ test-results
 playwright-report
 playwright-report.json
 blob-report
+e2e/.auth
 vitest-report.json
 CLAUDE.md
 .env
