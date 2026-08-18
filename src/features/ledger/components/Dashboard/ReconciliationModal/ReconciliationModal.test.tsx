@@ -298,11 +298,15 @@ describe('ReconciliationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     const zipButton = await screen.findByText(/Receipts ZIP \(1\)/);
     fireEvent.click(zipButton);
-
-    // No visible error surfaces for a failed ZIP download in this step today
-    // (see the finding raised alongside this test) -- the button simply
-    // returns to its normal label once the rejected download settles.
     await screen.findByText(/Receipts ZIP \(1\)/);
+
+    // Documents a real gap, not just exercises the catch branch: handleDownloadZip
+    // does set an error on rejection, but the reload step's JSX never renders
+    // the `error` state (only the review step does), so today a failed
+    // download fails completely silently. This assertion should start
+    // failing the moment that's fixed -- treat it as a signal to update this
+    // test's expectations, not a regression.
+    expect(screen.queryByText('ZIP failed')).not.toBeInTheDocument();
   });
 
   test('shows plural wording when more than one transaction blocks reconciliation', () => {
