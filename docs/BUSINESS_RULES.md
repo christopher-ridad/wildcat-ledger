@@ -13,15 +13,20 @@ historical note.
 
 ## Roles & permissions
 
-Every org has a treasurer, a president, an officers list, and an admins list. The treasurer and
-president are the only people who can add, edit, or delete transactions, approve pending changes,
-reconcile the debit card, and change SOFO settings. This doc calls that pair "managers." Anyone on
-the admins list is currently treated the same as a treasurer for these purposes, even though
-"admin" isn't itself a SOFO role. It's just how the app happens to be set up. Officers can see
-everything but can't make changes beyond their own baseline access as a member.
+Every org has a **SOFO Approvers** list and an **officers** list. SOFO Approvers (usually the
+treasurer and president, since they're the ones who actually process a club's paperwork with SOFO)
+are the only people who can add, edit, or delete transactions, approve pending changes, reconcile
+the debit card, and change SOFO settings. This doc calls that group "managers." SOFO itself doesn't
+distinguish which title did the work, just that a SOFO Approver did — the app used to track
+treasurer/president/admins as separate lists, but they always granted identical permissions
+everywhere, so they were merged into one list. Officers can see everything but can't make changes
+beyond their own baseline access as a member.
 
-**Technical implementation:** role resolution happens client-side in `LedgerContext.tsx`. It checks
-treasurer first, then president, then officer, then falls back to treasurer-equivalent for admins.
+**Technical implementation:** role resolution happens client-side in `LedgerContext.tsx`, checking
+`sofoApprovers` first, then `officers`, matched by email against the signed-in user. The
+`UserRole` type is just `'sofoApprover' | 'officer'`. Enforced server-side too — see the RLS
+policies and `can_manage_org`/`is_org_member` functions in `supabase/migrations/0018_sofo_approvers.sql`
+onward — so this holds even if the interface were bypassed entirely.
 
 ## Transaction types & their documents
 

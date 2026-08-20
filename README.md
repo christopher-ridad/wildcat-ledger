@@ -22,11 +22,12 @@ Most Northwestern student orgs were tracking budgets across scattered spreadshee
 - **Backend:** Supabase (Postgres, Auth, Storage). No separate API server; business logic and access control live in the database itself
 - **Permissions:** enforced via Postgres Row-Level Security policies rather than application-layer checks, so access control holds even if a client request bypasses the UI
 - **Audit trail:** every transaction and approval action is logged, giving orgs a full history of who did what and when
-- **Testing:** Vitest for unit/integration coverage, run in CI before merges
+- **Receipt & budget-document scanning:** Google Cloud Vision OCR pre-fills a receipt's title/amount, or a budget-allocation document's line amounts, on upload — always reviewable and editable, never blocking manual entry if a scan fails
+- **Testing:** Vitest for unit/integration coverage, Playwright for end-to-end flows (including automated WCAG accessibility scans via axe-core), both run in CI before merges
 
 ## Tech Stack
 
-React · TypeScript · Vite · Supabase (Postgres, RLS, Auth, Storage) · Vitest
+React · TypeScript · Vite · Supabase (Postgres, RLS, Auth, Storage) · Vitest · Playwright
 
 ## Getting Started
 
@@ -40,13 +41,15 @@ cp .env.example .env
 Fill in `.env` with your Supabase project URL and keys.
 
 ```bash
-npm run dev          # start the local dev server
-npm run build         # type-check + production build
-npm test -- --run     # run the full test suite once
+npm run dev        # start the local dev server
+npm run build      # type-check + production build
+npm test -- --run  # run the full test suite once
+npm run e2e        # run the Playwright end-to-end suite (needs a local Supabase instance, see supabase/)
 ```
 
 Before shipping changes, run `npm run type-check`, `npm test -- --run`, and `npm run build`.
 
 ## Author
 
-Built by [Christopher Ridad](https://linkedin.com/in/christopher-ridad) as part of a 5-person team.
+Originally built as a team project at Northwestern; now maintained by
+[Christopher Ridad](https://linkedin.com/in/christopher-ridad).

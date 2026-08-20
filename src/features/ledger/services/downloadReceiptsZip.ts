@@ -15,7 +15,6 @@ import { getErrorMessage } from '../../../utils/errors';
 import { Transaction } from '../types';
 import { downloadDocument } from './storage';
 
-/** Turns a transaction title into a safe folder-name slug */
 function slugify(title: string): string {
   return title
     .toLowerCase()
@@ -24,7 +23,6 @@ function slugify(title: string): string {
     .slice(0, 40);
 }
 
-/** Returns a file extension from a blob's MIME type */
 function extFromMimeType(mimeType: string): string {
   const map: Record<string, string> = {
     'application/pdf': 'pdf',
