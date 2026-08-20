@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 
-import { getErrorMessage } from '../../../../../utils/errors';
-import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
+import { useAsyncAction, useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
 import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
@@ -43,11 +42,10 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   );
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const confirmAction = useAsyncAction();
   const uploadAction = useAsyncActionMap();
   const reimburseAction = useAsyncActionMap();
-  const [zipping, setZipping] = useState(false);
+  const zipAction = useAsyncAction();
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const [step, setStep] = useState<Step>('review');
@@ -60,9 +58,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     [],
   );
   const [reloadAmountInput, setReloadAmountInput] = useState('');
-  const [requestingReload, setRequestingReload] = useState(false);
+  const reloadAction = useAsyncAction();
   const [reloadRequested, setReloadRequested] = useState(false);
-  const [reloadError, setReloadError] = useState<string | null>(null);
   // "Covered" per docs/BUSINESS_RULES.md#debit-card-reconciliation.
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
   // See docs/BUSINESS_RULES.md#dual-approval-workflow -- a reconciled
@@ -83,15 +80,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     setSelected(
       uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
     );
-    setError(null);
+    confirmAction.setError(null);
     uploadAction.reset();
     reimburseAction.reset();
     setStep('review');
     setReconSummary(null);
     setReloadAmountInput('');
-    setRequestingReload(false);
     setReloadRequested(false);
-    setReloadError(null);
+    reloadAction.setError(null);
   }, [coveredIds, uncoveredCount]);
 
   // All uncovered transactions in the list (blocks reconciliation entirely)
@@ -142,30 +138,28 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
   const handleConfirm = async () => {
     if (selected.size === 0) {
-      setError('Select at least one transaction to reconcile.');
+      confirmAction.setError('Select at least one transaction to reconcile.');
       return;
     }
     if (uncoveredAll.length > 0) {
-      setError(
+      confirmAction.setError(
         `${uncoveredAll.length} transaction(s) are missing a receipt or exemption form.`,
       );
       return;
     }
     if (unresolvedTaxAll.length > 0) {
-      setError(
+      confirmAction.setError(
         `${unresolvedTaxAll.length} transaction(s) owe an unresolved tax reimbursement to SOFO.`,
       );
       return;
     }
     if (pendingAll.length > 0) {
-      setError(
+      confirmAction.setError(
         `${pendingAll.length} transaction(s) have a pending edit or delete request awaiting approval.`,
       );
       return;
     }
-    setSubmitting(true);
-    setError(null);
-    try {
+    await confirmAction.run(async () => {
       const reconciledTxns = unreconciledTxns.filter((t) => selected.has(t.id));
       const totalAmount = reconciledTxns
         .filter((t) => t.direction === 'Outflow')
@@ -181,23 +175,17 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       const summary = { transactionCount: selected.size, totalAmount, exemptionCount };
       setReconSummary(summary);
       setStep('reload');
-    } catch (err) {
-      setError(getErrorMessage(err, 'Reconciliation failed.'));
-    } finally {
-      setSubmitting(false);
-    }
+    }, 'Reconciliation failed.');
   };
 
   const handleRequestReload = async () => {
     if (!reconSummary) return;
     const amount = parseFloat(reloadAmountInput);
     if (Number.isNaN(amount) || amount <= 0) {
-      setReloadError('Enter a valid reload amount.');
+      reloadAction.setError('Enter a valid reload amount.');
       return;
     }
-    setRequestingReload(true);
-    setReloadError(null);
-    try {
+    await reloadAction.run(async () => {
       await addTransaction(
         {
           title: 'Debit Card Reload',
@@ -211,23 +199,13 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
         generateTransactionId(),
       );
       setReloadRequested(true);
-    } catch (err) {
-      setReloadError(getErrorMessage(err, 'Reload request failed.'));
-    } finally {
-      setRequestingReload(false);
-    }
+    }, 'Reload request failed.');
   };
 
   const handleDownloadZip = async () => {
-    setZipping(true);
-    setError(null);
-    try {
+    await zipAction.run(async () => {
       await downloadReceiptsZip(snapshotTxnsWithReceipts);
-    } catch (err) {
-      setError(getErrorMessage(err, 'Could not generate ZIP.'));
-    } finally {
-      setZipping(false);
-    }
+    }, 'Could not generate ZIP.');
   };
 
   const lastDate = activeOrganization?.lastReconciliationDate;
@@ -442,9 +420,9 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                 </div>
               )}
 
-              {error && (
+              {confirmAction.error && (
                 <div className="wl-form-error" style={{ marginTop: 12 }}>
-                  {error}
+                  {confirmAction.error}
                 </div>
               )}
 
@@ -453,20 +431,22 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   type="button"
                   className="wl-btn-primary"
                   onClick={handleConfirm}
-                  disabled={submitting || !canConfirm || hideCheckboxes}
+                  disabled={confirmAction.pending || !canConfirm || hideCheckboxes}
                   title={
                     hideCheckboxes
                       ? 'Resolve all missing receipts before reconciling'
                       : undefined
                   }
                 >
-                  {submitting ? 'Reconciling…' : `Confirm & Reconcile (${displayCount})`}
+                  {confirmAction.pending
+                    ? 'Reconciling…'
+                    : `Confirm & Reconcile (${displayCount})`}
                 </button>
                 <button
                   type="button"
                   className="wl-btn-cancel"
                   onClick={onClose}
-                  disabled={submitting}
+                  disabled={confirmAction.pending}
                 >
                   Cancel
                 </button>
@@ -546,19 +526,21 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                     type="button"
                     className={styles['wl-btn-download-zip']}
                     onClick={handleRequestReload}
-                    disabled={requestingReload}
+                    disabled={reloadAction.pending}
                   >
-                    {requestingReload ? 'Submitting…' : 'Request Reload'}
+                    {reloadAction.pending ? 'Submitting…' : 'Request Reload'}
                   </button>
                 </div>
-                {reloadError && <div className="wl-form-error">{reloadError}</div>}
+                {reloadAction.error && (
+                  <div className="wl-form-error">{reloadAction.error}</div>
+                )}
               </>
             )}
           </div>
 
-          {error && (
+          {zipAction.error && (
             <div className="wl-form-error" style={{ marginTop: 12 }}>
-              {error}
+              {zipAction.error}
             </div>
           )}
 
@@ -568,9 +550,9 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                 type="button"
                 className={styles['wl-btn-download-zip']}
                 onClick={handleDownloadZip}
-                disabled={zipping}
+                disabled={zipAction.pending}
               >
-                {zipping
+                {zipAction.pending
                   ? 'Bundling…'
                   : `⬇ Receipts ZIP (${snapshotTxnsWithReceipts.length})`}
               </button>
