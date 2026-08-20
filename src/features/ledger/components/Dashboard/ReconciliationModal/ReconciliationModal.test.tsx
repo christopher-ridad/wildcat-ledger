@@ -300,12 +300,30 @@ describe('ReconciliationModal', () => {
     fireEvent.click(zipButton);
     await screen.findByText(/Receipts ZIP \(1\)/);
 
-    // Documents a real gap, not just exercises the catch branch: handleDownloadZip
-    // does set an error on rejection, but the reload step's JSX never renders
-    // the `error` state (only the review step does), so today a failed
-    // download fails completely silently. This assertion should start
-    // failing the moment that's fixed -- treat it as a signal to update this
-    // test's expectations, not a regression.
+    expect(await screen.findByText('ZIP failed')).toBeInTheDocument();
+  });
+
+  test('a successful ZIP download clears a previous download error', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    mockDownloadZip.mockRejectedValueOnce(new Error('ZIP failed'));
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    const zipButton = await screen.findByText(/Receipts ZIP \(1\)/);
+    fireEvent.click(zipButton);
+    expect(await screen.findByText('ZIP failed')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(/Receipts ZIP \(1\)/));
+    await vi.waitFor(() => expect(mockDownloadZip).toHaveBeenCalledTimes(2));
     expect(screen.queryByText('ZIP failed')).not.toBeInTheDocument();
   });
 

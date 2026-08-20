@@ -220,6 +220,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
   const handleDownloadZip = async () => {
     setZipping(true);
+    setError(null);
     try {
       await downloadReceiptsZip(snapshotTxnsWithReceipts);
     } catch (err) {
@@ -554,6 +555,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
               </>
             )}
           </div>
+
+          {error && (
+            <div className="wl-form-error" style={{ marginTop: 12 }}>
+              {error}
+            </div>
+          )}
 
           <div className={styles['wl-recon-actions']}>
             {snapshotTxnsWithReceipts.length > 0 && (
