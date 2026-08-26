@@ -40,7 +40,7 @@ export const LoginPage = () => {
         {error && <div className="wl-form-error wl-login-error">{error}</div>}
         <button
           type="button"
-          className="wl-btn-primary wl-register-done"
+          className="wl-btn-primary wl-login-signin-btn"
           onClick={handleSignIn}
           disabled={submitting}
         >

@@ -567,6 +567,13 @@ tbody tr:hover {
   padding: 10px 12px;
 }
 
+.wl-login-signin-btn {
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
 .wl-login-error {
   margin-bottom: 16px;
 }
