@@ -92,6 +92,13 @@ three stages: **Pending → Approved → Paid**. Unlike editing, changing this s
 treasurer or president, not two. Status changes happen often enough, and are low-risk enough, that
 requiring a second sign-off would just slow things down without adding real protection.
 
+**"Pending" means already submitted to SOFO**, not "still being put together." The intended
+workflow is submit the SOFO Microsoft Form first, then log the transaction here — the ledger has
+no separate "still gathering paperwork" state, and isn't meant to. Nothing technically enforces
+that ordering (there's nothing stopping someone from logging it first), but that's the assumption
+the rest of this lifecycle is built on. "Approved" collapses SOFO's own multi-approver review on
+their end into a single status once everyone there has signed off.
+
 A transaction can't move to Approved or Paid while it's still missing a required document. SOFO
 won't actually cut a check without the paperwork in hand, so the app won't let it be marked ready
 either.
