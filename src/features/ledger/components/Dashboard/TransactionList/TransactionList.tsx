@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { Transaction } from '../../../types';
+import { Modal } from '../Modal';
 import { TransactionFilesModal } from '../TransactionFilesModal';
 import { TransactionModal } from '../TransactionModal';
 import { TransactionRow } from '../TransactionRow';
@@ -67,62 +68,20 @@ export const TransactionList = () => {
             </thead>
             <tbody>
               {filteredTransactions.map((t) => (
-                <React.Fragment key={t.id}>
-                  <TransactionRow
-                    t={t}
-                    canEdit={canEdit}
-                    pending={pendingChangeForTransaction(t.id)}
-                    onEdit={setEditingTransaction}
-                    onDelete={setDeletingTransaction}
-                    onApprove={approvePendingChange}
-                    onReject={rejectPendingChange}
-                    onCancel={cancelPendingChange}
-                    onViewFiles={setViewingFilesTransaction}
-                    onUpdatePaymentStatus={updatePaymentStatus}
-                    onMarkTaxReimbursed={markTaxReimbursed}
-                  />
-                  {deletingTransaction?.id === t.id && (
-                    <tr className={styles['wl-delete-confirm-row']}>
-                      <td
-                        colSpan={canEdit ? 7 : 6}
-                        className={styles['wl-delete-confirm-cell']}
-                      >
-                        <div
-                          className={`${styles['wl-inline-confirm']} ${styles['wl-inline-confirm--inline']}`}
-                        >
-                          <p>
-                            Submit a delete request for <strong>{t.title}</strong>?<br />
-                            The other approver will need to confirm before it is removed.
-                          </p>
-                          {deleteAction.error && (
-                            <div className="wl-form-error" role="alert">
-                              {deleteAction.error}
-                            </div>
-                          )}
-                          <div className="wl-overdraft-actions">
-                            <button
-                              type="button"
-                              className="wl-btn-warning"
-                              style={{ background: '#dc2626' }}
-                              onClick={handleDeleteConfirm}
-                              disabled={deleteAction.pending}
-                            >
-                              {deleteAction.pending ? 'Submitting…' : 'Submit Request'}
-                            </button>
-                            <button
-                              type="button"
-                              className="wl-btn-cancel"
-                              onClick={handleDeleteCancel}
-                              disabled={deleteAction.pending}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
+                <TransactionRow
+                  key={t.id}
+                  t={t}
+                  canEdit={canEdit}
+                  pending={pendingChangeForTransaction(t.id)}
+                  onEdit={setEditingTransaction}
+                  onDelete={setDeletingTransaction}
+                  onApprove={approvePendingChange}
+                  onReject={rejectPendingChange}
+                  onCancel={cancelPendingChange}
+                  onViewFiles={setViewingFilesTransaction}
+                  onUpdatePaymentStatus={updatePaymentStatus}
+                  onMarkTaxReimbursed={markTaxReimbursed}
+                />
               ))}
             </tbody>
           </table>
@@ -140,6 +99,45 @@ export const TransactionList = () => {
           transaction={viewingFilesTransaction}
           onClose={() => setViewingFilesTransaction(null)}
         />
+      )}
+
+      {deletingTransaction && (
+        <Modal
+          isOpen
+          onClose={handleDeleteCancel}
+          titleId="delete-confirm-title"
+          title="Delete Transaction"
+        >
+          <p className={styles['wl-delete-confirm-text']}>
+            Submit a delete request for <strong>{deletingTransaction.title}</strong>?
+          </p>
+          <p className={styles['wl-delete-confirm-hint']}>
+            The other approver will need to confirm before it is removed.
+          </p>
+          {deleteAction.error && (
+            <div className="wl-form-error" role="alert">
+              {deleteAction.error}
+            </div>
+          )}
+          <div className={styles['wl-delete-confirm-actions']}>
+            <button
+              type="button"
+              className="wl-btn-danger"
+              onClick={handleDeleteConfirm}
+              disabled={deleteAction.pending}
+            >
+              {deleteAction.pending ? 'Submitting…' : 'Submit Request'}
+            </button>
+            <button
+              type="button"
+              className="wl-btn-cancel"
+              onClick={handleDeleteCancel}
+              disabled={deleteAction.pending}
+            >
+              Cancel
+            </button>
+          </div>
+        </Modal>
       )}
     </>
   );

@@ -83,7 +83,7 @@ describe('TransactionList', () => {
     expect(screen.queryByText('Actions')).not.toBeInTheDocument();
   });
 
-  test('clicking delete shows an inline confirmation, and confirming calls deleteTransaction', () => {
+  test('clicking delete shows a confirmation dialog, and confirming calls deleteTransaction', () => {
     const deleteTransaction = vi.fn().mockResolvedValue(undefined);
     mockUseLedger.mockReturnValue({
       ...baseLedger,
