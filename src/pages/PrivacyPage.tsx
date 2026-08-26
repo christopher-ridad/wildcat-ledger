@@ -12,24 +12,23 @@ export const PrivacyPage = () => (
         time.
       </p>
 
-      <h2>How you sign in</h2>
-      <p>
-        WildcatLedger doesn&apos;t have its own passwords. Signing in redirects you to
-        Google, and only Google accounts on the <code>@u.northwestern.edu</code> domain
-        are allowed to create an account &mdash; this is enforced on the server, not just
-        in the sign-in screen, so no other domain can get in even if it slips past
-        Google&apos;s own account picker. Google handles the authentication itself;
-        WildcatLedger never sees or stores a password.
-      </p>
-
       <h2>What data is collected</h2>
       <p>
-        Signing in shares your name and <code>@u.northwestern.edu</code> email address
-        with the app. Beyond that, WildcatLedger only stores what you or your
-        organization&apos;s officers and SOFO approvers enter directly into the ledger:
-        transaction records, budget line allocations, and any receipt or
+        WildcatLedger doesn&apos;t have its own passwords &mdash; signing in goes through
+        Google, restricted to <code>@u.northwestern.edu</code> accounts, which shares your
+        name and email address with the app. Beyond that, WildcatLedger only stores what
+        you or your organization&apos;s officers and SOFO approvers enter directly into
+        the ledger: transaction records, budget line allocations, and any receipt or
         supporting-document files uploaded for a transaction. Nothing is collected
         passively &mdash; there&apos;s no analytics or tracking script on this site.
+      </p>
+
+      <h2>How it&apos;s used</h2>
+      <p>
+        This data is used only to run the ledger for your organization &mdash; tracking
+        transactions, budget balances, and the approval history behind each one. It
+        isn&apos;t used for any other purpose, and isn&apos;t sold or shared with any
+        third party.
       </p>
 
       <h2>Who can access your data</h2>
@@ -40,20 +39,11 @@ export const PrivacyPage = () => (
         nobody outside that list, and nobody from a different organization, can see it.
       </p>
 
-      <h2>Where your data lives</h2>
+      <h2>Third parties</h2>
       <p>
         WildcatLedger runs on Supabase, which hosts the database and file storage, and
         uses Google only to verify who you are at sign-in. Neither is given your data for
-        any purpose beyond running the app, and it isn&apos;t sold or shared with anyone
-        else.
-      </p>
-
-      <h2>Signing out</h2>
-      <p>
-        A Sign Out button is available on every page once you&apos;re signed in (top-right
-        of the navigation bar). Using it ends your WildcatLedger session immediately; it
-        doesn&apos;t sign you out of Google itself, so you can sign back in without
-        re-entering anything.
+        any purpose beyond running the app.
       </p>
 
       <h2>Security</h2>
