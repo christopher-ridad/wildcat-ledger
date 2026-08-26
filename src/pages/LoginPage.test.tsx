@@ -35,6 +35,10 @@ describe('LoginPage', () => {
     expect(
       screen.getByRole('button', { name: /sign in with google/i }),
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
   });
 
   test('redirects to /organizations and clears the stored org when already logged in', () => {

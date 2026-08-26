@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../features/authentication/hooks/useAuth';
 import { getErrorMessage } from '../utils/errors';
@@ -46,6 +46,9 @@ export const LoginPage = () => {
         >
           {submitting ? 'Redirecting…' : 'Sign in with Google'}
         </button>
+        <p className="wl-login-footer">
+          <Link to="/privacy">Privacy Policy</Link>
+        </p>
       </div>
     </div>
   );
