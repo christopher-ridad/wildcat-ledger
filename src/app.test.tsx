@@ -47,7 +47,12 @@ describe('WildcatLedger App', () => {
   });
 
   test('renders the login screen by default', async () => {
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink: vi.fn() });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
     render(<App />);
 
     // LoginPage is now code-split (see App.tsx), so it isn't in the DOM
@@ -57,14 +62,21 @@ describe('WildcatLedger App', () => {
       await screen.findByRole('heading', { name: /wildcatledger/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/enter your email to receive a sign-in link/i),
+      screen.getByText(/sign in with your northwestern google account/i),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /send me a link/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /sign in with google/i }),
+    ).toBeInTheDocument();
   });
 
   describe('ProtectedLayout', () => {
     test('renders nothing while auth is still loading', async () => {
-      mockUseAuth.mockReturnValue({ user: null, loading: true, sendLoginLink: vi.fn() });
+      mockUseAuth.mockReturnValue({
+        user: null,
+        loading: true,
+        signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
+      });
       setPath('/dashboard');
       const { container } = render(<App />);
 
@@ -72,7 +84,12 @@ describe('WildcatLedger App', () => {
     });
 
     test('redirects to /login when unauthenticated', async () => {
-      mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink: vi.fn() });
+      mockUseAuth.mockReturnValue({
+        user: null,
+        loading: false,
+        signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
+      });
       setPath('/dashboard');
       render(<App />);
 
@@ -80,7 +97,7 @@ describe('WildcatLedger App', () => {
         await screen.findByRole('heading', { name: /wildcatledger/i }),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/enter your email to receive a sign-in link/i),
+        screen.getByText(/sign in with your northwestern google account/i),
       ).toBeInTheDocument();
     });
 
@@ -88,7 +105,8 @@ describe('WildcatLedger App', () => {
       mockUseAuth.mockReturnValue({
         user: buildMockUser(),
         loading: false,
-        sendLoginLink: vi.fn(),
+        signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
       });
       setPath('/organizations');
       render(<App />);

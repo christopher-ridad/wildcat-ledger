@@ -6,7 +6,8 @@ import { supabase } from '../../../config/supabase';
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  sendLoginLink: (email: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -29,16 +30,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.subscription.unsubscribe();
   }, []);
 
-  const sendLoginLink = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin + '/login' },
+  // Google, not magic-link email -- @u.northwestern.edu accounts run on
+  // Google Workspace for Education, so this is real university-backed
+  // login rather than a link from an address students don't recognize,
+  // and it sends no email of its own (sidesteps Supabase's default email
+  // service's very low send-rate limit entirely, which magic-link auth
+  // was hitting in practice). `hd` only pre-filters Google's own account
+  // picker -- it's a UX nicety, not enforcement, so the real domain check
+  // lives server-side in the restrict_signup_to_northwestern_email Auth
+  // Hook (see migration 0027) rather than being trusted here.
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/login',
+        queryParams: { hd: 'u.northwestern.edu' },
+      },
     });
     if (error) throw error;
   };
 
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, sendLoginLink }}>
+    <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

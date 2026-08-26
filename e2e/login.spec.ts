@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
 test('login page renders the sign-in form', async ({ page }) => {
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'WildcatLedger' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Send me a link' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible();
 });
 
 test('login page has no WCAG 2.0/2.1 A/AA violations', async ({ page }) => {

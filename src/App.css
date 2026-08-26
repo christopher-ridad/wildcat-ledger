@@ -347,6 +347,30 @@
   margin: 0;
 }
 
+.wl-privacy-card {
+  max-width: 680px;
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+.wl-privacy-card h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 24px 0 8px;
+}
+
+.wl-privacy-card p {
+  margin: 0 0 12px;
+  font-size: 0.92rem;
+}
+
+.wl-privacy-card code {
+  background: var(--color-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+
 .wl-register-done {
   margin-top: 28px;
   align-self: unset;
@@ -547,6 +571,21 @@ tbody tr:hover {
   margin-bottom: 16px;
 }
 
+.wl-login-footer {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.wl-login-footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.wl-login-footer a:hover {
+  text-decoration: underline;
+}
+
 /* ─── "Check your email" state ───────────────────────────────────── */
 .wl-login-sent {
   display: flex;
@@ -657,6 +696,25 @@ tbody tr:hover {
 .wl-header-audit-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: #fff;
+}
+
+.wl-header-signout-btn {
+  background: none;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.wl-header-signout-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .wl-dashboard-optionB {

@@ -7,9 +7,25 @@
   background: var(--color-primary);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 24px;
   z-index: 100;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.wl-topnav-signout {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.wl-topnav-signout:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .wl-topnav-logo {

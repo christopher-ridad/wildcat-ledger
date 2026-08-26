@@ -28,13 +28,15 @@ export const buildMockUser = (overrides: Partial<User> = {}): User =>
 export interface MockAuthContextOptions {
   user?: User | null;
   loading?: boolean;
-  sendLoginLink?: (email: string) => Promise<void>;
+  signInWithGoogle?: () => Promise<void>;
+  signOut?: () => Promise<void>;
 }
 
 export const buildMockAuthContext = (overrides: MockAuthContextOptions = {}) => ({
   user: overrides.user === undefined ? buildMockUser() : overrides.user,
   loading: overrides.loading ?? false,
-  sendLoginLink: overrides.sendLoginLink ?? vi.fn().mockResolvedValue(undefined),
+  signInWithGoogle: overrides.signInWithGoogle ?? vi.fn().mockResolvedValue(undefined),
+  signOut: overrides.signOut ?? vi.fn().mockResolvedValue(undefined),
 });
 
 export const MockAuthProvider = ({
@@ -158,8 +160,16 @@ export const buildMockAuditEntry = (overrides: Partial<AuditEntry> = {}): AuditE
 // call each test file uses to stub useNavigate has to stay in that file --
 // Vitest only hoists mock calls it can see at the top of the file being
 // tested -- so only the wrapper half is shared here.
-export const renderWithRouter = (ui: React.ReactElement, route = '/') =>
-  render(<MemoryRouter initialEntries={[route]}>{ui}</MemoryRouter>);
+export const renderWithRouter = (
+  ui: React.ReactElement,
+  route = '/',
+  authOverrides: MockAuthContextOptions = {},
+) =>
+  render(
+    <MemoryRouter initialEntries={[route]}>
+      <MockAuthProvider value={authOverrides}>{ui}</MockAuthProvider>
+    </MemoryRouter>,
+  );
 
 export const MockLedgerProvider = ({
   value,
