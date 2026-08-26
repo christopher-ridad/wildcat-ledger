@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { Transaction } from '../../../types';
 import { TransactionFilesModal } from '../TransactionFilesModal';
@@ -25,11 +26,19 @@ export const TransactionList = () => {
   );
   const [viewingFilesTransaction, setViewingFilesTransaction] =
     useState<Transaction | null>(null);
+  const deleteAction = useAsyncAction();
 
   const handleDeleteConfirm = async () => {
     if (!deletingTransaction) return;
-    await deleteTransaction(deletingTransaction.id);
+    await deleteAction.run(async () => {
+      await deleteTransaction(deletingTransaction.id);
+      setDeletingTransaction(null);
+    }, 'Failed to submit the delete request.');
+  };
+
+  const handleDeleteCancel = () => {
     setDeletingTransaction(null);
+    deleteAction.setError(null);
   };
 
   if (filteredTransactions.length === 0) {
@@ -85,19 +94,26 @@ export const TransactionList = () => {
                             Submit a delete request for <strong>{t.title}</strong>?<br />
                             The other approver will need to confirm before it is removed.
                           </p>
+                          {deleteAction.error && (
+                            <div className="wl-form-error" role="alert">
+                              {deleteAction.error}
+                            </div>
+                          )}
                           <div className="wl-overdraft-actions">
                             <button
                               type="button"
                               className="wl-btn-warning"
                               style={{ background: '#dc2626' }}
                               onClick={handleDeleteConfirm}
+                              disabled={deleteAction.pending}
                             >
-                              Submit Request
+                              {deleteAction.pending ? 'Submitting…' : 'Submit Request'}
                             </button>
                             <button
                               type="button"
                               className="wl-btn-cancel"
-                              onClick={() => setDeletingTransaction(null)}
+                              onClick={handleDeleteCancel}
+                              disabled={deleteAction.pending}
                             >
                               Cancel
                             </button>
