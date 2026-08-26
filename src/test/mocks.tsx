@@ -28,13 +28,13 @@ export const buildMockUser = (overrides: Partial<User> = {}): User =>
 export interface MockAuthContextOptions {
   user?: User | null;
   loading?: boolean;
-  sendLoginLink?: (email: string) => Promise<void>;
+  signInWithGoogle?: () => Promise<void>;
 }
 
 export const buildMockAuthContext = (overrides: MockAuthContextOptions = {}) => ({
   user: overrides.user === undefined ? buildMockUser() : overrides.user,
   loading: overrides.loading ?? false,
-  sendLoginLink: overrides.sendLoginLink ?? vi.fn().mockResolvedValue(undefined),
+  signInWithGoogle: overrides.signInWithGoogle ?? vi.fn().mockResolvedValue(undefined),
 });
 
 export const MockAuthProvider = ({

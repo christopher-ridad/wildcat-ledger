@@ -44,7 +44,7 @@ describe('TransactionRow', () => {
     mockUseAuth.mockReturnValue({
       user: buildMockUser({ email: 'treasurer@example.com' }),
       loading: false,
-      sendLoginLink: vi.fn(),
+      signInWithGoogle: vi.fn(),
     });
   });
 
@@ -449,7 +449,7 @@ describe('TransactionRow', () => {
       mockUseAuth.mockReturnValue({
         user: buildMockUser({ email: 'requester@example.com' }),
         loading: false,
-        sendLoginLink: vi.fn(),
+        signInWithGoogle: vi.fn(),
       });
       const pending = buildMockPendingChange({ requestedBy: 'requester@example.com' });
       renderRow({ canEdit: true, pending });
@@ -498,7 +498,7 @@ describe('TransactionRow', () => {
       mockUseAuth.mockReturnValue({
         user: buildMockUser({ email: 'requester@example.com' }),
         loading: false,
-        sendLoginLink: vi.fn(),
+        signInWithGoogle: vi.fn(),
       });
       const pending = buildMockPendingChange({
         id: 'pending-7',
