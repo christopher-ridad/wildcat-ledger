@@ -4,6 +4,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../features/authentication/hooks/useAuth';
 import { getErrorMessage } from '../utils/errors';
 
+// Supabase double-encodes error_description before appending it to the
+// redirect fragment, so URLSearchParams's one decode pass leaves literal
+// sequences like "%40" behind instead of "@". A second pass fixes that; it's
+// a safe no-op on a string that's already fully decoded (none of our error
+// messages contain a literal "%").
+const decodeErrorDescription = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
 export const LoginPage = () => {
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -28,7 +41,9 @@ export const LoginPage = () => {
     const description = params.get('error_description');
     const errorCode = params.get('error');
     if (description || errorCode) {
-      setError(description ?? 'Sign-in failed. Try again.');
+      setError(
+        description ? decodeErrorDescription(description) : 'Sign-in failed. Try again.',
+      );
       window.history.replaceState(null, '', window.location.pathname);
     }
   }, []);

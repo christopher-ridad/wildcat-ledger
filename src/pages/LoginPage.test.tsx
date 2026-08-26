@@ -87,9 +87,9 @@ describe('LoginPage', () => {
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled();
   });
 
-  test('shows the error Supabase puts in the URL fragment after a rejected sign-in', () => {
+  test('shows the error Supabase puts in the URL fragment after a rejected sign-in, decoding Supabase\'s double-encoded "@"', () => {
     window.location.hash =
-      '#error=access_denied&error_description=Only%20%40u.northwestern.edu%20email%20addresses%20can%20sign%20in.';
+      '#error=access_denied&error_description=Only%2520%2540u.northwestern.edu%2520email%2520addresses%2520can%2520sign%2520in.';
     mockUseAuth.mockReturnValue({
       user: null,
       loading: false,
