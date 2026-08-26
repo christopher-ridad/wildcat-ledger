@@ -14,20 +14,20 @@ export const PrivacyPage = () => (
 
       <h2>What data is collected</h2>
       <p>
-        WildcatLedger doesn&apos;t have its own passwords &mdash; signing in goes through
-        Google, restricted to <code>@u.northwestern.edu</code> accounts, which shares your
-        name and email address with the app. Beyond that, WildcatLedger only stores what
-        you or your organization&apos;s officers and SOFO approvers enter directly into
-        the ledger: transaction records, budget line allocations, and any receipt or
+        WildcatLedger doesn&apos;t have its own passwords. Signing in goes through Google,
+        restricted to <code>@u.northwestern.edu</code> accounts, which shares your name
+        and email address with the app. Beyond that, WildcatLedger only stores what you or
+        your organization&apos;s officers and SOFO approvers enter directly into the
+        ledger, including transaction records, budget line allocations, and any receipt or
         supporting-document files uploaded for a transaction. Nothing is collected
-        passively &mdash; there&apos;s no analytics or tracking script on this site.
+        passively, and there&apos;s no analytics or tracking script on this site.
       </p>
 
       <h2>How it&apos;s used</h2>
       <p>
-        This data is used only to run the ledger for your organization &mdash; tracking
+        This data is used only to run the ledger for your organization, tracking
         transactions, budget balances, and the approval history behind each one. It
-        isn&apos;t used for any other purpose, and isn&apos;t sold or shared with any
+        isn&apos;t used for any other purpose, and it isn&apos;t sold or shared with any
         third party.
       </p>
 
@@ -35,8 +35,8 @@ export const PrivacyPage = () => (
       <p>
         Each organization&apos;s data is walled off from every other organization&apos;s
         at the database level. Within your organization, only the officers and SOFO
-        approvers you&apos;ve listed can see its transactions, budgets, and files &mdash;
-        nobody outside that list, and nobody from a different organization, can see it.
+        approvers you&apos;ve listed can see its transactions, budgets, and files. Nobody
+        outside that list, and nobody from a different organization, can see it.
       </p>
 
       <h2>Third parties</h2>
@@ -49,11 +49,10 @@ export const PrivacyPage = () => (
       <h2>Security</h2>
       <p>
         Because sign-in goes through Google, your account&apos;s security is largely
-        Google&apos;s account security &mdash; keep that account secure the way you
-        normally would. If you ever think your WildcatLedger data has been accessed
-        without your permission, or have any other question about how your data is
-        handled, reach out at{' '}
-        <a href="mailto:christopherridad@gmail.com">christopherridad@gmail.com</a>.
+        Google&apos;s account security, so keep that account secure the way you normally
+        would. If you ever think your WildcatLedger data has been accessed without your
+        permission, or have any other question about how your data is handled, reach out
+        at <a href="mailto:christopherridad@gmail.com">christopherridad@gmail.com</a>.
       </p>
     </div>
   </div>
