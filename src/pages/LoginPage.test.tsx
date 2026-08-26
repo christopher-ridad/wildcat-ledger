@@ -21,6 +21,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     navigateMock.mockClear();
     localStorage.clear();
+    window.location.hash = '';
   });
 
   test('renders the Google sign-in button when there is no user', () => {
@@ -84,6 +85,24 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Provider unavailable')).toBeInTheDocument();
     // The button re-enables so the user can retry after a failure.
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled();
+  });
+
+  test('shows the error Supabase puts in the URL fragment after a rejected sign-in', () => {
+    window.location.hash =
+      '#error=access_denied&error_description=Only%20%40u.northwestern.edu%20email%20addresses%20can%20sign%20in.';
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    renderLoginPage();
+
+    expect(
+      screen.getByText('Only @u.northwestern.edu email addresses can sign in.'),
+    ).toBeInTheDocument();
+    // The fragment is stripped afterward so refreshing doesn't re-show it.
+    expect(window.location.hash).toBe('');
   });
 
   test('disables the button while the redirect is starting', async () => {

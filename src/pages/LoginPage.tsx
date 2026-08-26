@@ -17,6 +17,22 @@ export const LoginPage = () => {
     }
   }, [user, navigate]);
 
+  // Supabase redirects back here with error details in the URL fragment
+  // (not a query param) when the OAuth flow itself fails -- most relevantly
+  // when the restrict_signup_to_northwestern_email/restrict_login_to_northwestern_email
+  // hooks reject a non-@u.northwestern.edu account. Without this, that
+  // rejection is invisible: the browser just lands back on this page with
+  // no explanation.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const description = params.get('error_description');
+    const errorCode = params.get('error');
+    if (description || errorCode) {
+      setError(description ?? 'Sign-in failed. Try again.');
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
   const handleSignIn = async () => {
     setError(null);
     setSubmitting(true);
