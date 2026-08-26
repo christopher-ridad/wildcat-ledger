@@ -80,7 +80,12 @@
 }
 .wl-recon-row--disabled {
   cursor: default;
-  opacity: 0.75;
+  /* --color-text-muted diluted by opacity against the --warning item's
+     cream background (#fffbeb) fails WCAG AA contrast below ~0.85 -- only
+     ever surfaced when the reconciliation list actually contains a blocked
+     item, which the accessibility e2e spec's fixture data didn't exercise
+     until now. */
+  opacity: 0.85;
 }
 .wl-recon-row--disabled input[type='checkbox'] {
   cursor: not-allowed;
