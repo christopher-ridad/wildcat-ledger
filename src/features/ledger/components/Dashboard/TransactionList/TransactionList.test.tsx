@@ -46,7 +46,8 @@ describe('TransactionList', () => {
     mockUseAuth.mockReturnValue({
       user: buildMockUser(),
       loading: false,
-      sendLoginLink: vi.fn(),
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
   });
 

@@ -21,13 +21,25 @@ describe('LoginPage', () => {
   beforeEach(() => {
     navigateMock.mockClear();
     localStorage.clear();
+    window.location.hash = '';
   });
 
-  test('renders the login form when there is no user', () => {
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink: vi.fn() });
+  test('renders the Google sign-in button when there is no user', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
     renderLoginPage();
     expect(screen.getByRole('heading', { name: /wildcatledger/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /send me a link/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /sign in with google/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
   });
 
   test('redirects to /organizations and clears the stored org when already logged in', () => {
@@ -35,79 +47,83 @@ describe('LoginPage', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1' } as never,
       loading: false,
-      sendLoginLink: vi.fn(),
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
     renderLoginPage();
     expect(navigateMock).toHaveBeenCalledWith('/organizations', { replace: true });
     expect(localStorage.getItem('activeOrganizationId')).toBeNull();
   });
 
-  test('shows an error for an invalid email without calling sendLoginLink', () => {
-    const sendLoginLink = vi.fn();
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink });
+  test('clicking the button calls signInWithGoogle', () => {
+    const signInWithGoogle = vi.fn().mockResolvedValue(undefined);
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle,
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: 'not-an-email' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /send me a link/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
 
-    expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
-    expect(sendLoginLink).not.toHaveBeenCalled();
+    expect(signInWithGoogle).toHaveBeenCalled();
   });
 
-  test('submits a valid email and shows the "check your email" screen', async () => {
-    const sendLoginLink = vi.fn().mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink });
+  test('shows an error message when signInWithGoogle rejects', async () => {
+    const signInWithGoogle = vi.fn().mockRejectedValue(new Error('Provider unavailable'));
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle,
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: 'person@northwestern.edu' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /send me a link/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
 
-    expect(await screen.findByText('Check your email')).toBeInTheDocument();
-    expect(screen.getByText('person@northwestern.edu')).toBeInTheDocument();
-    expect(sendLoginLink).toHaveBeenCalledWith('person@northwestern.edu');
+    expect(await screen.findByText('Provider unavailable')).toBeInTheDocument();
+    // The button re-enables so the user can retry after a failure.
+    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeEnabled();
   });
 
-  test('submits on Enter keydown in the email field', async () => {
-    const sendLoginLink = vi.fn().mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink });
+  test('shows the error Supabase puts in the URL fragment after a rejected sign-in, decoding Supabase\'s double-encoded "@"', () => {
+    window.location.hash =
+      '#error=access_denied&error_description=Only%2520%2540u.northwestern.edu%2520email%2520addresses%2520can%2520sign%2520in.';
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
-    const input = screen.getByLabelText(/email address/i);
-    fireEvent.change(input, { target: { value: 'person@northwestern.edu' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-
-    expect(await screen.findByText('Check your email')).toBeInTheDocument();
+    expect(
+      screen.getByText('Only @u.northwestern.edu email addresses can sign in.'),
+    ).toBeInTheDocument();
+    // The fragment is stripped afterward so refreshing doesn't re-show it.
+    expect(window.location.hash).toBe('');
   });
 
-  test('shows an error message when sendLoginLink rejects', async () => {
-    const sendLoginLink = vi.fn().mockRejectedValue(new Error('Rate limited'));
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink });
+  test('disables the button while the redirect is starting', async () => {
+    let resolveSignIn: () => void = () => {};
+    const signInWithGoogle = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSignIn = resolve;
+        }),
+    );
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle,
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: 'person@northwestern.edu' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /send me a link/i }));
+    fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
+    expect(await screen.findByRole('button', { name: /redirecting/i })).toBeDisabled();
 
-    expect(await screen.findByText('Rate limited')).toBeInTheDocument();
-  });
-
-  test('"Use a different email" returns to the form view', async () => {
-    const sendLoginLink = vi.fn().mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({ user: null, loading: false, sendLoginLink });
-    renderLoginPage();
-
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: 'person@northwestern.edu' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /send me a link/i }));
-    await screen.findByText('Check your email');
-
-    fireEvent.click(screen.getByText('Use a different email'));
-    expect(screen.getByRole('button', { name: /send me a link/i })).toBeInTheDocument();
+    resolveSignIn();
   });
 });
