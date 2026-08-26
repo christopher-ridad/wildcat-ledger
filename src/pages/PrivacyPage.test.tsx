@@ -8,8 +8,12 @@ describe('PrivacyPage', () => {
   test('renders the policy heading and a contact link', () => {
     renderWithRouter(<PrivacyPage />);
     expect(screen.getByRole('heading', { name: /privacy policy/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole('link', { name: /christopherridad@gmail\.com/i }),
-    ).toHaveAttribute('href', 'mailto:christopherridad@gmail.com');
+    const contactLinks = screen.getAllByRole('link', {
+      name: /christopherridad@gmail\.com/i,
+    });
+    expect(contactLinks.length).toBeGreaterThan(0);
+    contactLinks.forEach((link) =>
+      expect(link).toHaveAttribute('href', 'mailto:christopherridad@gmail.com'),
+    );
   });
 });
