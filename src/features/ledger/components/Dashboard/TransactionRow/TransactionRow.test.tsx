@@ -45,6 +45,7 @@ describe('TransactionRow', () => {
       user: buildMockUser({ email: 'treasurer@example.com' }),
       loading: false,
       signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
   });
 
@@ -450,6 +451,7 @@ describe('TransactionRow', () => {
         user: buildMockUser({ email: 'requester@example.com' }),
         loading: false,
         signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
       });
       const pending = buildMockPendingChange({ requestedBy: 'requester@example.com' });
       renderRow({ canEdit: true, pending });
@@ -499,6 +501,7 @@ describe('TransactionRow', () => {
         user: buildMockUser({ email: 'requester@example.com' }),
         loading: false,
         signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
       });
       const pending = buildMockPendingChange({
         id: 'pending-7',

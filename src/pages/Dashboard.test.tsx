@@ -1,10 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { useAuth } from '../features/authentication/hooks/useAuth';
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { buildMockOrganization } from '../test/mocks';
 import { Dashboard } from './Dashboard';
 
+vi.mock('../features/authentication/hooks/useAuth');
 vi.mock('../features/ledger/hooks/useLedger');
 vi.mock('../features/ledger/components/Dashboard/TransactionList', () => ({
   TransactionList: () => <div data-testid="transaction-list" />,
@@ -29,6 +31,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUseLedger = vi.mocked(useLedger);
+const mockUseAuth = vi.mocked(useAuth);
 
 const baseLedger = {
   budgetLineSummaries: [
@@ -45,7 +48,15 @@ const baseLedger = {
 };
 
 describe('Dashboard', () => {
-  beforeEach(() => navigateMock.mockClear());
+  beforeEach(() => {
+    navigateMock.mockClear();
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+  });
 
   test('redirects to /organizations when there is no active organization', () => {
     mockUseLedger.mockReturnValue({ ...baseLedger, activeOrganization: null } as never);
@@ -172,6 +183,20 @@ describe('Dashboard', () => {
     render(<Dashboard />);
     fireEvent.click(screen.getByText('Audit History'));
     expect(navigateMock).toHaveBeenCalledWith('/audit-log');
+  });
+
+  test('"Sign Out" calls signOut', () => {
+    const signOut = vi.fn().mockResolvedValue(undefined);
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut,
+    });
+    mockUseLedger.mockReturnValue(baseLedger as never);
+    render(<Dashboard />);
+    fireEvent.click(screen.getByText('Sign Out'));
+    expect(signOut).toHaveBeenCalled();
   });
 
   test('"← Back" navigates to /organizations', () => {

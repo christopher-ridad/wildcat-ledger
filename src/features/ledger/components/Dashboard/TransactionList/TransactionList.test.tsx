@@ -47,6 +47,7 @@ describe('TransactionList', () => {
       user: buildMockUser(),
       loading: false,
       signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
   });
 

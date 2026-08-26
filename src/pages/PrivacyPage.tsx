@@ -50,10 +50,10 @@ export const PrivacyPage = () => (
 
       <h2>Signing out</h2>
       <p>
-        WildcatLedger is a small, early-stage project and doesn&apos;t yet have a
-        dedicated sign-out button. Your session is stored in your browser and stays active
-        there; to end it, clear this site&apos;s cookies/site data, or use a
-        private/incognito window. This is on the list of things to add.
+        A Sign Out button is available on every page once you&apos;re signed in (top-right
+        of the navigation bar). Using it ends your WildcatLedger session immediately; it
+        doesn&apos;t sign you out of Google itself, so you can sign back in without
+        re-entering anything.
       </p>
 
       <h2>Security</h2>

@@ -51,6 +51,7 @@ describe('WildcatLedger App', () => {
       user: null,
       loading: false,
       signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
     render(<App />);
 
@@ -74,6 +75,7 @@ describe('WildcatLedger App', () => {
         user: null,
         loading: true,
         signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
       });
       setPath('/dashboard');
       const { container } = render(<App />);
@@ -86,6 +88,7 @@ describe('WildcatLedger App', () => {
         user: null,
         loading: false,
         signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
       });
       setPath('/dashboard');
       render(<App />);
@@ -103,6 +106,7 @@ describe('WildcatLedger App', () => {
         user: buildMockUser(),
         loading: false,
         signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
       });
       setPath('/organizations');
       render(<App />);

@@ -28,6 +28,7 @@ describe('LoginPage', () => {
       user: null,
       loading: false,
       signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
     renderLoginPage();
     expect(screen.getByRole('heading', { name: /wildcatledger/i })).toBeInTheDocument();
@@ -42,6 +43,7 @@ describe('LoginPage', () => {
       user: { id: 'u1' } as never,
       loading: false,
       signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
     });
     renderLoginPage();
     expect(navigateMock).toHaveBeenCalledWith('/organizations', { replace: true });
@@ -50,7 +52,12 @@ describe('LoginPage', () => {
 
   test('clicking the button calls signInWithGoogle', () => {
     const signInWithGoogle = vi.fn().mockResolvedValue(undefined);
-    mockUseAuth.mockReturnValue({ user: null, loading: false, signInWithGoogle });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle,
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
     fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
@@ -60,7 +67,12 @@ describe('LoginPage', () => {
 
   test('shows an error message when signInWithGoogle rejects', async () => {
     const signInWithGoogle = vi.fn().mockRejectedValue(new Error('Provider unavailable'));
-    mockUseAuth.mockReturnValue({ user: null, loading: false, signInWithGoogle });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle,
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
     fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));
@@ -78,7 +90,12 @@ describe('LoginPage', () => {
           resolveSignIn = resolve;
         }),
     );
-    mockUseAuth.mockReturnValue({ user: null, loading: false, signInWithGoogle });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle,
+      signOut: vi.fn(),
+    });
     renderLoginPage();
 
     fireEvent.click(screen.getByRole('button', { name: /sign in with google/i }));

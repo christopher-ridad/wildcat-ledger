@@ -683,6 +683,25 @@ tbody tr:hover {
   border-color: #fff;
 }
 
+.wl-header-signout-btn {
+  background: none;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.wl-header-signout-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 .wl-dashboard-optionB {
   display: flex;
   min-height: 100vh;

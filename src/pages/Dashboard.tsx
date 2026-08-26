@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../features/authentication/hooks/useAuth';
 import { DebitCardSettingsModal } from '../features/ledger/components/Dashboard/DebitCardSettingsModal';
 import { ReconciliationModal } from '../features/ledger/components/Dashboard/ReconciliationModal';
 import { TransactionList } from '../features/ledger/components/Dashboard/TransactionList';
@@ -14,6 +15,7 @@ export const Dashboard = () => {
   const [reconcileOpen, setReconcileOpen] = useState(false);
   const [debitCardSettingsOpen, setDebitCardSettingsOpen] = useState(false);
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const {
     budgetLineSummaries,
     selectedBudgetLine,
@@ -52,6 +54,9 @@ export const Dashboard = () => {
             onClick={() => navigate('/audit-log')}
           >
             Audit History
+          </button>
+          <button type="button" className="wl-header-signout-btn" onClick={signOut}>
+            Sign Out
           </button>
         </div>
       </div>
