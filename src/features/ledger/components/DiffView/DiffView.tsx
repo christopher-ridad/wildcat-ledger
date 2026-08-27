@@ -1,4 +1,4 @@
-export interface DiffColumnClassNames {
+interface DiffColumnClassNames {
   column: string;
   label: string;
   // Only some callers wrap their rows in an extra div (see AuditEntryCard);
@@ -9,7 +9,7 @@ export interface DiffColumnClassNames {
   value: string;
 }
 
-export interface DiffViewClassNames {
+interface DiffViewClassNames {
   container: string;
   before: DiffColumnClassNames;
   after: DiffColumnClassNames;

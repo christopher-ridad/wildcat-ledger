@@ -13,7 +13,7 @@ export type TransactionType =
   | 'Payment to NU Employee'
   | 'Deposit';
 
-export type TransactionDirection = 'Inflow' | 'Outflow';
+type TransactionDirection = 'Inflow' | 'Outflow';
 
 // Payment Request / Non-Officer Reimbursement / Payment to NU Employee, plus
 // Deposits onto the Debit Card line (reloads) — tracks real-world
