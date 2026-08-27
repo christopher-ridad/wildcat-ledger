@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { buildMockTransaction, buildMockUser } from '../../../../../test/mocks';
@@ -118,6 +118,38 @@ describe('TransactionList', () => {
 
     expect(await screen.findByText('Not authorized')).toBeInTheDocument();
     expect(screen.getByText(/Submit a delete request for/)).toBeInTheDocument();
+  });
+
+  test('pressing Escape while the delete request is pending does not dismiss the confirmation', async () => {
+    let resolveDelete: () => void = () => {};
+    const deleteTransaction = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDelete = resolve;
+        }),
+    );
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      userRole: 'sofoApprover',
+      canEdit: true,
+      deleteTransaction,
+      filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
+    } as never);
+    render(<TransactionList />);
+
+    fireEvent.click(screen.getByLabelText('Delete transaction'));
+    fireEvent.click(screen.getByText('Submit Request'));
+
+    // The request is still in flight -- Escape (like the overlay and the
+    // disabled Cancel button) must be a no-op here, or a later error has
+    // nowhere left to render once the dialog's gone.
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.getByText(/Submit a delete request for/)).toBeInTheDocument();
+
+    resolveDelete();
+    await waitFor(() => {
+      expect(screen.queryByText(/Submit a delete request for/)).not.toBeInTheDocument();
+    });
   });
 
   test('clicking Cancel on the delete confirmation dismisses it without deleting', () => {

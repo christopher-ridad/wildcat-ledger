@@ -23,7 +23,7 @@ export type DocumentTypeKey =
 //  - 'none': nobody else is involved -- a SOFO Approver completes and
 //    uploads it themselves, so there's nothing to email. Conflict of
 //    Interest Form.
-export type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
+type DocumentRequestBehavior = 'simple' | 'prepareFirst' | 'none';
 
 export interface DocumentRequirement {
   key: DocumentTypeKey;
