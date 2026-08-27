@@ -12,6 +12,8 @@ const renderCard = (overrides: Partial<ComponentProps<typeof TaskCard>> = {}) =>
       peopleNames={{}}
       canEdit
       pending={false}
+      titleId="task-title"
+      direction="below"
       onToggleComplete={vi.fn()}
       onEdit={vi.fn()}
       onDelete={vi.fn()}
@@ -116,6 +118,8 @@ describe('TaskCard', () => {
         peopleNames={{ 'officer@u.northwestern.edu': 'Jane Officer' }}
         canEdit
         pending={false}
+        titleId="task-title"
+        direction="below"
         onToggleComplete={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
@@ -129,12 +133,24 @@ describe('TaskCard', () => {
         peopleNames={{}}
         canEdit
         pending={false}
+        titleId="task-title"
+        direction="below"
         onToggleComplete={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
       />,
     );
     expect(screen.getByText('unknown@u.northwestern.edu')).toBeInTheDocument();
+  });
+
+  test('renders as a dialog labelled by the title, positioned per its direction', () => {
+    renderCard({
+      task: buildMockFinancialTask({ title: 'Submit Contract' }),
+      titleId: 'popover-title-t1',
+      direction: 'above',
+    });
+    const dialog = screen.getByRole('dialog', { name: 'Submit Contract' });
+    expect(dialog).toHaveAttribute('data-task-popover-active', 'true');
   });
 
   test('hides Edit/Delete buttons when canEdit is false', () => {

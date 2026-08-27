@@ -1,0 +1,139 @@
+.wl-marker {
+  position: absolute;
+  top: 50%;
+  opacity: 0;
+  animation: wl-marker-enter 0.4s ease-out forwards;
+}
+
+@keyframes wl-marker-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-marker {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.wl-marker-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid var(--color-card);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.wl-marker:hover .wl-marker-dot,
+.wl-marker[data-task-popover-active='true'] .wl-marker-dot {
+  transform: translate(-50%, -50%) scale(1.5);
+}
+
+.wl-marker-dot--overdue {
+  background: var(--color-negative);
+}
+
+.wl-marker-dot--dueSoon,
+.wl-marker-dot--dueThisWeek {
+  background: var(--color-warning);
+}
+
+.wl-marker-dot--complete {
+  background: var(--color-positive);
+  opacity: 0.6;
+}
+
+.wl-marker-dot--normal {
+  background: var(--color-primary);
+}
+
+.wl-marker-dot--dueSoon {
+  animation: wl-marker-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wl-marker-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(217 119 6 / 45%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgb(217 119 6 / 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-marker-dot--dueSoon {
+    animation: none;
+  }
+}
+
+.wl-marker-stem {
+  position: absolute;
+  left: 0;
+  width: 1.5px;
+  height: 14px;
+  background: var(--color-border);
+  transform: translateX(-50%);
+}
+
+.wl-marker--above .wl-marker-stem {
+  bottom: 6px;
+}
+
+.wl-marker--below .wl-marker-stem {
+  top: 6px;
+}
+
+.wl-marker-label {
+  position: absolute;
+  left: 0;
+  max-width: 44px;
+  overflow: hidden;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  transition:
+    max-width 0.2s ease,
+    color 0.2s ease;
+}
+
+.wl-marker--above .wl-marker-label {
+  bottom: 22px;
+}
+
+.wl-marker--below .wl-marker-label {
+  top: 22px;
+}
+
+.wl-marker:hover:not([data-task-popover-active='true']) .wl-marker-label {
+  /* Stays single-line and just widens -- wrapping to multiple lines would
+     grow the label taller than the track's compact reserved height and get
+     clipped (overflow-x: auto on the scroll container forces overflow-y:
+     auto too). 400px comfortably fits any realistic title on one line. */
+  max-width: 400px;
+  color: var(--color-text);
+}
+
+/* The open popover already shows the full title -- keeping this label
+   expanded too would render it twice, overlapping the popover panel. */
+.wl-marker[data-task-popover-active='true'] .wl-marker-label {
+  opacity: 0;
+}

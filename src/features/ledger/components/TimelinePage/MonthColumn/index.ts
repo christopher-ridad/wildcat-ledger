@@ -1,1 +1,0 @@
-export { MonthColumn } from './MonthColumn';

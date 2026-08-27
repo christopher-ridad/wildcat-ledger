@@ -28,6 +28,23 @@ vi.mock('../TaskFormModal', () => ({
       </div>
     ) : null,
 }));
+vi.mock('../TimelineTrack', () => ({
+  TimelineTrack: ({
+    tasks,
+    onEdit,
+  }: {
+    tasks: { id: string; title: string }[];
+    onEdit: (task: { id: string; title: string }) => void;
+  }) => (
+    <div data-testid="timeline-track">
+      {tasks.map((task) => (
+        <button key={task.id} onClick={() => onEdit(task)}>
+          Edit {task.title}
+        </button>
+      ))}
+    </div>
+  ),
+}));
 
 const mockUseLedger = vi.mocked(useLedger);
 
@@ -50,25 +67,6 @@ describe('TimelineBoard', () => {
     vi.clearAllMocks();
   });
 
-  test('shows an empty state when there are no tasks', () => {
-    mockUseLedger.mockReturnValue(baseLedger as never);
-    render(<TimelineBoard />);
-    expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
-  });
-
-  test('renders one month column per represented month', () => {
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
-      financialTasks: [
-        buildMockFinancialTask({ id: 't1', dueDate: '2026-09-05' }),
-        buildMockFinancialTask({ id: 't2', dueDate: '2026-10-01' }),
-      ],
-    } as never);
-    render(<TimelineBoard />);
-    expect(screen.getByText('September 2026')).toBeInTheDocument();
-    expect(screen.getByText('October 2026')).toBeInTheDocument();
-  });
-
   test('shows "+ Add Task" only when canEdit', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     const { rerender } = render(<TimelineBoard />);
@@ -88,7 +86,7 @@ describe('TimelineBoard', () => {
     expect(screen.getByTestId('task-form-modal')).toHaveTextContent('Adding new');
   });
 
-  test("clicking a task's Edit button opens the form in edit mode with that task", () => {
+  test('triggering edit from the track opens the form in edit mode with that task', () => {
     mockUseLedger.mockReturnValue({
       ...baseLedger,
       financialTasks: [
@@ -101,7 +99,7 @@ describe('TimelineBoard', () => {
     } as never);
     render(<TimelineBoard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Submit Contract' }));
+    fireEvent.click(screen.getByText('Edit Submit Contract'));
     expect(screen.getByTestId('task-form-modal')).toHaveTextContent(
       'Editing Submit Contract',
     );
@@ -138,7 +136,7 @@ describe('TimelineBoard', () => {
     } as never);
     render(<TimelineBoard />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Submit Contract' }));
+    fireEvent.click(screen.getByText('Edit Submit Contract'));
     fireEvent.click(screen.getByText('Save from mock'));
 
     await waitFor(() =>
@@ -147,37 +145,5 @@ describe('TimelineBoard', () => {
         dueDate: '2026-09-01',
       }),
     );
-  });
-
-  test('toggling a task calls toggleFinancialTaskComplete with its id and the new state', () => {
-    const toggleFinancialTaskComplete = vi.fn().mockResolvedValue(undefined);
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
-      toggleFinancialTaskComplete,
-      financialTasks: [buildMockFinancialTask({ id: 't1', dueDate: '2026-09-05' })],
-    } as never);
-    render(<TimelineBoard />);
-
-    fireEvent.click(screen.getByRole('checkbox'));
-    expect(toggleFinancialTaskComplete).toHaveBeenCalledWith('t1', true);
-  });
-
-  test('deleting a task calls deleteFinancialTask with its id', () => {
-    const deleteFinancialTask = vi.fn().mockResolvedValue(undefined);
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
-      deleteFinancialTask,
-      financialTasks: [
-        buildMockFinancialTask({
-          id: 't1',
-          title: 'Submit Contract',
-          dueDate: '2026-09-05',
-        }),
-      ],
-    } as never);
-    render(<TimelineBoard />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Submit Contract' }));
-    expect(deleteFinancialTask).toHaveBeenCalledWith('t1');
   });
 });

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 import { FinancialTask } from '../../../types';
 import { getTaskUrgency } from '../../../utils/taskUrgency';
 import styles from './TaskCard.module.css';
@@ -13,6 +15,13 @@ interface TaskCardProps {
   onToggleComplete: (completed: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
+  // This card only ever renders as a floating popover anchored to a
+  // TaskMarker now -- titleId/direction/style come from that marker (the
+  // marker owns the aria wiring and the getBoundingClientRect()-derived
+  // fixed position; this component just renders content into them).
+  titleId: string;
+  direction: 'above' | 'below';
+  style?: CSSProperties;
 }
 
 const URGENCY_LABEL: Record<string, string | null> = {
@@ -32,6 +41,9 @@ export const TaskCard = ({
   onToggleComplete,
   onEdit,
   onDelete,
+  titleId,
+  direction,
+  style,
 }: TaskCardProps) => {
   const urgency = getTaskUrgency(task.dueDate, task.completedAt);
   const isComplete = urgency === 'complete';
@@ -39,7 +51,15 @@ export const TaskCard = ({
 
   return (
     <div
-      className={[styles['wl-task-card'], styles[`wl-task-card--${urgency}`]]
+      role="dialog"
+      aria-labelledby={titleId}
+      data-task-popover-active="true"
+      style={style}
+      className={[
+        styles['wl-task-card'],
+        styles[`wl-task-card--${urgency}`],
+        styles[`wl-task-card--${direction}`],
+      ]
         .filter(Boolean)
         .join(' ')}
     >
@@ -50,7 +70,9 @@ export const TaskCard = ({
           disabled={pending}
           onChange={(e) => onToggleComplete(e.target.checked)}
         />
-        <span className={styles['wl-task-card-title']}>{task.title}</span>
+        <span id={titleId} className={styles['wl-task-card-title']}>
+          {task.title}
+        </span>
       </label>
 
       {task.description && (
