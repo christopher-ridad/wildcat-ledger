@@ -1,0 +1,50 @@
+.wl-month-section {
+  margin-bottom: 32px;
+}
+
+.wl-month-section:last-child {
+  margin-bottom: 0;
+}
+
+.wl-month-section-label {
+  margin: 0 0 4px;
+  padding: 0 4px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.55s ease-out,
+    transform 0.55s ease-out;
+}
+
+.wl-month-section-label[data-revealed='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-month-section-label {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wl-today-divider {
+  margin: 4px 4px 4px 0;
+  padding-top: 4px;
+  border-top: 1px dashed var(--color-primary);
+}
+
+.wl-today-divider-label {
+  padding: 2px 8px 2px 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

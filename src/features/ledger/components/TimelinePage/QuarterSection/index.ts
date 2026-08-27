@@ -1,1 +1,0 @@
-export { QuarterSection } from './QuarterSection';

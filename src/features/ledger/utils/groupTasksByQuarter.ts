@@ -152,23 +152,3 @@ export const groupTasksByQuarter = (
     })
     .map((key) => quartersByKey.get(key)!);
 };
-
-export type TaskSide = 'left' | 'right';
-
-// One running index across the *whole* flattened, chronological task list
-// (not reset per month/quarter) so the left/right rhythm never desyncs at a
-// month or quarter boundary. Today landmarks don't consume a side.
-export const assignTaskSides = (quarters: QuarterGroup[]): Map<string, TaskSide> => {
-  const sides = new Map<string, TaskSide>();
-  let index = 0;
-  for (const quarter of quarters) {
-    for (const month of quarter.months) {
-      for (const entry of month.entries) {
-        if (!entry.task) continue;
-        sides.set(entry.task.id, index % 2 === 0 ? 'left' : 'right');
-        index += 1;
-      }
-    }
-  }
-  return sides;
-};

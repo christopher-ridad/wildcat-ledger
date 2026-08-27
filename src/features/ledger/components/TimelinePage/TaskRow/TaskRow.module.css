@@ -1,0 +1,142 @@
+.wl-task-row {
+  border-bottom: 1px solid var(--color-border);
+  padding: 18px 4px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 0.45s ease-out,
+    transform 0.45s ease-out,
+    background-color 0.15s ease;
+}
+
+.wl-task-row[data-revealed='true'] {
+  opacity: 1;
+  transform: none;
+}
+
+.wl-task-row:hover {
+  background: var(--color-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-task-row {
+    transition: background-color 0.15s ease;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wl-task-row--complete .wl-task-row-title {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.wl-task-row-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.wl-task-row-header input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.wl-task-row-toggle {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wl-task-row-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wl-task-row-due {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.wl-task-row--overdue .wl-task-row-due {
+  color: var(--color-negative);
+  font-weight: 600;
+}
+
+.wl-task-row--dueSoon .wl-task-row-due,
+.wl-task-row--dueThisWeek .wl-task-row-due {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.wl-task-row-chevron {
+  align-self: center;
+  margin-left: auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.wl-task-row-chevron--open {
+  transform: rotate(45deg);
+}
+
+.wl-task-row-error {
+  margin-top: 8px;
+  margin-left: 32px;
+  font-size: 0.85rem;
+  color: var(--color-negative);
+}
+
+.wl-task-row-details {
+  margin-top: 12px;
+  margin-left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wl-task-row-description {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+}
+
+.wl-task-row-assignee {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.wl-task-row-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 2px;
+}
+
+.wl-task-row-actions button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.wl-task-row-actions button:hover {
+  text-decoration: underline;
+}

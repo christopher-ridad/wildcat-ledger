@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { FinancialTask } from '../../../types';
+import { ChapterTimeline } from '../ChapterTimeline';
 import { TaskFormModal } from '../TaskFormModal';
-import { VerticalTimeline } from '../VerticalTimeline';
 import styles from './TimelineBoard.module.css';
 
 export const TimelineBoard = () => {
@@ -81,7 +81,7 @@ export const TimelineBoard = () => {
         )}
       </div>
 
-      <VerticalTimeline
+      <ChapterTimeline
         tasks={financialTasks}
         peopleNames={peopleNames}
         canEdit={canEdit}

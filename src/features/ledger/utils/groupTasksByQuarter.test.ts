@@ -3,7 +3,6 @@ import { describe, expect, test } from 'vitest';
 import { buildMockFinancialTask } from '../../../test/mocks';
 import {
   academicYearLabel,
-  assignTaskSides,
   currentAcademicYearLabel,
   groupTasksByQuarter,
 } from './groupTasksByQuarter';
@@ -120,23 +119,6 @@ describe('groupTasksByQuarter', () => {
     const septMonth = quarters[0].months.find((m) => m.label === 'September')!;
     const taskEntries = septMonth.entries.filter((e) => e.task);
     expect(taskEntries.map((e) => e.task?.id)).toEqual(['a', 'b']);
-  });
-
-  test('assignTaskSides alternates left/right by a single running index across quarter/month boundaries', () => {
-    const quarters = groupTasksByQuarter(
-      [
-        buildMockFinancialTask({ id: 't1', dueDate: '2026-12-05' }), // Fall, odd count in month
-        buildMockFinancialTask({ id: 't2', dueDate: '2026-12-06' }),
-        buildMockFinancialTask({ id: 't3', dueDate: '2026-12-07' }),
-        buildMockFinancialTask({ id: 't4', dueDate: '2027-02-01' }), // Winter -- would flip if reset per quarter
-      ],
-      TODAY,
-    );
-    const sides = assignTaskSides(quarters);
-    expect(sides.get('t1')).toBe('left');
-    expect(sides.get('t2')).toBe('right');
-    expect(sides.get('t3')).toBe('left');
-    expect(sides.get('t4')).toBe('right'); // continues the running count, not reset at the quarter seam
   });
 
   test('academicYearLabel formats as an en-dash range', () => {
