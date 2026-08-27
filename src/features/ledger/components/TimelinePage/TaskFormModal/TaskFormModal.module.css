@@ -1,0 +1,26 @@
+.wl-form-select,
+.wl-form-textarea {
+  padding: 8px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+
+.wl-form-select:focus,
+.wl-form-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(78, 42, 132, 0.1);
+}
+
+.wl-task-form-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 20px;
+  border-top: 1.5px solid var(--color-border);
+}

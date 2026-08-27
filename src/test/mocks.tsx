@@ -8,6 +8,7 @@ import { AuthContext } from '../features/authentication/stores/AuthContext';
 import { LedgerContext } from '../features/ledger/stores/LedgerContext';
 import {
   AuditEntry,
+  FinancialTask,
   LedgerContextValue,
   Organization,
   PendingChange,
@@ -83,6 +84,11 @@ export const buildMockLedgerContext = (
     uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
     markTaxReimbursed: vi.fn().mockResolvedValue(undefined),
     requestTransactionDocument: vi.fn().mockResolvedValue('mock-token'),
+    financialTasks: [],
+    addFinancialTask: vi.fn().mockResolvedValue(undefined),
+    updateFinancialTask: vi.fn().mockResolvedValue(undefined),
+    deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
+    toggleFinancialTaskComplete: vi.fn().mockResolvedValue(undefined),
     selectedBudgetLine: null,
     setSelectedBudgetLine: vi.fn(),
     filteredTransactions: [],
@@ -152,6 +158,17 @@ export const buildMockAuditEntry = (overrides: Partial<AuditEntry> = {}): AuditE
   transactionTitle: 'Pizza for meeting',
   before: null,
   after: buildMockTransaction(),
+  ...overrides,
+});
+
+export const buildMockFinancialTask = (
+  overrides: Partial<FinancialTask> = {},
+): FinancialTask => ({
+  id: 'task-1',
+  title: 'Submit Contract for Womans Club of Evanston',
+  dueDate: '2026-09-15',
+  createdBy: 'treasurer@example.com',
+  createdAt: new Date().toISOString(),
   ...overrides,
 });
 

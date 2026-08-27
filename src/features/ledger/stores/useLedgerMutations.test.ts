@@ -31,6 +31,21 @@ const mockUpdateEq = (result: { error: unknown } = { error: null }) => {
   return { update, eq };
 };
 
+// Same idea as mockUpdateEq, for the plain .insert(payload) and
+// .delete().eq(col, val) chains financial_tasks' mutations use.
+const mockInsert = (result: { error: unknown } = { error: null }) => {
+  const insert = vi.fn().mockResolvedValue(result);
+  mockFrom.mockReturnValue({ insert } as never);
+  return { insert };
+};
+
+const mockDeleteEq = (result: { error: unknown } = { error: null }) => {
+  const eq = vi.fn().mockResolvedValue(result);
+  const del = vi.fn(() => ({ eq }));
+  mockFrom.mockReturnValue({ delete: del } as never);
+  return { delete: del, eq };
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -330,6 +345,117 @@ describe('requestTransactionDocument', () => {
     mockRpc.mockResolvedValue({ error: { message: 'boom' } } as never);
     const { requestTransactionDocument } = useLedgerMutations('org-1', 'sofoApprover');
     await expect(requestTransactionDocument('txn-1', 'receipt')).rejects.toEqual({
+      message: 'boom',
+    });
+  });
+});
+
+describe('addFinancialTask', () => {
+  test('inserts a task scoped to the active org when the caller is a sofoApprover', async () => {
+    const { insert } = mockInsert();
+    const { addFinancialTask } = useLedgerMutations('org-1', 'sofoApprover');
+    await addFinancialTask({
+      title: 'Submit Contract',
+      dueDate: '2026-09-15',
+      assigneeEmail: 'officer@u.northwestern.edu',
+    });
+    expect(mockFrom).toHaveBeenCalledWith('financial_tasks');
+    expect(insert).toHaveBeenCalledWith({
+      org_id: 'org-1',
+      title: 'Submit Contract',
+      description: null,
+      due_date: '2026-09-15',
+      assignee_email: 'officer@u.northwestern.edu',
+    });
+  });
+
+  test('does nothing for a non-approver role (officer)', async () => {
+    const { insert } = mockInsert();
+    const { addFinancialTask } = useLedgerMutations('org-1', 'officer');
+    await addFinancialTask({ title: 'Submit Contract', dueDate: '2026-09-15' });
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  test('does nothing when there is no active organization', async () => {
+    const { insert } = mockInsert();
+    const { addFinancialTask } = useLedgerMutations(null, 'sofoApprover');
+    await addFinancialTask({ title: 'Submit Contract', dueDate: '2026-09-15' });
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  test('throws when the insert fails', async () => {
+    mockInsert({ error: { message: 'boom' } });
+    const { addFinancialTask } = useLedgerMutations('org-1', 'sofoApprover');
+    await expect(
+      addFinancialTask({ title: 'Submit Contract', dueDate: '2026-09-15' }),
+    ).rejects.toEqual({ message: 'boom' });
+  });
+});
+
+describe('updateFinancialTask', () => {
+  test('patches the task when the caller is a sofoApprover', async () => {
+    const { update, eq } = mockUpdateEq();
+    const { updateFinancialTask } = useLedgerMutations('org-1', 'sofoApprover');
+    await updateFinancialTask('task-1', {
+      title: 'Updated Title',
+      dueDate: '2026-10-01',
+    });
+    expect(mockFrom).toHaveBeenCalledWith('financial_tasks');
+    expect(update).toHaveBeenCalledWith({
+      title: 'Updated Title',
+      description: null,
+      due_date: '2026-10-01',
+      assignee_email: null,
+    });
+    expect(eq).toHaveBeenCalledWith('id', 'task-1');
+  });
+
+  test('does nothing for a non-approver role', async () => {
+    const { update } = mockUpdateEq();
+    const { updateFinancialTask } = useLedgerMutations('org-1', 'officer');
+    await updateFinancialTask('task-1', { title: 'x', dueDate: '2026-10-01' });
+    expect(update).not.toHaveBeenCalled();
+  });
+});
+
+describe('deleteFinancialTask', () => {
+  test('deletes the task when the caller is a sofoApprover', async () => {
+    const { delete: del, eq } = mockDeleteEq();
+    const { deleteFinancialTask } = useLedgerMutations('org-1', 'sofoApprover');
+    await deleteFinancialTask('task-1');
+    expect(mockFrom).toHaveBeenCalledWith('financial_tasks');
+    expect(del).toHaveBeenCalled();
+    expect(eq).toHaveBeenCalledWith('id', 'task-1');
+  });
+
+  test('does nothing for a non-approver role', async () => {
+    const { delete: del } = mockDeleteEq();
+    const { deleteFinancialTask } = useLedgerMutations('org-1', 'officer');
+    await deleteFinancialTask('task-1');
+    expect(del).not.toHaveBeenCalled();
+  });
+});
+
+describe('toggleFinancialTaskComplete', () => {
+  test('sets completed_at to an ISO timestamp when marking complete', async () => {
+    const { update, eq } = mockUpdateEq();
+    const { toggleFinancialTaskComplete } = useLedgerMutations('org-1', 'officer');
+    await toggleFinancialTaskComplete('task-1', true);
+    expect(update).toHaveBeenCalledWith({ completed_at: expect.any(String) });
+    expect(eq).toHaveBeenCalledWith('id', 'task-1');
+  });
+
+  test('clears completed_at when marking incomplete, proceeding for any role', async () => {
+    const { update } = mockUpdateEq();
+    const { toggleFinancialTaskComplete } = useLedgerMutations('org-1', 'sofoApprover');
+    await toggleFinancialTaskComplete('task-1', false);
+    expect(update).toHaveBeenCalledWith({ completed_at: null });
+  });
+
+  test('throws when the update fails', async () => {
+    mockUpdateEq({ error: { message: 'boom' } });
+    const { toggleFinancialTaskComplete } = useLedgerMutations('org-1', 'officer');
+    await expect(toggleFinancialTaskComplete('task-1', true)).rejects.toEqual({
       message: 'boom',
     });
   });

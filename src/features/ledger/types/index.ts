@@ -145,6 +145,21 @@ export interface PendingChange {
 
 export type UserRole = 'sofoApprover' | 'officer';
 
+// Ad-hoc financial deadlines an org's SOFO approvers track for themselves
+// (e.g. "Submit Contract for X"), shown as a timeline. Not financial-record
+// data -- no audit trail, no approval workflow, just a shared to-do list.
+export interface FinancialTask {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate: string; // YYYY-MM-DD
+  assigneeEmail?: string;
+  // undefined/null = not yet done.
+  completedAt?: string | null;
+  createdBy: string;
+  createdAt: string;
+}
+
 // Needed to pre-fill the official SOFO debit card reconciliation form.
 // loadBalance is the card's fixed limit, distinct from the live running
 // balance in budgetAllocations['Debit Card'].
@@ -219,4 +234,22 @@ export interface LedgerContextValue {
   setSelectedBudgetLine: (line: BudgetLine | null) => void;
   filteredTransactions: Transaction[];
   budgetLineSummaries: BudgetLineSummaryData[];
+  financialTasks: FinancialTask[];
+  addFinancialTask: (task: {
+    title: string;
+    description?: string;
+    dueDate: string;
+    assigneeEmail?: string;
+  }) => Promise<void>;
+  updateFinancialTask: (
+    id: string,
+    task: {
+      title: string;
+      description?: string;
+      dueDate: string;
+      assigneeEmail?: string;
+    },
+  ) => Promise<void>;
+  deleteFinancialTask: (id: string) => Promise<void>;
+  toggleFinancialTaskComplete: (id: string, completed: boolean) => Promise<void>;
 }

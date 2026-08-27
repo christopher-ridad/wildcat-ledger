@@ -1,0 +1,49 @@
+.wl-timeline-board {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wl-timeline-board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wl-timeline-scroll-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.wl-timeline-scroll-buttons button {
+  background: var(--color-card);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  width: 32px;
+  height: 32px;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.wl-timeline-scroll-buttons button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.wl-timeline-empty {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.wl-timeline-scroll {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  padding-bottom: 12px;
+}

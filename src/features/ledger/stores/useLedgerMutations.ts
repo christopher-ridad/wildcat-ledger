@@ -152,6 +152,62 @@ export function useLedgerMutations(
     return token;
   };
 
+  const addFinancialTask = async (task: {
+    title: string;
+    description?: string;
+    dueDate: string;
+    assigneeEmail?: string;
+  }) => {
+    if (userRole !== 'sofoApprover' || !activeOrganizationId) return;
+    const { error } = await supabase.from('financial_tasks').insert({
+      org_id: activeOrganizationId,
+      title: task.title,
+      description: task.description ?? null,
+      due_date: task.dueDate,
+      assignee_email: task.assigneeEmail ?? null,
+    });
+    if (error) throw error;
+  };
+
+  const updateFinancialTask = async (
+    id: string,
+    task: {
+      title: string;
+      description?: string;
+      dueDate: string;
+      assigneeEmail?: string;
+    },
+  ) => {
+    if (userRole !== 'sofoApprover') return;
+    const { error } = await supabase
+      .from('financial_tasks')
+      .update({
+        title: task.title,
+        description: task.description ?? null,
+        due_date: task.dueDate,
+        assignee_email: task.assigneeEmail ?? null,
+      })
+      .eq('id', id);
+    if (error) throw error;
+  };
+
+  const deleteFinancialTask = async (id: string) => {
+    if (userRole !== 'sofoApprover') return;
+    const { error } = await supabase.from('financial_tasks').delete().eq('id', id);
+    if (error) throw error;
+  };
+
+  // No role guard -- any org member may toggle. RLS + the update-restricting
+  // trigger (migration 0030) limit a non-manager's write to just this
+  // column regardless of what's sent here.
+  const toggleFinancialTaskComplete = async (id: string, completed: boolean) => {
+    const { error } = await supabase
+      .from('financial_tasks')
+      .update({ completed_at: completed ? new Date().toISOString() : null })
+      .eq('id', id);
+    if (error) throw error;
+  };
+
   return {
     generateTransactionId,
     addTransaction,
@@ -168,5 +224,9 @@ export function useLedgerMutations(
     uploadExemptionForm,
     markTaxReimbursed,
     requestTransactionDocument,
+    addFinancialTask,
+    updateFinancialTask,
+    deleteFinancialTask,
+    toggleFinancialTaskComplete,
   };
 }

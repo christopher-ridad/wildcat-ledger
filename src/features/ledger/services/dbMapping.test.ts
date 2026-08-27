@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import { Database } from '../../../config/database.types';
 import {
   rowToAuditEntry,
+  rowToFinancialTask,
   rowToOrganization,
   rowToPendingChange,
   rowToTransaction,
@@ -12,6 +13,7 @@ type TransactionRow = Database['public']['Tables']['transactions']['Row'];
 type OrganizationRow = Database['public']['Tables']['organizations']['Row'];
 type AuditLogRow = Database['public']['Tables']['audit_log']['Row'];
 type PendingChangeRow = Database['public']['Tables']['pending_changes']['Row'];
+type FinancialTaskRow = Database['public']['Tables']['financial_tasks']['Row'];
 
 const minimalTransactionRow: TransactionRow = {
   id: 'txn-1',
@@ -327,5 +329,46 @@ describe('rowToPendingChange', () => {
     const pending = rowToPendingChange(row);
     expect(pending.type).toBe('edit');
     expect(pending.after).toEqual({ amount: 20 });
+  });
+});
+
+describe('rowToFinancialTask', () => {
+  const minimalFinancialTaskRow: FinancialTaskRow = {
+    id: 'task-1',
+    org_id: 'org-1',
+    title: 'Submit Contract',
+    description: null,
+    due_date: '2026-09-15',
+    assignee_email: null,
+    completed_at: null,
+    created_by: 'treasurer@example.com',
+    created_at: '2026-08-01T00:00:00.000Z',
+  };
+
+  test('maps a minimal (no description/assignee, incomplete) row', () => {
+    const task = rowToFinancialTask(minimalFinancialTaskRow);
+    expect(task).toEqual({
+      id: 'task-1',
+      title: 'Submit Contract',
+      description: undefined,
+      dueDate: '2026-09-15',
+      assigneeEmail: undefined,
+      completedAt: null,
+      createdBy: 'treasurer@example.com',
+      createdAt: '2026-08-01T00:00:00.000Z',
+    });
+  });
+
+  test('passes through description, assignee, and a completed_at timestamp', () => {
+    const row: FinancialTaskRow = {
+      ...minimalFinancialTaskRow,
+      description: 'Send the signed copy to SOFO',
+      assignee_email: 'officer@u.northwestern.edu',
+      completed_at: '2026-09-10T12:00:00.000Z',
+    };
+    const task = rowToFinancialTask(row);
+    expect(task.description).toBe('Send the signed copy to SOFO');
+    expect(task.assigneeEmail).toBe('officer@u.northwestern.edu');
+    expect(task.completedAt).toBe('2026-09-10T12:00:00.000Z');
   });
 });
