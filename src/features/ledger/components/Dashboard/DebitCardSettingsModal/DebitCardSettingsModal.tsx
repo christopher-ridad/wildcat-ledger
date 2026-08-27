@@ -17,6 +17,7 @@ interface DebitCardSettingsModalProps {
 const PROJECT_ID_PATTERN = /^7\d{7}$/; // 70000000-79999999
 const ACCOUNT_NUMBER_PATTERN = /^20\d{2}-\d{3}$/; // e.g. 2000-000
 const ICN_PATTERN = /^\d{8}-\d{7}$/; // e.g. 12345678-1234567
+const LAST_FOUR_DIGITS_PATTERN = /^\d{4}$/;
 
 const formatWithDash = (raw: string, digitsBeforeDash: number, maxDigits: number) => {
   const digits = raw.replace(/\D/g, '').slice(0, maxDigits);
@@ -65,24 +66,34 @@ export const DebitCardSettingsModal = ({
   };
 
   const handleSave = async () => {
-    if (projectId && !PROJECT_ID_PATTERN.test(projectId)) {
-      saveAction.setError(
-        'Project ID must be an 8-digit number between 70000000 and 79999999.',
-      );
-      return;
-    }
-    if (accountNumber && !ACCOUNT_NUMBER_PATTERN.test(accountNumber)) {
-      saveAction.setError('Account No. must be in the format 20XX-XXX (e.g. 2000-000).');
-      return;
-    }
-    if (inventoryControlNumber && !ICN_PATTERN.test(inventoryControlNumber)) {
-      saveAction.setError(
-        'Inventory Control No. must be in the format XXXXXXXX-XXXXXXX (e.g. 12345678-1234567).',
-      );
-      return;
-    }
-    if (lastFourDigits && !/^\d{4}$/.test(lastFourDigits)) {
-      saveAction.setError('Last 4 digits must be exactly 4 numbers.');
+    const fieldValidations = [
+      {
+        value: projectId,
+        pattern: PROJECT_ID_PATTERN,
+        message: 'Project ID must be an 8-digit number between 70000000 and 79999999.',
+      },
+      {
+        value: accountNumber,
+        pattern: ACCOUNT_NUMBER_PATTERN,
+        message: 'Account No. must be in the format 20XX-XXX (e.g. 2000-000).',
+      },
+      {
+        value: inventoryControlNumber,
+        pattern: ICN_PATTERN,
+        message:
+          'Inventory Control No. must be in the format XXXXXXXX-XXXXXXX (e.g. 12345678-1234567).',
+      },
+      {
+        value: lastFourDigits,
+        pattern: LAST_FOUR_DIGITS_PATTERN,
+        message: 'Last 4 digits must be exactly 4 numbers.',
+      },
+    ];
+    const invalidField = fieldValidations.find(
+      ({ value, pattern }) => value && !pattern.test(value),
+    );
+    if (invalidField) {
+      saveAction.setError(invalidField.message);
       return;
     }
     const parsedLoadBalance = loadBalance ? parseFloat(loadBalance) : undefined;

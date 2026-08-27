@@ -1,13 +1,18 @@
 import { Funding, Transaction, TransactionType } from '../../../types';
 
-export type SupportedType = Extract<
-  TransactionType,
-  | 'Debit Card'
-  | 'Payment Request'
-  | 'Non-Officer Reimbursement'
-  | 'Payment to NU Employee'
-  | 'Deposit'
->;
+// The transaction types this form knows how to build/edit -- deliberately a
+// curated subset of TransactionType, not an alias for it, so a type added
+// there later doesn't silently become selectable here before this form
+// actually supports it.
+export const SUPPORTED_TYPES = [
+  'Debit Card',
+  'Payment Request',
+  'Non-Officer Reimbursement',
+  'Payment to NU Employee',
+  'Deposit',
+] as const satisfies readonly TransactionType[];
+
+export type SupportedType = (typeof SUPPORTED_TYPES)[number];
 
 export type FundingOption = Funding;
 

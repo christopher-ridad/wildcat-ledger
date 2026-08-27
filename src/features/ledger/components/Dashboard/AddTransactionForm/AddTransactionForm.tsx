@@ -4,7 +4,12 @@ import { DirectPaymentFields } from './DirectPaymentFields';
 import { NUEmployeePaymentFields } from './NUEmployeePaymentFields';
 import { OverdraftWarning } from './OverdraftWarning';
 import { ReimbursementFields } from './ReimbursementFields';
-import { AddTransactionFormProps, FundingOption, todayISO } from './types';
+import {
+  AddTransactionFormProps,
+  FundingOption,
+  SUPPORTED_TYPES,
+  todayISO,
+} from './types';
 import { useAddTransactionForm } from './useAddTransactionForm';
 
 export const AddTransactionForm = (props: AddTransactionFormProps) => {
@@ -103,11 +108,11 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
           value={form.type}
           onChange={handleTypeChange}
         >
-          <option value="Debit Card">Debit Card</option>
-          <option value="Payment Request">Payment Request</option>
-          <option value="Non-Officer Reimbursement">Non-Officer Reimbursement</option>
-          <option value="Payment to NU Employee">Payment to NU Employee</option>
-          <option value="Deposit">Deposit</option>
+          {SUPPORTED_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
         </select>
       </div>
 
