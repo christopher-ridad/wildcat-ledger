@@ -567,6 +567,47 @@ tbody tr:hover {
   margin: 0;
 }
 
+/* ─── Financial Timeline header ──────────────────────────────────── */
+.wl-timeline-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px 4px;
+  text-align: center;
+}
+
+.wl-timeline-header-org {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.wl-timeline-header-title {
+  margin: 4px 0 0;
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.wl-timeline-header-year {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 700px) {
+  .wl-timeline-header-title {
+    font-size: 2.25rem;
+  }
+}
+
 /* ─── Login Page ─────────────────────────────────────────────────── */
 .wl-login-field {
   display: flex;

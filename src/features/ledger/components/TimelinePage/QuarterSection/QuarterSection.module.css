@@ -1,6 +1,12 @@
 .wl-quarter-section {
   display: grid;
-  grid-template-columns: 1fr 44px 1fr;
+  /* minmax(0, 1fr), not bare 1fr -- a bare `fr` track has an implicit
+     min-width of its content's min-content size, so a long unwrapped task
+     title on one side could grow that column wider than the other and pull
+     the whole grid (and the center line/dots within it) off true center.
+     minmax(0, 1fr) forces both side columns to stay exactly symmetric
+     regardless of what either side's content wants. */
+  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
   margin-bottom: 112px;
 }
 
@@ -10,7 +16,7 @@
 
 @media (max-width: 700px) {
   .wl-quarter-section {
-    grid-template-columns: 40px 1fr;
+    grid-template-columns: 40px minmax(0, 1fr);
   }
 }
 

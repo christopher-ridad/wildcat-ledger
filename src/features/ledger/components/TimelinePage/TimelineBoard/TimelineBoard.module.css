@@ -4,9 +4,13 @@
   gap: 16px;
 }
 
+/* Centered under the page's editorial header (TimelinePage.tsx) rather
+   than pinned to the top-right corner like a dashboard toolbar -- reads as
+   part of that header composition instead of a floating action bar. */
 .wl-timeline-board-header {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 12px;
+  padding-bottom: 8px;
 }

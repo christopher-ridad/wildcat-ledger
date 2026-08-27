@@ -35,10 +35,12 @@ const renderPage = () => renderWithRouter(<TimelinePage />);
 describe('TimelinePage', () => {
   beforeEach(() => navigateMock.mockClear());
 
-  test('renders the Timeline heading and an empty state with no tasks', () => {
+  test('renders the Financial Timeline heading and an empty state with no tasks', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     renderPage();
-    expect(screen.getByRole('heading', { name: 'Timeline' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Financial Timeline' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/No tasks yet/)).toBeInTheDocument();
   });
 

@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { TimelineBoard } from '../features/ledger/components/TimelinePage/TimelineBoard';
 import { useLedger } from '../features/ledger/hooks/useLedger';
+import { currentAcademicYearLabel } from '../features/ledger/utils/groupTasksByQuarter';
+import { todayDateString } from '../features/ledger/utils/today';
 import { TopNav } from '../layouts/TopNav';
 
 export const TimelinePage = () => {
@@ -19,11 +21,14 @@ export const TimelinePage = () => {
         >
           ← Back to Dashboard
         </button>
-        <div className="wl-audit-heading-row">
-          <h2 className="wl-audit-heading">Timeline</h2>
+        <div className="wl-timeline-header">
           {activeOrganization && (
-            <span className="wl-audit-org-badge">{activeOrganization.name}</span>
+            <p className="wl-timeline-header-org">{activeOrganization.name}</p>
           )}
+          <h1 className="wl-timeline-header-title">Financial Timeline</h1>
+          <p className="wl-timeline-header-year">
+            {currentAcademicYearLabel(todayDateString())}
+          </p>
         </div>
         <TimelineBoard />
       </div>
