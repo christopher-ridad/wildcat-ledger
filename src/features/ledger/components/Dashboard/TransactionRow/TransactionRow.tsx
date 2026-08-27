@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { pluralize } from '../../../../../utils/pluralize';
 import { useAuth } from '../../../../authentication/hooks/useAuth';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { PaymentStatus, PendingChange, Transaction } from '../../../types';
@@ -262,7 +263,7 @@ export const TransactionRow = ({
                     aria-label={
                       missingDocs.length > 0
                         ? 'View missing documents'
-                        : `View ${fileCount} attached file${fileCount !== 1 ? 's' : ''}`
+                        : `View ${fileCount} attached ${pluralize(fileCount, 'file')}`
                     }
                     title={
                       missingDocs.length > 0 ? 'Missing documents' : 'View documents'

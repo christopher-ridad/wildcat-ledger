@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 
+import { pluralize } from '../../../../../utils/pluralize';
 import { useAsyncAction, useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
@@ -194,7 +195,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
           direction: 'Inflow',
           type: 'Deposit',
           budgetLine: 'Debit Card',
-          notes: `Requested after reconciling ${reconSummary.transactionCount} transaction${reconSummary.transactionCount !== 1 ? 's' : ''} (${formatCurrency(reconSummary.totalAmount)} total).`,
+          notes: `Requested after reconciling ${reconSummary.transactionCount} ${pluralize(reconSummary.transactionCount, 'transaction')} (${formatCurrency(reconSummary.totalAmount)} total).`,
         },
         generateTransactionId(),
       );
@@ -395,8 +396,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
               {uncoveredAll.length > 0 && (
                 <div className={styles['wl-recon-block-warning']}>
-                  ⚠ {uncoveredAll.length} transaction
-                  {uncoveredAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
+                  ⚠ {uncoveredAll.length} {pluralize(uncoveredAll.length, 'transaction')}{' '}
+                  cannot be reconciled until{' '}
                   {uncoveredAll.length === 1 ? 'it has' : 'they have'} a receipt or
                   attached exemption form.
                 </div>
@@ -404,19 +405,19 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
               {unresolvedTaxAll.length > 0 && (
                 <div className={styles['wl-recon-block-warning']}>
-                  ⚠ {unresolvedTaxAll.length} transaction
-                  {unresolvedTaxAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
-                  {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax reimbursement to
-                  SOFO is resolved.
+                  ⚠ {unresolvedTaxAll.length}{' '}
+                  {pluralize(unresolvedTaxAll.length, 'transaction')} cannot be reconciled
+                  until {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax
+                  reimbursement to SOFO is resolved.
                 </div>
               )}
 
               {pendingAll.length > 0 && (
                 <div className={styles['wl-recon-block-warning']}>
-                  ⚠ {pendingAll.length} transaction
-                  {pendingAll.length !== 1 ? 's' : ''} cannot be reconciled until{' '}
-                  {pendingAll.length === 1 ? 'its' : 'their'} pending edit or delete
-                  request {pendingAll.length === 1 ? 'is' : 'are'} resolved.
+                  ⚠ {pendingAll.length} {pluralize(pendingAll.length, 'transaction')}{' '}
+                  cannot be reconciled until {pendingAll.length === 1 ? 'its' : 'their'}{' '}
+                  pending edit or delete request {pendingAll.length === 1 ? 'is' : 'are'}{' '}
+                  resolved.
                 </div>
               )}
 
@@ -467,7 +468,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   {reconSummary.transactionCount}
                 </span>
                 <span className={styles['wl-recon-success-stat-label']}>
-                  transaction{reconSummary.transactionCount !== 1 ? 's' : ''}
+                  {pluralize(reconSummary.transactionCount, 'transaction')}
                 </span>
               </div>
               <div className={styles['wl-recon-success-stat']}>
@@ -482,7 +483,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                     {reconSummary.exemptionCount}
                   </span>
                   <span className={styles['wl-recon-success-stat-label']}>
-                    exemption{reconSummary.exemptionCount !== 1 ? 's' : ''}
+                    {pluralize(reconSummary.exemptionCount, 'exemption')}
                   </span>
                 </div>
               )}

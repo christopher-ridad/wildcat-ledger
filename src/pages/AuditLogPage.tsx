@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuditEntryCard } from '../features/ledger/components/AuditLogPage/AuditEntryCard';
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { TopNav } from '../layouts/TopNav';
+import { pluralize } from '../utils/pluralize';
 
 export const AuditLogPage = () => {
   const { auditLog, activeOrganization, peopleNames } = useLedger();
@@ -26,7 +27,7 @@ export const AuditLogPage = () => {
           )}
           {auditLog.length > 0 && (
             <span className="wl-audit-count">
-              {auditLog.length} {auditLog.length === 1 ? 'entry' : 'entries'}
+              {auditLog.length} {pluralize(auditLog.length, 'entry', 'entries')}
             </span>
           )}
         </div>

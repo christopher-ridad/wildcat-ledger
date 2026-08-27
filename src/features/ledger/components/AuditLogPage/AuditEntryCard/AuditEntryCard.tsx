@@ -1,3 +1,4 @@
+import { pluralize } from '../../../../../utils/pluralize';
 import { AuditAction, AuditEntry } from '../../../types';
 import { formatTimestamp } from '../../../utils/calculations';
 import { diffChangedKeys } from '../../../utils/diff';
@@ -94,9 +95,7 @@ const ACTION_LABELS: Record<AuditAction, ActionDisplay> = {
 // AuditEntry['action'] is only a type-level promise, not a runtime
 // guarantee) -- a row written by since-removed/renamed code, or anything
 // else ACTION_LABELS doesn't happen to cover yet, would otherwise crash the
-// whole page rather than just rendering that one entry oddly. Confirmed
-// happening in production (Sentry) from a legacy 'reload_request' row
-// before that action was added above.
+// whole page rather than just rendering that one entry oddly.
 const FALLBACK_ACTION_DISPLAY: ActionDisplay = {
   label: 'Updated',
   icon: '•',
@@ -198,8 +197,8 @@ export const AuditEntryCard = ({
             <>
               <span className={styles['wl-audit-recon-sep']}>·</span>
               <span>
-                {entry.reconciliationSummary.exemptionCount} exemption
-                {entry.reconciliationSummary.exemptionCount !== 1 ? 's' : ''}
+                {entry.reconciliationSummary.exemptionCount}{' '}
+                {pluralize(entry.reconciliationSummary.exemptionCount, 'exemption')}
               </span>
             </>
           )}

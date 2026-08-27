@@ -12,6 +12,7 @@ import {
   FormState,
   FundingOption,
   initialForm,
+  SUPPORTED_TYPES,
   todayISO,
 } from './types';
 import { deriveBudgetLine, deriveDirection, validateTransactionForm } from './validation';
@@ -20,15 +21,7 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
   if (!existingTransaction) return initialForm;
 
   const t = existingTransaction;
-  const isSupportedType = (
-    [
-      'Debit Card',
-      'Payment Request',
-      'Non-Officer Reimbursement',
-      'Payment to NU Employee',
-      'Deposit',
-    ] as string[]
-  ).includes(t.type);
+  const isSupportedType = (SUPPORTED_TYPES as readonly string[]).includes(t.type);
   return {
     title: t.title,
     date: t.date ?? todayISO(),
