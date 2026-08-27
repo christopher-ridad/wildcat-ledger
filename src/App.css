@@ -1079,15 +1079,3 @@ tbody tr:hover {
   color: var(--color-positive);
   margin: 0;
 }
-
-/* ─── Shared keyframes (referenced from component CSS modules) ──── */
-@keyframes wl-slide-down {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}

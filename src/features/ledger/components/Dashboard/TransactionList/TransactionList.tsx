@@ -30,14 +30,18 @@ export const TransactionList = () => {
   const deleteAction = useAsyncAction();
 
   const handleDeleteConfirm = async () => {
-    if (!deletingTransaction) return;
+    if (!deletingTransaction || deleteAction.pending) return;
     await deleteAction.run(async () => {
       await deleteTransaction(deletingTransaction.id);
       setDeletingTransaction(null);
     }, 'Failed to submit the delete request.');
   };
 
+  // Also reachable via the Modal's Escape key and overlay-click, not just the
+  // explicit Cancel button -- guarded the same way so a delete that's still
+  // in flight can't be dismissed out from under its own pending/error state.
   const handleDeleteCancel = () => {
+    if (deleteAction.pending) return;
     setDeletingTransaction(null);
     deleteAction.setError(null);
   };
