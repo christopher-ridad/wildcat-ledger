@@ -23,7 +23,7 @@
 .wl-quarter-line-cell {
   position: relative;
   grid-column: 2;
-  min-height: 96px;
+  min-height: 72px;
 }
 
 @media (max-width: 700px) {

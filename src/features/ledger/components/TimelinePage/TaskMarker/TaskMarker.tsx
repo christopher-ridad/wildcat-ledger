@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { useScrollReveal } from '../../../hooks/useScrollReveal';
 import { FinancialTask } from '../../../types';
 import { getTaskUrgency } from '../../../utils/taskUrgency';
@@ -31,6 +33,15 @@ const STAGGER_CAP_MS = 280;
 // children of the parent grid QuarterSection owns. See TimelineLineSegment
 // for why the line itself is built from per-row slivers instead of one
 // absolutely-positioned full-height line.
+//
+// DOM order matters here: CSS Grid's sparse auto-placement cursor only
+// moves forward. The dot always sits in the fixed center column (2); once
+// it's placed, the cursor can't go "back" to fill column 1 in the same row
+// -- a left-side content cell emitted after the dot would get silently
+// pushed to the *next* auto row, landing one row below its own dot. So for
+// side === 'left' the content cell (column 1) must render BEFORE the dot
+// cell (column 2); for 'right' (column 3, already after column 2) the
+// original order is fine.
 export const TaskMarker = ({
   task,
   side,
@@ -50,53 +61,78 @@ export const TaskMarker = ({
   const { ref, revealed } = useScrollReveal<HTMLDivElement>();
   const transitionDelay = `${Math.min(staggerIndex * STAGGER_STEP_MS, STAGGER_CAP_MS)}ms`;
 
-  return (
-    <>
-      <div
-        ref={ref}
-        className={styles['wl-marker-line-cell']}
-        data-task-popover-active={isActive ? 'true' : undefined}
-      >
-        <TimelineLineSegment revealed={revealed} />
-        <button
-          type="button"
-          className={[styles['wl-marker-dot'], styles[`wl-marker-dot--${urgency}`]]
-            .filter(Boolean)
-            .join(' ')}
-          style={{ transitionDelay }}
-          data-revealed={revealed ? 'true' : undefined}
-          onClick={onToggleActive}
-          aria-haspopup="dialog"
-          aria-expanded={isActive}
-          aria-label={task.title}
-        />
-      </div>
+  // Hovering the dot should expand the (possibly-truncated) label over in
+  // the content cell too, same as hovering the label itself. A plain CSS
+  // sibling-hover selector can't do this anymore: DOM order now varies by
+  // side (see below), so which element comes "before" the other isn't
+  // fixed. Tracking it in state instead works regardless of order.
+  const [isPreviewing, setIsPreviewing] = useState(false);
 
-      <div
-        className={[styles['wl-marker-content'], styles[`wl-marker-content--${side}`]]
+  const lineCell = (
+    <div
+      ref={ref}
+      className={styles['wl-marker-line-cell']}
+      data-task-popover-active={isActive ? 'true' : undefined}
+      data-preview={isPreviewing ? 'true' : undefined}
+    >
+      <TimelineLineSegment revealed={revealed} />
+      <button
+        type="button"
+        className={[styles['wl-marker-dot'], styles[`wl-marker-dot--${urgency}`]]
           .filter(Boolean)
           .join(' ')}
         style={{ transitionDelay }}
         data-revealed={revealed ? 'true' : undefined}
-        data-task-popover-active={isActive ? 'true' : undefined}
-      >
-        <span className={styles['wl-marker-label']}>{task.title}</span>
+        onClick={onToggleActive}
+        onMouseEnter={() => setIsPreviewing(true)}
+        onMouseLeave={() => setIsPreviewing(false)}
+        aria-haspopup="dialog"
+        aria-expanded={isActive}
+        aria-label={task.title}
+      />
+    </div>
+  );
 
-        {isActive && (
-          <TaskCard
-            task={task}
-            peopleNames={peopleNames}
-            canEdit={canEdit}
-            pending={pending}
-            error={error}
-            onToggleComplete={onToggleComplete}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            titleId={titleId}
-            direction={side}
-          />
-        )}
-      </div>
+  const contentCell = (
+    <div
+      className={[styles['wl-marker-content'], styles[`wl-marker-content--${side}`]]
+        .filter(Boolean)
+        .join(' ')}
+      style={{ transitionDelay }}
+      data-revealed={revealed ? 'true' : undefined}
+      data-task-popover-active={isActive ? 'true' : undefined}
+      data-preview={isPreviewing ? 'true' : undefined}
+      onMouseEnter={() => setIsPreviewing(true)}
+      onMouseLeave={() => setIsPreviewing(false)}
+    >
+      <span className={styles['wl-marker-label']}>{task.title}</span>
+
+      {isActive && (
+        <TaskCard
+          task={task}
+          peopleNames={peopleNames}
+          canEdit={canEdit}
+          pending={pending}
+          error={error}
+          onToggleComplete={onToggleComplete}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          titleId={titleId}
+          direction={side}
+        />
+      )}
+    </div>
+  );
+
+  return side === 'left' ? (
+    <>
+      {contentCell}
+      {lineCell}
+    </>
+  ) : (
+    <>
+      {lineCell}
+      {contentCell}
     </>
   );
 };
