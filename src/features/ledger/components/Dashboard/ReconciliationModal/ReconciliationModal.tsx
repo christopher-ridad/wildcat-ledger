@@ -68,15 +68,15 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // needs resolving from the dashboard before reconciling.
   const pendingChangeFor = (t: Transaction) => pendingChangeForTransaction(t.id);
 
-  // Reset selection whenever the modal opens (the false→true transition only —
-  // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
-  // open, since reconciling flips those via Realtime a moment later and would
-  // otherwise reset `step` back to 'review' right under the success screen).
   const coveredIds = unreconciledTxns
     .filter(isCovered)
     .map((t) => t.id)
     .join(',');
   const uncoveredCount = unreconciledTxns.filter((t) => !isCovered(t)).length;
+  // Reset selection whenever the modal opens (the false→true transition only —
+  // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
+  // open, since reconciling flips those via Realtime a moment later and would
+  // otherwise reset `step` back to 'review' right under the success screen).
   useResetOnOpen(isOpen, () => {
     setSelected(
       uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
