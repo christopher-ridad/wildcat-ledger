@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { buildMockFinancialTask } from '../../../../../test/mocks';
 import { TaskCard } from './TaskCard';
@@ -44,6 +44,44 @@ describe('TaskCard', () => {
   test('does not show overdue for a future due date', () => {
     renderCard({ task: buildMockFinancialTask({ dueDate: '2099-01-01' }) });
     expect(screen.queryByText(/\(overdue\)/)).not.toBeInTheDocument();
+  });
+
+  describe('urgency labelling, pinned to a fixed "today"', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-09-10T12:00:00'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    test('shows "(due soon)" for a task due within 3 days', () => {
+      renderCard({ task: buildMockFinancialTask({ dueDate: '2026-09-12' }) });
+      expect(screen.getByText(/\(due soon\)/)).toBeInTheDocument();
+    });
+
+    test('shows "(this week)" for a task due 4-7 days out', () => {
+      renderCard({ task: buildMockFinancialTask({ dueDate: '2026-09-16' }) });
+      expect(screen.getByText(/\(this week\)/)).toBeInTheDocument();
+    });
+
+    test('shows no urgency label for a task due more than a week out', () => {
+      renderCard({ task: buildMockFinancialTask({ dueDate: '2026-09-25' }) });
+      expect(screen.queryByText(/\(due soon\)/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/\(this week\)/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/\(overdue\)/)).not.toBeInTheDocument();
+    });
+
+    test('shows no urgency label for a completed task even when its due date is imminent', () => {
+      renderCard({
+        task: buildMockFinancialTask({
+          dueDate: '2026-09-11',
+          completedAt: '2026-09-01T00:00:00Z',
+        }),
+      });
+      expect(screen.queryByText(/\(due soon\)/)).not.toBeInTheDocument();
+    });
   });
 
   test('checkbox reflects completedAt, and toggling calls onToggleComplete', () => {

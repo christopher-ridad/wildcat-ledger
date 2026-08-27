@@ -6,6 +6,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.wl-task-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 12%);
 }
 
 .wl-task-card--complete {
@@ -18,6 +26,34 @@
 
 .wl-task-card--overdue {
   border-color: var(--color-negative);
+}
+
+.wl-task-card--dueThisWeek {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.wl-task-card--dueSoon {
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+  animation: wl-task-card-pulse 2s ease-in-out infinite;
+}
+
+@keyframes wl-task-card-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(217 119 6 / 45%);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgb(217 119 6 / 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-task-card--dueSoon {
+    animation: none;
+  }
 }
 
 .wl-task-card-checkbox-row {
@@ -49,6 +85,12 @@
 
 .wl-task-card-due--overdue {
   color: var(--color-negative);
+  font-weight: 600;
+}
+
+.wl-task-card-due--dueSoon,
+.wl-task-card-due--dueThisWeek {
+  color: var(--color-warning);
   font-weight: 600;
 }
 

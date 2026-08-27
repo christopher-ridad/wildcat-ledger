@@ -1,5 +1,5 @@
 import { FinancialTask } from '../../../types';
-import { todayDateString } from '../../../utils/today';
+import { getTaskUrgency } from '../../../utils/taskUrgency';
 import styles from './TaskCard.module.css';
 
 interface TaskCardProps {
@@ -15,6 +15,14 @@ interface TaskCardProps {
   onDelete: () => void;
 }
 
+const URGENCY_LABEL: Record<string, string | null> = {
+  overdue: '(overdue)',
+  dueSoon: '(due soon)',
+  dueThisWeek: '(this week)',
+  normal: null,
+  complete: null,
+};
+
 export const TaskCard = ({
   task,
   peopleNames,
@@ -25,12 +33,15 @@ export const TaskCard = ({
   onEdit,
   onDelete,
 }: TaskCardProps) => {
-  const isComplete = !!task.completedAt;
-  const isOverdue = !isComplete && task.dueDate < todayDateString();
+  const urgency = getTaskUrgency(task.dueDate, task.completedAt);
+  const isComplete = urgency === 'complete';
+  const urgencyLabel = URGENCY_LABEL[urgency];
 
   return (
     <div
-      className={`${styles['wl-task-card']} ${isComplete ? styles['wl-task-card--complete'] : ''} ${isOverdue ? styles['wl-task-card--overdue'] : ''}`}
+      className={[styles['wl-task-card'], styles[`wl-task-card--${urgency}`]]
+        .filter(Boolean)
+        .join(' ')}
     >
       <label className={styles['wl-task-card-checkbox-row']}>
         <input
@@ -47,9 +58,9 @@ export const TaskCard = ({
       )}
 
       <div className={styles['wl-task-card-meta']}>
-        <span className={isOverdue ? styles['wl-task-card-due--overdue'] : undefined}>
+        <span className={styles[`wl-task-card-due--${urgency}`]}>
           Due {task.dueDate}
-          {isOverdue && ' (overdue)'}
+          {urgencyLabel && ` ${urgencyLabel}`}
         </span>
         {task.assigneeEmail && (
           <span>{peopleNames[task.assigneeEmail] ?? task.assigneeEmail}</span>

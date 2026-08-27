@@ -6,6 +6,11 @@
   max-height: calc(100vh - 220px);
   background: var(--color-bg);
   border-radius: var(--radius);
+  border: 2px solid transparent;
+}
+
+.wl-timeline-month--current {
+  border-color: var(--color-primary);
 }
 
 .wl-timeline-month-header {
@@ -16,8 +21,19 @@
   font-size: 0.85rem;
   font-weight: 700;
   padding: 10px 14px;
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
   z-index: 1;
+}
+
+.wl-timeline-month--current .wl-timeline-month-header::after {
+  content: 'Current month';
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  margin-top: 2px;
 }
 
 .wl-timeline-month-body {

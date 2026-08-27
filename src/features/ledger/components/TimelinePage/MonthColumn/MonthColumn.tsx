@@ -1,4 +1,5 @@
 import { FinancialTask } from '../../../types';
+import { todayDateString } from '../../../utils/today';
 import { TaskCard } from '../TaskCard';
 import styles from './MonthColumn.module.css';
 
@@ -26,23 +27,35 @@ export const MonthColumn = ({
   onToggleComplete,
   onEdit,
   onDelete,
-}: MonthColumnProps) => (
-  <div className={styles['wl-timeline-month']} data-month-key={monthKey}>
-    <div className={styles['wl-timeline-month-header']}>{label}</div>
-    <div className={styles['wl-timeline-month-body']}>
-      {tasks.map((task) => (
-        <TaskCard
-          key={task.id}
-          task={task}
-          peopleNames={peopleNames}
-          canEdit={canEdit}
-          pending={isTaskPending(task.id)}
-          error={taskError(task.id) || undefined}
-          onToggleComplete={(completed) => onToggleComplete(task, completed)}
-          onEdit={() => onEdit(task)}
-          onDelete={() => onDelete(task)}
-        />
-      ))}
+}: MonthColumnProps) => {
+  const isCurrentMonth = monthKey === todayDateString().slice(0, 7);
+
+  return (
+    <div
+      className={[
+        styles['wl-timeline-month'],
+        isCurrentMonth ? styles['wl-timeline-month--current'] : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      data-month-key={monthKey}
+    >
+      <div className={styles['wl-timeline-month-header']}>{label}</div>
+      <div className={styles['wl-timeline-month-body']}>
+        {tasks.map((task) => (
+          <TaskCard
+            key={task.id}
+            task={task}
+            peopleNames={peopleNames}
+            canEdit={canEdit}
+            pending={isTaskPending(task.id)}
+            error={taskError(task.id) || undefined}
+            onToggleComplete={(completed) => onToggleComplete(task, completed)}
+            onEdit={() => onEdit(task)}
+            onDelete={() => onDelete(task)}
+          />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
