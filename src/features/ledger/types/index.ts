@@ -1,3 +1,5 @@
+import type { DocumentTypeKey } from '../utils/documentRequirements';
+
 export type BudgetLine = 'ASG' | 'Operating' | 'Gifts' | 'Debit Card';
 
 export type Funding = 'ASG' | 'Operating' | 'Gifts';
@@ -158,6 +160,28 @@ export interface FinancialTask {
   completedAt?: string | null;
   createdBy: string;
   createdAt: string;
+  // Reuses the same TransactionType vocabulary as transactions.type --
+  // selecting one auto-generates this task's requirement checklist (see
+  // financialTaskRequirements.ts). Optional: not every to-do is a payment.
+  paymentType?: TransactionType;
+  // Only meaningful when paymentType === 'Payment Request', same as on
+  // Transaction.
+  isIndividualVendor?: boolean;
+}
+
+// One auto-generated document-requirement checklist item on a
+// payment-type-having FinancialTask (see financialTaskRequirements.ts's
+// requirementSeedsForPaymentType, which derives these from the same
+// getRequiredDocuments() transactions already use). label is a snapshot
+// taken at generation time, not a live lookup -- see migration 0031.
+export interface FinancialTaskRequirement {
+  id: string;
+  taskId: string;
+  key: DocumentTypeKey;
+  label: string;
+  // undefined/null = not yet done.
+  completedAt?: string | null;
+  createdAt: string;
 }
 
 // Needed to pre-fill the official SOFO debit card reconciliation form.
@@ -240,6 +264,8 @@ export interface LedgerContextValue {
     description?: string;
     dueDate: string;
     assigneeEmail?: string;
+    paymentType?: TransactionType;
+    isIndividualVendor?: boolean;
   }) => Promise<void>;
   updateFinancialTask: (
     id: string,
@@ -248,8 +274,12 @@ export interface LedgerContextValue {
       description?: string;
       dueDate: string;
       assigneeEmail?: string;
+      paymentType?: TransactionType;
+      isIndividualVendor?: boolean;
     },
   ) => Promise<void>;
   deleteFinancialTask: (id: string) => Promise<void>;
+  financialTaskRequirements: FinancialTaskRequirement[];
+  toggleFinancialTaskRequirement: (id: string, completed: boolean) => Promise<void>;
   toggleFinancialTaskComplete: (id: string, completed: boolean) => Promise<void>;
 }

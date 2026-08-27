@@ -9,6 +9,7 @@ import { LedgerContext } from '../features/ledger/stores/LedgerContext';
 import {
   AuditEntry,
   FinancialTask,
+  FinancialTaskRequirement,
   LedgerContextValue,
   Organization,
   PendingChange,
@@ -89,6 +90,8 @@ export const buildMockLedgerContext = (
     updateFinancialTask: vi.fn().mockResolvedValue(undefined),
     deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
     toggleFinancialTaskComplete: vi.fn().mockResolvedValue(undefined),
+    financialTaskRequirements: [],
+    toggleFinancialTaskRequirement: vi.fn().mockResolvedValue(undefined),
     selectedBudgetLine: null,
     setSelectedBudgetLine: vi.fn(),
     filteredTransactions: [],
@@ -168,6 +171,17 @@ export const buildMockFinancialTask = (
   title: 'Submit Contract for Womans Club of Evanston',
   dueDate: '2026-09-15',
   createdBy: 'treasurer@example.com',
+  createdAt: new Date().toISOString(),
+  ...overrides,
+});
+
+export const buildMockFinancialTaskRequirement = (
+  overrides: Partial<FinancialTaskRequirement> = {},
+): FinancialTaskRequirement => ({
+  id: 'req-1',
+  taskId: 'task-1',
+  key: 'contract',
+  label: 'RSO Agreement',
   createdAt: new Date().toISOString(),
   ...overrides,
 });

@@ -28,15 +28,15 @@ vi.mock('../TaskFormModal', () => ({
       </div>
     ) : null,
 }));
-vi.mock('../ChapterTimeline', () => ({
-  ChapterTimeline: ({
+vi.mock('../QuarterBoard', () => ({
+  QuarterBoard: ({
     tasks,
     onEdit,
   }: {
     tasks: { id: string; title: string }[];
     onEdit: (task: { id: string; title: string }) => void;
   }) => (
-    <div data-testid="chapter-timeline">
+    <div data-testid="quarter-board">
       {tasks.map((task) => (
         <button key={task.id} onClick={() => onEdit(task)}>
           Edit {task.title}
@@ -50,6 +50,7 @@ const mockUseLedger = vi.mocked(useLedger);
 
 const baseLedger = {
   financialTasks: [] as ReturnType<typeof buildMockFinancialTask>[],
+  financialTaskRequirements: [],
   activeOrganization: buildMockOrganization({
     officers: ['officer@u.northwestern.edu'],
     sofoApprovers: ['approver@u.northwestern.edu'],
@@ -60,6 +61,7 @@ const baseLedger = {
   updateFinancialTask: vi.fn().mockResolvedValue(undefined),
   deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
   toggleFinancialTaskComplete: vi.fn().mockResolvedValue(undefined),
+  toggleFinancialTaskRequirement: vi.fn().mockResolvedValue(undefined),
 };
 
 describe('TimelineBoard', () => {

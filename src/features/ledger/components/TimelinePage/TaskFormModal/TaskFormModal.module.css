@@ -17,6 +17,22 @@
   box-shadow: 0 0 0 3px rgba(78, 42, 132, 0.1);
 }
 
+.wl-form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.wl-form-hint {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
 .wl-task-form-actions {
   display: flex;
   gap: 12px;

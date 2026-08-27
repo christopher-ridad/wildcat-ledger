@@ -1,0 +1,41 @@
+.wl-quarter-board {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 8px 16px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.wl-quarter-board-panel {
+  /* key={quarter.key} on this element forces a full remount on every
+     quarter switch, so this autoplaying animation fires fresh each time --
+     "subtle, but fast and direct" per the brief, distinctly shorter than
+     TaskRow's own entrance so the whole panel doesn't feel sluggish. */
+  animation: wl-quarter-board-panel-in 0.18s ease-out both;
+}
+
+@keyframes wl-quarter-board-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-quarter-board-panel {
+    animation: none;
+  }
+}
+
+.wl-quarter-board-empty {
+  padding: 48px 16px;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  text-align: center;
+}

@@ -1,1 +1,0 @@
-export { QuarterChapter } from './QuarterChapter';

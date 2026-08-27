@@ -1,18 +1,25 @@
 import { useId, useState } from 'react';
 
-import { useScrollReveal } from '../../../hooks/useScrollReveal';
-import { FinancialTask } from '../../../types';
+import { FinancialTask, FinancialTaskRequirement } from '../../../types';
 import { getTaskUrgency } from '../../../utils/taskUrgency';
 import styles from './TaskRow.module.css';
 
 interface TaskRowProps {
   task: FinancialTask;
+  // This task's position among its month's entries (0-based) -- staggers
+  // its entrance animation slightly behind the ones before it.
   staggerIndex: number;
+  requirements: FinancialTaskRequirement[];
   peopleNames: Record<string, string>;
   canEdit: boolean;
   pending: boolean;
   error?: string;
+  isRequirementPending: (requirementId: string) => boolean;
   onToggleComplete: (completed: boolean) => void;
+  onToggleRequirement: (
+    requirement: FinancialTaskRequirement,
+    completed: boolean,
+  ) => void;
   onEdit: () => void;
   onDelete: () => void;
 }
@@ -31,21 +38,23 @@ const STATUS_LABEL: Record<string, string | null> = {
 export const TaskRow = ({
   task,
   staggerIndex,
+  requirements,
   peopleNames,
   canEdit,
   pending,
   error,
+  isRequirementPending,
   onToggleComplete,
+  onToggleRequirement,
   onEdit,
   onDelete,
 }: TaskRowProps) => {
-  const { ref, revealed } = useScrollReveal<HTMLDivElement>();
   const [expanded, setExpanded] = useState(false);
   const detailsId = useId();
   const urgency = getTaskUrgency(task.dueDate, task.completedAt);
   const isComplete = urgency === 'complete';
   const statusLabel = STATUS_LABEL[urgency];
-  const transitionDelay = `${Math.min(staggerIndex * STAGGER_STEP_MS, STAGGER_CAP_MS)}ms`;
+  const animationDelay = `${Math.min(staggerIndex * STAGGER_STEP_MS, STAGGER_CAP_MS)}ms`;
 
   const handleEdit = () => {
     // Collapse first so the row doesn't sit expanded-and-stale behind the
@@ -56,12 +65,10 @@ export const TaskRow = ({
 
   return (
     <div
-      ref={ref}
       className={[styles['wl-task-row'], styles[`wl-task-row--${urgency}`]]
         .filter(Boolean)
         .join(' ')}
-      data-revealed={revealed ? 'true' : undefined}
-      style={{ transitionDelay }}
+      style={{ animationDelay }}
     >
       <div className={styles['wl-task-row-header']}>
         <input
@@ -81,6 +88,7 @@ export const TaskRow = ({
           <span className={styles['wl-task-row-title']}>{task.title}</span>
           <span className={styles['wl-task-row-due']}>
             Due {task.dueDate}
+            {task.paymentType && ` · ${task.paymentType}`}
             {statusLabel && ` · ${statusLabel}`}
           </span>
           <span
@@ -111,6 +119,25 @@ export const TaskRow = ({
               {peopleNames[task.assigneeEmail] ?? task.assigneeEmail}
             </p>
           )}
+
+          {requirements.length > 0 && (
+            <ul className={styles['wl-task-row-requirements']}>
+              {requirements.map((requirement) => (
+                <li key={requirement.id} className={styles['wl-task-row-requirement']}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!!requirement.completedAt}
+                      disabled={isRequirementPending(requirement.id)}
+                      onChange={(e) => onToggleRequirement(requirement, e.target.checked)}
+                    />
+                    <span>{requirement.label}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+
           {canEdit && (
             <div className={styles['wl-task-row-actions']}>
               <button

@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
-import { FinancialTask } from '../../../types';
-import { ChapterTimeline } from '../ChapterTimeline';
+import { FinancialTask, FinancialTaskRequirement, TransactionType } from '../../../types';
+import { QuarterBoard } from '../QuarterBoard';
 import { TaskFormModal } from '../TaskFormModal';
 import styles from './TimelineBoard.module.css';
 
 export const TimelineBoard = () => {
   const {
     financialTasks,
+    financialTaskRequirements,
     activeOrganization,
     peopleNames,
     canEdit,
@@ -17,12 +18,14 @@ export const TimelineBoard = () => {
     updateFinancialTask,
     deleteFinancialTask,
     toggleFinancialTaskComplete,
+    toggleFinancialTaskRequirement,
   } = useLedger();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<FinancialTask | undefined>(undefined);
   const toggleAction = useAsyncActionMap();
   const deleteAction = useAsyncActionMap();
+  const requirementAction = useAsyncActionMap();
 
   const rosterEmails = [
     ...new Set([
@@ -30,6 +33,19 @@ export const TimelineBoard = () => {
       ...(activeOrganization?.sofoApprovers ?? []),
     ]),
   ];
+
+  const requirementsByTaskId = useMemo(() => {
+    const map = new Map<string, FinancialTaskRequirement[]>();
+    for (const requirement of financialTaskRequirements) {
+      const existing = map.get(requirement.taskId);
+      if (existing) {
+        existing.push(requirement);
+      } else {
+        map.set(requirement.taskId, [requirement]);
+      }
+    }
+    return map;
+  }, [financialTaskRequirements]);
 
   const openAddForm = () => {
     setEditingTask(undefined);
@@ -49,6 +65,17 @@ export const TimelineBoard = () => {
     );
   };
 
+  const handleToggleRequirement = (
+    requirement: FinancialTaskRequirement,
+    completed: boolean,
+  ) => {
+    requirementAction.run(
+      requirement.id,
+      () => toggleFinancialTaskRequirement(requirement.id, completed),
+      'Failed to update. Try again.',
+    );
+  };
+
   const handleDelete = (task: FinancialTask) => {
     deleteAction.run(task.id, () => deleteFinancialTask(task.id), 'Failed to delete.');
   };
@@ -58,6 +85,8 @@ export const TimelineBoard = () => {
     description?: string;
     dueDate: string;
     assigneeEmail?: string;
+    paymentType?: TransactionType;
+    isIndividualVendor?: boolean;
   }) => {
     if (editingTask) {
       await updateFinancialTask(editingTask.id, task);
@@ -81,13 +110,16 @@ export const TimelineBoard = () => {
         )}
       </div>
 
-      <ChapterTimeline
+      <QuarterBoard
         tasks={financialTasks}
+        requirementsByTaskId={requirementsByTaskId}
         peopleNames={peopleNames}
         canEdit={canEdit}
         isTaskPending={isTaskPending}
         taskError={taskError}
+        isRequirementPending={requirementAction.pending}
         onToggleComplete={handleToggleComplete}
+        onToggleRequirement={handleToggleRequirement}
         onEdit={openEditForm}
         onDelete={handleDelete}
       />

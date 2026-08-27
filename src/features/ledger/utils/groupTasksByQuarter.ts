@@ -56,11 +56,6 @@ const academicQuarterOrderOf = (month: number) => {
   return 2; // Apr-Jun -> Spring
 };
 
-const quarterKeyOf = (monthKey: string) => {
-  const [year, month] = monthKey.split('-').map(Number);
-  return `${academicYearStartOf(year, month)}-${academicQuarterOrderOf(month)}`;
-};
-
 const quarterLabelOf = (quarterKey: string) => {
   const [startStr, orderStr] = quarterKey.split('-');
   const academicYearStart = Number(startStr);
@@ -84,10 +79,28 @@ export const currentAcademicYearLabel = (todayStr: string) => {
   return academicYearLabel(academicYearStartOf(year, month));
 };
 
+// The quarter (of the CURRENT academic year) containing the given date, in
+// the same `${academicYearStart}-${order}` shape as QuarterGroup.key -- used
+// to pick the default-selected tab.
+export const currentQuarterKey = (todayStr: string) => {
+  const [year, month] = todayStr.split('-').map(Number);
+  return `${academicYearStartOf(year, month)}-${academicQuarterOrderOf(month)}`;
+};
+
+// Always exactly 3 quarters -- Fall/Winter/Spring of the academic year
+// containing "today" -- since the UI presents them as a fixed 3-tab
+// selector, not an open-ended scroll. Tasks due in any OTHER academic year
+// are excluded from the result entirely (a confirmed, deliberate choice: a
+// tab selector only makes sense for a known, fixed set of tabs, and this is
+// meant to answer "what does the org need to do THIS year," not archive
+// every task ever entered).
 export const groupTasksByQuarter = (
   tasks: FinancialTask[],
   todayStr: string,
 ): QuarterGroup[] => {
+  const [todayYear, todayMonthNum] = todayStr.split('-').map(Number);
+  const currentYearStart = academicYearStartOf(todayYear, todayMonthNum);
+
   const monthsByKey = new Map<string, MonthGroup>();
 
   const getOrCreateMonth = (monthKey: string) => {
@@ -99,7 +112,12 @@ export const groupTasksByQuarter = (
     return month;
   };
 
-  const sortedTasks = [...tasks].sort((a, b) =>
+  const tasksInCurrentYear = tasks.filter((task) => {
+    const [year, month] = task.dueDate.split('-').map(Number);
+    return academicYearStartOf(year, month) === currentYearStart;
+  });
+
+  const sortedTasks = [...tasksInCurrentYear].sort((a, b) =>
     a.dueDate === b.dueDate
       ? a.id.localeCompare(b.id)
       : a.dueDate.localeCompare(b.dueDate),
@@ -117,38 +135,17 @@ export const groupTasksByQuarter = (
   const insertAt = todayEntryIndex === -1 ? todayMonth.entries.length : todayEntryIndex;
   todayMonth.entries.splice(insertAt, 0, { isToday: true });
 
-  // Quarters are the fixed structure of an academic year, not something
-  // that only appears when task data exists -- scaffold Fall/Winter/Spring
-  // for every academic year touched by either a task or "today", even the
-  // ones with zero months of their own.
-  const [todayYear, todayMonthNum] = todayStr.split('-').map(Number);
-  const academicYearStarts = new Set<number>([
-    academicYearStartOf(todayYear, todayMonthNum),
-  ]);
-  for (const monthKey of monthsByKey.keys()) {
-    const [year, month] = monthKey.split('-').map(Number);
-    academicYearStarts.add(academicYearStartOf(year, month));
-  }
-
-  const quartersByKey = new Map<string, QuarterGroup>();
-  for (const start of [...academicYearStarts].sort((a, b) => a - b)) {
-    for (let order = 0; order < ACADEMIC_QUARTERS.length; order += 1) {
-      const key = `${start}-${order}`;
-      quartersByKey.set(key, { key, label: quarterLabelOf(key), months: [] });
-    }
+  const quarters: QuarterGroup[] = [];
+  for (let order = 0; order < ACADEMIC_QUARTERS.length; order += 1) {
+    const key = `${currentYearStart}-${order}`;
+    quarters.push({ key, label: quarterLabelOf(key), months: [] });
   }
 
   const sortedMonthKeys = [...monthsByKey.keys()].sort();
   for (const monthKey of sortedMonthKeys) {
-    const quarter = quartersByKey.get(quarterKeyOf(monthKey))!;
+    const quarter = quarters[academicQuarterOrderOf(Number(monthKey.slice(5, 7)))];
     quarter.months.push(monthsByKey.get(monthKey)!);
   }
 
-  return [...quartersByKey.keys()]
-    .sort((a, b) => {
-      const [aStart, aOrder] = a.split('-').map(Number);
-      const [bStart, bOrder] = b.split('-').map(Number);
-      return aStart === bStart ? aOrder - bOrder : aStart - bStart;
-    })
-    .map((key) => quartersByKey.get(key)!);
+  return quarters;
 };

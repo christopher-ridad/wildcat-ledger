@@ -4,6 +4,7 @@ import { buildMockFinancialTask } from '../../../test/mocks';
 import {
   academicYearLabel,
   currentAcademicYearLabel,
+  currentQuarterKey,
   groupTasksByQuarter,
 } from './groupTasksByQuarter';
 
@@ -41,20 +42,27 @@ describe('groupTasksByQuarter', () => {
     expect(quarters[2].months).toEqual([]);
   });
 
-  test("a task in a different academic year scaffolds that year's Fall/Winter/Spring too, without filling in untouched years between", () => {
+  test('always returns exactly 3 quarters, excluding tasks due in a different academic year', () => {
     const quarters = groupTasksByQuarter(
-      [buildMockFinancialTask({ id: 't1', dueDate: '2028-10-15' })], // Fall Quarter 2028 (academic year 2028-2029)
+      [
+        buildMockFinancialTask({ id: 'past', dueDate: '2024-10-15' }), // academic year 2024-2025
+        buildMockFinancialTask({ id: 'future', dueDate: '2028-10-15' }), // academic year 2028-2029
+        buildMockFinancialTask({ id: 'this-year', dueDate: '2026-11-01' }), // academic year 2026-2027
+      ],
       TODAY, // academic year 2026-2027
     );
+    expect(quarters).toHaveLength(3);
     expect(quarters.map((q) => q.label)).toEqual([
       'Fall Quarter 2026',
       'Winter Quarter 2027',
       'Spring Quarter 2027',
-      'Fall Quarter 2028',
-      'Winter Quarter 2029',
-      'Spring Quarter 2029',
     ]);
-    expect(quarters[3].months[0].entries[0].task?.id).toBe('t1');
+    const allTaskIds = quarters
+      .flatMap((q) => q.months)
+      .flatMap((m) => m.entries)
+      .map((e) => e.task?.id)
+      .filter(Boolean);
+    expect(allTaskIds).toEqual(['this-year']);
   });
 
   test('groups tasks by month within the correct quarter, sorted chronologically regardless of input order', () => {
@@ -130,5 +138,18 @@ describe('groupTasksByQuarter', () => {
     expect(currentAcademicYearLabel('2027-02-01')).toBe('2026–2027'); // Winter -> still 2026-2027
     expect(currentAcademicYearLabel('2027-06-30')).toBe('2026–2027'); // Spring -> still 2026-2027
     expect(currentAcademicYearLabel('2027-07-01')).toBe('2027–2028'); // next Fall -> new academic year
+  });
+
+  test('currentQuarterKey matches the key of the quarter actually containing that date', () => {
+    const quarters = groupTasksByQuarter([], TODAY);
+    const key = currentQuarterKey(TODAY);
+    const matching = quarters.find((q) => q.key === key)!;
+    expect(matching.label).toBe('Fall Quarter 2026');
+
+    expect(currentQuarterKey('2027-02-01')).toBe(
+      groupTasksByQuarter([], '2027-02-01').find(
+        (q) => q.label === 'Winter Quarter 2027',
+      )!.key,
+    );
   });
 });

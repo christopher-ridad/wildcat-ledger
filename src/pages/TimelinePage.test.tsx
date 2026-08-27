@@ -21,6 +21,7 @@ const mockUseLedger = vi.mocked(useLedger);
 
 const baseLedger = {
   financialTasks: [] as ReturnType<typeof buildMockFinancialTask>[],
+  financialTaskRequirements: [],
   activeOrganization: null,
   peopleNames: {},
   canEdit: true,
@@ -28,6 +29,7 @@ const baseLedger = {
   updateFinancialTask: vi.fn().mockResolvedValue(undefined),
   deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
   toggleFinancialTaskComplete: vi.fn().mockResolvedValue(undefined),
+  toggleFinancialTaskRequirement: vi.fn().mockResolvedValue(undefined),
 };
 
 const renderPage = () => renderWithRouter(<TimelinePage />);
@@ -35,13 +37,13 @@ const renderPage = () => renderWithRouter(<TimelinePage />);
 describe('TimelinePage', () => {
   beforeEach(() => navigateMock.mockClear());
 
-  test('renders the Financial Timeline heading and an empty state with no tasks', () => {
+  test('renders the Financial Timeline heading and today’s landmark with no tasks', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     renderPage();
     expect(
       screen.getByRole('heading', { name: 'Financial Timeline' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/No tasks yet/)).toBeInTheDocument();
+    expect(screen.getByRole('separator')).toHaveTextContent('Today');
   });
 
   test('shows the active organization name badge when set', () => {

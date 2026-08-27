@@ -4,6 +4,7 @@ import { supabase } from '../../../config/supabase';
 import {
   rowToAuditEntry,
   rowToFinancialTask,
+  rowToFinancialTaskRequirement,
   rowToOrganization,
   rowToPendingChange,
   rowToTransaction,
@@ -12,6 +13,7 @@ import {
   AuditEntry,
   BudgetLine,
   FinancialTask,
+  FinancialTaskRequirement,
   Organization,
   PendingChange,
 } from '../types';
@@ -48,6 +50,9 @@ export function useOrganizationsData(userEmail: string | null) {
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
   const [financialTasks, setFinancialTasks] = useState<FinancialTask[]>([]);
+  const [financialTaskRequirements, setFinancialTaskRequirements] = useState<
+    FinancialTaskRequirement[]
+  >([]);
   const [activeOrganizationId, setActiveOrganizationIdState] = useState<string | null>(
     () => localStorage.getItem('activeOrganizationId'),
   );
@@ -172,10 +177,22 @@ export function useOrganizationsData(userEmail: string | null) {
       );
     };
 
+    const loadFinancialTaskRequirements = async () => {
+      setFinancialTaskRequirements(
+        await fetchOrgRows(
+          'financial_task_requirements',
+          activeOrganizationId,
+          rowToFinancialTaskRequirement,
+          { column: 'created_at', ascending: true },
+        ),
+      );
+    };
+
     loadTransactions();
     loadAuditLog();
     loadPendingChanges();
     loadFinancialTasks();
+    loadFinancialTaskRequirements();
 
     const channel = supabase
       .channel(`org-${activeOrganizationId}-changes`)
@@ -219,6 +236,16 @@ export function useOrganizationsData(userEmail: string | null) {
         },
         loadFinancialTasks,
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'financial_task_requirements',
+          filter: `org_id=eq.${activeOrganizationId}`,
+        },
+        loadFinancialTaskRequirements,
+      )
       .subscribe();
 
     return () => {
@@ -233,6 +260,7 @@ export function useOrganizationsData(userEmail: string | null) {
     auditLog,
     pendingChanges,
     financialTasks,
+    financialTaskRequirements,
     activeOrganizationId,
     setActiveOrganizationId,
     selectedBudgetLine,

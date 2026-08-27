@@ -1,67 +1,68 @@
-import { useScrollReveal } from '../../../hooks/useScrollReveal';
-import { FinancialTask } from '../../../types';
+import { FinancialTask, FinancialTaskRequirement } from '../../../types';
 import { MonthGroup } from '../../../utils/groupTasksByQuarter';
 import { TaskRow } from '../TaskRow';
 import styles from './MonthSection.module.css';
 
 interface MonthSectionProps {
   month: MonthGroup;
+  requirementsByTaskId: Map<string, FinancialTaskRequirement[]>;
   peopleNames: Record<string, string>;
   canEdit: boolean;
   isTaskPending: (taskId: string) => boolean;
   taskError: (taskId: string) => string;
+  isRequirementPending: (requirementId: string) => boolean;
   onToggleComplete: (task: FinancialTask, completed: boolean) => void;
+  onToggleRequirement: (
+    requirement: FinancialTaskRequirement,
+    completed: boolean,
+  ) => void;
   onEdit: (task: FinancialTask) => void;
   onDelete: (task: FinancialTask) => void;
 }
 
 export const MonthSection = ({
   month,
+  requirementsByTaskId,
   peopleNames,
   canEdit,
   isTaskPending,
   taskError,
+  isRequirementPending,
   onToggleComplete,
+  onToggleRequirement,
   onEdit,
   onDelete,
-}: MonthSectionProps) => {
-  const { ref, revealed } = useScrollReveal<HTMLDivElement>();
+}: MonthSectionProps) => (
+  <section className={styles['wl-month-section']}>
+    <h3 className={styles['wl-month-section-label']}>{month.label}</h3>
 
-  return (
-    <section className={styles['wl-month-section']}>
-      <h3
-        ref={ref}
-        className={styles['wl-month-section-label']}
-        data-revealed={revealed ? 'true' : undefined}
-      >
-        {month.label}
-      </h3>
-
-      {month.entries.map((entry, entryIndex) => {
-        if (entry.isToday) {
-          return (
-            <div key="today" className={styles['wl-today-divider']} role="separator">
-              <span className={styles['wl-today-divider-label']}>Today</span>
-            </div>
-          );
-        }
-
-        const task = entry.task!;
+    {month.entries.map((entry, entryIndex) => {
+      if (entry.isToday) {
         return (
-          <TaskRow
-            key={task.id}
-            task={task}
-            staggerIndex={entryIndex}
-            peopleNames={peopleNames}
-            canEdit={canEdit}
-            pending={isTaskPending(task.id)}
-            error={taskError(task.id) || undefined}
-            onToggleComplete={(completed) => onToggleComplete(task, completed)}
-            onEdit={() => onEdit(task)}
-            onDelete={() => onDelete(task)}
-          />
+          <div key="today" className={styles['wl-today-divider']} role="separator">
+            <span className={styles['wl-today-divider-label']}>Today</span>
+          </div>
         );
-      })}
-    </section>
-  );
-};
+      }
+
+      const task = entry.task!;
+      return (
+        <TaskRow
+          key={task.id}
+          task={task}
+          staggerIndex={entryIndex}
+          requirements={requirementsByTaskId.get(task.id) ?? []}
+          peopleNames={peopleNames}
+          canEdit={canEdit}
+          pending={isTaskPending(task.id)}
+          error={taskError(task.id) || undefined}
+          isRequirementPending={isRequirementPending}
+          onToggleComplete={(completed) => onToggleComplete(task, completed)}
+          onToggleRequirement={onToggleRequirement}
+          onEdit={() => onEdit(task)}
+          onDelete={() => onDelete(task)}
+        />
+      );
+    })}
+  </section>
+);

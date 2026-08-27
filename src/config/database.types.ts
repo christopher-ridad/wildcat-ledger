@@ -79,6 +79,51 @@ export type Database = {
           },
         ];
       };
+      financial_task_requirements: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          key: string;
+          label: string;
+          org_id: string;
+          task_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          key: string;
+          label: string;
+          org_id: string;
+          task_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          key?: string;
+          label?: string;
+          org_id?: string;
+          task_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'financial_task_requirements_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'financial_task_requirements_task_id_fkey';
+            columns: ['task_id'];
+            isOneToOne: false;
+            referencedRelation: 'financial_tasks';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       financial_tasks: {
         Row: {
           assignee_email: string | null;
@@ -88,7 +133,9 @@ export type Database = {
           description: string | null;
           due_date: string;
           id: string;
+          is_individual_vendor: boolean;
           org_id: string;
+          payment_type: string | null;
           title: string;
         };
         Insert: {
@@ -99,7 +146,9 @@ export type Database = {
           description?: string | null;
           due_date: string;
           id?: string;
+          is_individual_vendor?: boolean;
           org_id: string;
+          payment_type?: string | null;
           title: string;
         };
         Update: {
@@ -110,7 +159,9 @@ export type Database = {
           description?: string | null;
           due_date?: string;
           id?: string;
+          is_individual_vendor?: boolean;
           org_id?: string;
+          payment_type?: string | null;
           title?: string;
         };
         Relationships: [

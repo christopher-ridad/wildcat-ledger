@@ -16,11 +16,14 @@ const renderSection = (overrides: Partial<ComponentProps<typeof MonthSection>> =
   render(
     <MonthSection
       month={baseMonth}
+      requirementsByTaskId={new Map()}
       peopleNames={{}}
       canEdit
       isTaskPending={() => false}
       taskError={() => ''}
+      isRequirementPending={() => false}
       onToggleComplete={vi.fn()}
+      onToggleRequirement={vi.fn()}
       onEdit={vi.fn()}
       onDelete={vi.fn()}
       {...overrides}

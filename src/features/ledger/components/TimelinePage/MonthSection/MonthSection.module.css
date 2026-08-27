@@ -14,24 +14,6 @@
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.55s ease-out,
-    transform 0.55s ease-out;
-}
-
-.wl-month-section-label[data-revealed='true'] {
-  opacity: 1;
-  transform: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wl-month-section-label {
-    transition: none;
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .wl-today-divider {

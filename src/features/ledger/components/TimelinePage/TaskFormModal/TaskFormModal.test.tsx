@@ -146,4 +146,100 @@ describe('TaskFormModal', () => {
     expect(onClose).toHaveBeenCalled();
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  test("payment type select is populated from the app's existing supported types", () => {
+    renderModal();
+    expect(screen.getByRole('option', { name: 'No payment type' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Debit Card' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Payment Request' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Non-Officer Reimbursement' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Payment to NU Employee' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Deposit' })).toBeInTheDocument();
+  });
+
+  test('the individual-vendor checkbox and hint only appear once Payment Request is selected', () => {
+    renderModal();
+    expect(screen.queryByText(/Is this an individual vendor/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/automatically add the required documents/),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Payment Type (optional)'), {
+      target: { value: 'Payment Request' },
+    });
+    expect(screen.getByText('Is this an individual vendor?')).toBeInTheDocument();
+    expect(
+      screen.getByText(/automatically add the required documents for Payment Request/),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Payment Type (optional)'), {
+      target: { value: 'Debit Card' },
+    });
+    expect(screen.queryByText(/Is this an individual vendor/)).not.toBeInTheDocument();
+  });
+
+  test('onSave receives paymentType and isIndividualVendor', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderModal({ onSave });
+
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Submit Contract' },
+    });
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-09-15' },
+    });
+    fireEvent.change(screen.getByLabelText('Payment Type (optional)'), {
+      target: { value: 'Payment Request' },
+    });
+    fireEvent.click(screen.getByLabelText('Is this an individual vendor?'));
+    fireEvent.click(screen.getByText('Save'));
+
+    await screen.findByText('Save');
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentType: 'Payment Request',
+        isIndividualVendor: true,
+      }),
+    );
+  });
+
+  test('isIndividualVendor is omitted from onSave when payment type is not Payment Request', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    renderModal({ onSave });
+
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Reload debit card' },
+    });
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-09-15' },
+    });
+    fireEvent.change(screen.getByLabelText('Payment Type (optional)'), {
+      target: { value: 'Debit Card' },
+    });
+    fireEvent.click(screen.getByText('Save'));
+
+    await screen.findByText('Save');
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        paymentType: 'Debit Card',
+        isIndividualVendor: undefined,
+      }),
+    );
+  });
+
+  test('pre-fills payment type and individual-vendor from the task prop when editing', () => {
+    const task = buildMockFinancialTask({
+      paymentType: 'Payment Request',
+      isIndividualVendor: true,
+    });
+    renderModal({ task });
+    expect(screen.getByLabelText('Payment Type (optional)')).toHaveValue(
+      'Payment Request',
+    );
+    expect(screen.getByLabelText('Is this an individual vendor?')).toBeChecked();
+  });
 });

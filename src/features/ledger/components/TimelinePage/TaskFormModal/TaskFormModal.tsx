@@ -2,7 +2,8 @@ import { useState } from 'react';
 
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
-import { FinancialTask } from '../../../types';
+import { FinancialTask, TransactionType } from '../../../types';
+import { SUPPORTED_TYPES } from '../../Dashboard/AddTransactionForm/types';
 import { Modal } from '../../Dashboard/Modal';
 import styles from './TaskFormModal.module.css';
 
@@ -17,6 +18,8 @@ interface TaskFormModalProps {
     description?: string;
     dueDate: string;
     assigneeEmail?: string;
+    paymentType?: TransactionType;
+    isIndividualVendor?: boolean;
   }) => Promise<void>;
 }
 
@@ -32,6 +35,8 @@ export const TaskFormModal = ({
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [assigneeEmail, setAssigneeEmail] = useState('');
+  const [paymentType, setPaymentType] = useState<TransactionType | ''>('');
+  const [isIndividualVendor, setIsIndividualVendor] = useState(false);
   const saveAction = useAsyncAction();
 
   useResetOnOpen(isOpen, () => {
@@ -39,6 +44,8 @@ export const TaskFormModal = ({
     setDescription(task?.description ?? '');
     setDueDate(task?.dueDate ?? '');
     setAssigneeEmail(task?.assigneeEmail ?? '');
+    setPaymentType(task?.paymentType ?? '');
+    setIsIndividualVendor(task?.isIndividualVendor ?? false);
     saveAction.setError(null);
   }, [task]);
 
@@ -62,6 +69,9 @@ export const TaskFormModal = ({
         description: description.trim() || undefined,
         dueDate,
         assigneeEmail: assigneeEmail || undefined,
+        paymentType: paymentType || undefined,
+        isIndividualVendor:
+          paymentType === 'Payment Request' ? isIndividualVendor : undefined,
       });
       onClose();
     }, 'Failed to save. Try again.');
@@ -107,6 +117,42 @@ export const TaskFormModal = ({
           onChange={(e) => setDueDate(e.target.value)}
         />
       </div>
+
+      <div className="wl-form-group">
+        <label className="wl-form-label" htmlFor="task-payment-type">
+          Payment Type (optional)
+        </label>
+        <select
+          id="task-payment-type"
+          className={styles['wl-form-select']}
+          value={paymentType}
+          onChange={(e) => setPaymentType(e.target.value as TransactionType | '')}
+        >
+          <option value="">No payment type</option>
+          {SUPPORTED_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </select>
+        {paymentType && (
+          <p className={styles['wl-form-hint']}>
+            We&rsquo;ll automatically add the required documents for {paymentType} to this
+            task&rsquo;s checklist.
+          </p>
+        )}
+      </div>
+
+      {paymentType === 'Payment Request' && (
+        <label className={styles['wl-form-checkbox']}>
+          <input
+            type="checkbox"
+            checked={isIndividualVendor}
+            onChange={(e) => setIsIndividualVendor(e.target.checked)}
+          />
+          <span>Is this an individual vendor?</span>
+        </label>
+      )}
 
       <div className="wl-form-group">
         <label className="wl-form-label" htmlFor="task-description">

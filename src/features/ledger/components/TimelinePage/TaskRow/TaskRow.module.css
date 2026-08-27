@@ -1,17 +1,24 @@
 .wl-task-row {
   border-bottom: 1px solid var(--color-border);
   padding: 18px 4px;
-  opacity: 0;
-  transform: translateY(16px);
-  transition:
-    opacity 0.45s ease-out,
-    transform 0.45s ease-out,
-    background-color 0.15s ease;
+  transition: background-color 0.15s ease;
+  /* Autoplays once on mount (quarter switches remount the whole panel, see
+     QuarterBoard) -- no scroll-driven reveal anymore, so a plain animation
+     is enough; animation-delay (via the inline style prop) staggers rows
+     within a month. */
+  animation: wl-task-row-in 0.3s ease-out both;
 }
 
-.wl-task-row[data-revealed='true'] {
-  opacity: 1;
-  transform: none;
+@keyframes wl-task-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .wl-task-row:hover {
@@ -20,9 +27,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wl-task-row {
-    transition: background-color 0.15s ease;
-    opacity: 1;
-    transform: none;
+    animation: none;
   }
 }
 
@@ -119,6 +124,35 @@
   margin: 0;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+}
+
+.wl-task-row-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wl-task-row-requirement label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.wl-task-row-requirement input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.wl-task-row-requirement:has(input:checked) label {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
 }
 
 .wl-task-row-actions {

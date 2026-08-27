@@ -11,16 +11,21 @@ import { Database } from '../../../config/database.types';
 import {
   AuditEntry,
   FinancialTask,
+  FinancialTaskRequirement,
   Organization,
   PendingChange,
   Transaction,
+  TransactionType,
 } from '../types';
+import { DocumentTypeKey } from '../utils/documentRequirements';
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row'];
 type OrganizationRow = Database['public']['Tables']['organizations']['Row'];
 type AuditLogRow = Database['public']['Tables']['audit_log']['Row'];
 type PendingChangeRow = Database['public']['Tables']['pending_changes']['Row'];
 type FinancialTaskRow = Database['public']['Tables']['financial_tasks']['Row'];
+type FinancialTaskRequirementRow =
+  Database['public']['Tables']['financial_task_requirements']['Row'];
 
 export const rowToTransaction = (row: TransactionRow): Transaction => ({
   id: row.id,
@@ -118,5 +123,18 @@ export const rowToFinancialTask = (row: FinancialTaskRow): FinancialTask => ({
   assigneeEmail: row.assignee_email ?? undefined,
   completedAt: row.completed_at,
   createdBy: row.created_by,
+  createdAt: row.created_at,
+  paymentType: (row.payment_type ?? undefined) as TransactionType | undefined,
+  isIndividualVendor: row.is_individual_vendor,
+});
+
+export const rowToFinancialTaskRequirement = (
+  row: FinancialTaskRequirementRow,
+): FinancialTaskRequirement => ({
+  id: row.id,
+  taskId: row.task_id,
+  key: row.key as DocumentTypeKey,
+  label: row.label,
+  completedAt: row.completed_at,
   createdAt: row.created_at,
 });

@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { buildMockFinancialTask } from '../../../../../test/mocks';
+import {
+  buildMockFinancialTask,
+  buildMockFinancialTaskRequirement,
+} from '../../../../../test/mocks';
 import { TaskRow } from './TaskRow';
 
 const renderRow = (overrides: Partial<ComponentProps<typeof TaskRow>> = {}) =>
@@ -10,10 +13,13 @@ const renderRow = (overrides: Partial<ComponentProps<typeof TaskRow>> = {}) =>
     <TaskRow
       task={buildMockFinancialTask()}
       staggerIndex={0}
+      requirements={[]}
       peopleNames={{}}
       canEdit
       pending={false}
+      isRequirementPending={() => false}
       onToggleComplete={vi.fn()}
+      onToggleRequirement={vi.fn()}
       onEdit={vi.fn()}
       onDelete={vi.fn()}
       {...overrides}
@@ -150,6 +156,84 @@ describe('TaskRow', () => {
   test('shows an error message next to the header regardless of expand state', () => {
     renderRow({ error: 'Failed to update.' });
     expect(screen.getByText('Failed to update.')).toBeInTheDocument();
+  });
+
+  test('shows the payment type in the collapsed header when set', () => {
+    renderRow({ task: buildMockFinancialTask({ paymentType: 'Payment Request' }) });
+    expect(screen.getByText(/Payment Request/)).toBeInTheDocument();
+  });
+
+  test('omits payment type text when not set', () => {
+    renderRow({ task: buildMockFinancialTask({ paymentType: undefined }) });
+    expect(
+      screen.queryByText(/Payment Request|Debit Card|Deposit/),
+    ).not.toBeInTheDocument();
+  });
+
+  test('requirements checklist only renders once expanded, with correct checked state', () => {
+    const requirements = [
+      buildMockFinancialTaskRequirement({
+        id: 'r1',
+        key: 'contract',
+        label: 'RSO Agreement',
+      }),
+      buildMockFinancialTaskRequirement({
+        id: 'r2',
+        key: 'w9',
+        label: 'W-9',
+        completedAt: '2026-09-01T00:00:00Z',
+      }),
+    ];
+    renderRow({
+      task: buildMockFinancialTask({ title: 'Submit Contract' }),
+      requirements,
+    });
+    expect(screen.queryByText('RSO Agreement')).not.toBeInTheDocument();
+
+    clickToggle();
+    expect(screen.getByText('RSO Agreement')).toBeInTheDocument();
+    expect(screen.getByText('W-9')).toBeInTheDocument();
+    const [contractCheckbox, w9Checkbox] = screen.getAllByRole('checkbox').slice(1);
+    expect(contractCheckbox).not.toBeChecked();
+    expect(w9Checkbox).toBeChecked();
+  });
+
+  test('toggling a requirement checkbox calls onToggleRequirement with the right requirement', () => {
+    const onToggleRequirement = vi.fn();
+    const requirement = buildMockFinancialTaskRequirement({
+      id: 'r1',
+      key: 'contract',
+      label: 'RSO Agreement',
+    });
+    renderRow({
+      task: buildMockFinancialTask({ title: 'Submit Contract' }),
+      requirements: [requirement],
+      onToggleRequirement,
+    });
+    clickToggle();
+    const [requirementCheckbox] = screen.getAllByRole('checkbox').slice(1);
+    fireEvent.click(requirementCheckbox);
+    expect(onToggleRequirement).toHaveBeenCalledWith(requirement, true);
+  });
+
+  test('a pending requirement disables just its own checkbox', () => {
+    const requirements = [
+      buildMockFinancialTaskRequirement({
+        id: 'r1',
+        key: 'contract',
+        label: 'RSO Agreement',
+      }),
+      buildMockFinancialTaskRequirement({ id: 'r2', key: 'w9', label: 'W-9' }),
+    ];
+    renderRow({
+      task: buildMockFinancialTask({ title: 'Submit Contract' }),
+      requirements,
+      isRequirementPending: (id) => id === 'r1',
+    });
+    clickToggle();
+    const [contractCheckbox, w9Checkbox] = screen.getAllByRole('checkbox').slice(1);
+    expect(contractCheckbox).toBeDisabled();
+    expect(w9Checkbox).not.toBeDisabled();
   });
 
   describe('status label, pinned to a fixed "today"', () => {
