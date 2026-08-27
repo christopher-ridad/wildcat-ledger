@@ -5,7 +5,7 @@ import {
   Transaction,
 } from '../types';
 
-export const BUDGET_LINES: BudgetLine[] = ['ASG', 'Operating', 'Gifts', 'Debit Card'];
+const BUDGET_LINES: BudgetLine[] = ['ASG', 'Operating', 'Gifts', 'Debit Card'];
 
 export const calculateBudgetLineSummaries = (
   transactions: Transaction[],
