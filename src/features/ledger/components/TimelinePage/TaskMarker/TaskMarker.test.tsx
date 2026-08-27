@@ -9,8 +9,7 @@ const renderMarker = (overrides: Partial<ComponentProps<typeof TaskMarker>> = {}
   render(
     <TaskMarker
       task={buildMockFinancialTask({ title: 'Submit Contract' })}
-      x={120}
-      index={0}
+      side="left"
       isActive={false}
       onToggleActive={vi.fn()}
       peopleNames={{}}
@@ -47,18 +46,17 @@ describe('TaskMarker', () => {
     expect(onToggleActive).toHaveBeenCalled();
   });
 
-  test('active: portals the full TaskCard content to the document', () => {
+  test('active: renders the full TaskCard content in place', () => {
     renderMarker({ isActive: true });
     expect(screen.getByRole('dialog', { name: 'Submit Contract' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).toBeInTheDocument();
   });
 
-  test('even index -> above direction on the popover; odd index -> below', () => {
+  test('side="left" -> left direction on the popover; side="right" -> right', () => {
     const { rerender } = render(
       <TaskMarker
-        task={buildMockFinancialTask({ title: 'Even Task' })}
-        x={0}
-        index={0}
+        task={buildMockFinancialTask({ title: 'Left Task' })}
+        side="left"
         isActive
         onToggleActive={vi.fn()}
         peopleNames={{}}
@@ -69,13 +67,12 @@ describe('TaskMarker', () => {
         onDelete={vi.fn()}
       />,
     );
-    expect(screen.getByRole('dialog').className).toMatch(/above/);
+    expect(screen.getByRole('dialog').className).toMatch(/left/);
 
     rerender(
       <TaskMarker
-        task={buildMockFinancialTask({ title: 'Odd Task' })}
-        x={0}
-        index={1}
+        task={buildMockFinancialTask({ title: 'Right Task' })}
+        side="right"
         isActive
         onToggleActive={vi.fn()}
         peopleNames={{}}
@@ -86,7 +83,7 @@ describe('TaskMarker', () => {
         onDelete={vi.fn()}
       />,
     );
-    expect(screen.getByRole('dialog').className).toMatch(/below/);
+    expect(screen.getByRole('dialog').className).toMatch(/right/);
   });
 
   test('dot urgency class matches getTaskUrgency for a fixed today', () => {
@@ -101,17 +98,16 @@ describe('TaskMarker', () => {
     expect(screen.getByText('Failed.')).toBeInTheDocument();
   });
 
-  test('data-task-popover-active is present on the marker only when active', () => {
+  test('data-task-popover-active is present on the content cell only when active', () => {
     const { rerender } = renderMarker({ isActive: false });
-    expect(
-      screen.getByRole('button', { name: 'Submit Contract' }).parentElement,
-    ).not.toHaveAttribute('data-task-popover-active');
+    expect(screen.getByText('Submit Contract').parentElement).not.toHaveAttribute(
+      'data-task-popover-active',
+    );
 
     rerender(
       <TaskMarker
         task={buildMockFinancialTask({ title: 'Submit Contract' })}
-        x={120}
-        index={0}
+        side="left"
         isActive
         onToggleActive={vi.fn()}
         peopleNames={{}}
@@ -122,8 +118,9 @@ describe('TaskMarker', () => {
         onDelete={vi.fn()}
       />,
     );
-    expect(
-      screen.getByRole('button', { name: 'Submit Contract' }).parentElement,
-    ).toHaveAttribute('data-task-popover-active', 'true');
+    expect(screen.getByRole('dialog').parentElement).toHaveAttribute(
+      'data-task-popover-active',
+      'true',
+    );
   });
 });

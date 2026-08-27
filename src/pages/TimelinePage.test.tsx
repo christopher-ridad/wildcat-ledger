@@ -39,7 +39,7 @@ describe('TimelinePage', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     renderPage();
     expect(screen.getByRole('heading', { name: 'Timeline' })).toBeInTheDocument();
-    expect(screen.getByText('No tasks yet.')).toBeInTheDocument();
+    expect(screen.getByText(/No tasks yet/)).toBeInTheDocument();
   });
 
   test('shows the active organization name badge when set', () => {

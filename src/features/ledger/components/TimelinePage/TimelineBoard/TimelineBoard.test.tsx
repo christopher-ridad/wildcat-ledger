@@ -28,15 +28,15 @@ vi.mock('../TaskFormModal', () => ({
       </div>
     ) : null,
 }));
-vi.mock('../TimelineTrack', () => ({
-  TimelineTrack: ({
+vi.mock('../VerticalTimeline', () => ({
+  VerticalTimeline: ({
     tasks,
     onEdit,
   }: {
     tasks: { id: string; title: string }[];
     onEdit: (task: { id: string; title: string }) => void;
   }) => (
-    <div data-testid="timeline-track">
+    <div data-testid="vertical-timeline">
       {tasks.map((task) => (
         <button key={task.id} onClick={() => onEdit(task)}>
           Edit {task.title}

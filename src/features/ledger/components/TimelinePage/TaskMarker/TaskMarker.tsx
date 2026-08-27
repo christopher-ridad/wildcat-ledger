@@ -1,15 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-
+import { useScrollReveal } from '../../../hooks/useScrollReveal';
 import { FinancialTask } from '../../../types';
 import { getTaskUrgency } from '../../../utils/taskUrgency';
 import { TaskCard } from '../TaskCard';
+import { TimelineLineSegment } from '../TimelineLineSegment';
 import styles from './TaskMarker.module.css';
 
 interface TaskMarkerProps {
   task: FinancialTask;
-  x: number;
-  index: number;
+  side: 'left' | 'right';
   isActive: boolean;
   onToggleActive: () => void;
   peopleNames: Record<string, string>;
@@ -21,19 +19,14 @@ interface TaskMarkerProps {
   onDelete: () => void;
 }
 
-const STAGGER_STEP_MS = 40;
-const STAGGER_CAP_MS = 600;
-const POPOVER_GAP_PX = 8;
-
-interface PopoverPosition {
-  left: number;
-  top: number;
-}
-
+// Renders as a Fragment (not a wrapping div) with two grid items -- a
+// centered line/dot cell and a side content cell -- so both land as direct
+// children of the parent grid QuarterSection owns. See TimelineLineSegment
+// for why the line itself is built from per-row slivers instead of one
+// absolutely-positioned full-height line.
 export const TaskMarker = ({
   task,
-  x,
-  index,
+  side,
   isActive,
   onToggleActive,
   peopleNames,
@@ -44,70 +37,41 @@ export const TaskMarker = ({
   onEdit,
   onDelete,
 }: TaskMarkerProps) => {
-  const direction = index % 2 === 0 ? 'above' : 'below';
   const urgency = getTaskUrgency(task.dueDate, task.completedAt);
-  const dotRef = useRef<HTMLButtonElement>(null);
-  const [popoverPosition, setPopoverPosition] = useState<PopoverPosition | null>(null);
   const titleId = `task-popover-title-${task.id}`;
-
-  // Only track position while the popover is actually open -- the dot's
-  // rect can change as the horizontally-scrolling track moves, and this
-  // keeps the portaled popover pinned to it live rather than stale from the
-  // moment it opened.
-  useEffect(() => {
-    if (!isActive) {
-      setPopoverPosition(null);
-      return;
-    }
-
-    const updatePosition = () => {
-      const rect = dotRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const left = rect.left + rect.width / 2;
-      const top =
-        direction === 'above' ? rect.top - POPOVER_GAP_PX : rect.bottom + POPOVER_GAP_PX;
-      setPopoverPosition({ left, top });
-    };
-
-    updatePosition();
-    // Capture phase: scroll doesn't bubble, but capturing on document still
-    // catches scroll on any descendant scrollable ancestor, including the
-    // track's own horizontal scroll container.
-    document.addEventListener('scroll', updatePosition, true);
-    window.addEventListener('resize', updatePosition);
-    return () => {
-      document.removeEventListener('scroll', updatePosition, true);
-      window.removeEventListener('resize', updatePosition);
-    };
-  }, [isActive, direction]);
-
-  const animationDelay = Math.min(index * STAGGER_STEP_MS, STAGGER_CAP_MS);
+  const { ref, revealed } = useScrollReveal<HTMLDivElement>();
 
   return (
-    <div
-      className={[styles['wl-marker'], styles[`wl-marker--${direction}`]]
-        .filter(Boolean)
-        .join(' ')}
-      style={{ left: x, animationDelay: `${animationDelay}ms` }}
-      data-task-popover-active={isActive ? 'true' : undefined}
-    >
-      <button
-        ref={dotRef}
-        type="button"
-        className={[styles['wl-marker-dot'], styles[`wl-marker-dot--${urgency}`]]
+    <>
+      <div
+        ref={ref}
+        className={styles['wl-marker-line-cell']}
+        data-task-popover-active={isActive ? 'true' : undefined}
+      >
+        <TimelineLineSegment revealed={revealed} />
+        <button
+          type="button"
+          className={[styles['wl-marker-dot'], styles[`wl-marker-dot--${urgency}`]]
+            .filter(Boolean)
+            .join(' ')}
+          data-revealed={revealed ? 'true' : undefined}
+          onClick={onToggleActive}
+          aria-haspopup="dialog"
+          aria-expanded={isActive}
+          aria-label={task.title}
+        />
+      </div>
+
+      <div
+        className={[styles['wl-marker-content'], styles[`wl-marker-content--${side}`]]
           .filter(Boolean)
           .join(' ')}
-        onClick={onToggleActive}
-        aria-haspopup="dialog"
-        aria-expanded={isActive}
-        aria-label={task.title}
-      />
-      <span className={styles['wl-marker-stem']} />
-      <span className={styles['wl-marker-label']}>{task.title}</span>
+        data-revealed={revealed ? 'true' : undefined}
+        data-task-popover-active={isActive ? 'true' : undefined}
+      >
+        <span className={styles['wl-marker-label']}>{task.title}</span>
 
-      {isActive &&
-        popoverPosition &&
-        createPortal(
+        {isActive && (
           <TaskCard
             task={task}
             peopleNames={peopleNames}
@@ -118,11 +82,10 @@ export const TaskMarker = ({
             onEdit={onEdit}
             onDelete={onDelete}
             titleId={titleId}
-            direction={direction}
-            style={{ left: popoverPosition.left, top: popoverPosition.top }}
-          />,
-          document.body,
+            direction={side}
+          />
         )}
-    </div>
+      </div>
+    </>
   );
 };

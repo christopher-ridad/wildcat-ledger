@@ -1,11 +1,13 @@
-/* This card only ever renders as a floating popover now, portaled to
-   document.body and positioned via inline left/top computed from the
-   anchoring TaskMarker's getBoundingClientRect() -- position/z-index here
-   are the popover shell, not a grid-tile card. */
+/* This card only ever renders as a floating popover, absolutely positioned
+   against its TaskMarker's position:relative content cell (see
+   TaskMarker.module.css's .wl-marker-content) -- no portal needed since the
+   page scrolls naturally now (nothing clips it the way the old horizontal
+   scroll track did). */
 .wl-task-card {
-  position: fixed;
-  width: 240px;
-  max-height: 280px;
+  position: absolute;
+  top: 50%;
+  width: min(320px, calc(50vw - 40px));
+  max-height: 320px;
   overflow-y: auto;
   z-index: 20;
   background: var(--color-card);
@@ -16,50 +18,45 @@
   flex-direction: column;
   gap: 6px;
   box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  transform: translateY(-50%);
+  animation: wl-task-card-emerge 0.18s ease-out;
 }
 
-/* Direction also owns the entrance animation (not just a separate rule) --
-   both need to set `transform` on this element, and a plain `animation`
-   declaration on `.wl-task-card--dueSoon` would otherwise fight these for
-   the same property. See TaskMarker's dot for the urgency pulse instead;
-   this popover only needs to emerge once when it opens. */
-.wl-task-card--above {
-  transform: translate(-50%, -100%);
-  animation: wl-task-card-emerge-above 0.18s ease-out;
+/* Grows outward, away from the central line, toward the screen edge --
+   same side as the marker's own content, not across the line. */
+.wl-task-card--left {
+  right: 0;
 }
 
-.wl-task-card--below {
-  transform: translateX(-50%);
-  animation: wl-task-card-emerge-below 0.18s ease-out;
+.wl-task-card--right {
+  left: 0;
 }
 
-@keyframes wl-task-card-emerge-above {
+@media (max-width: 700px) {
+  /* Content collapses to a single left-aligned column on mobile (see
+     TaskMarker.module.css) -- the popover follows suit regardless of side. */
+  .wl-task-card--left,
+  .wl-task-card--right {
+    right: auto;
+    left: 0;
+    width: min(280px, calc(100vw - 64px));
+  }
+}
+
+@keyframes wl-task-card-emerge {
   from {
     opacity: 0;
-    transform: translate(-50%, -100%) scale(0.9);
+    transform: translateY(-50%) scale(0.9);
   }
 
   to {
     opacity: 1;
-    transform: translate(-50%, -100%) scale(1);
-  }
-}
-
-@keyframes wl-task-card-emerge-below {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
+    transform: translateY(-50%) scale(1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wl-task-card--above,
-  .wl-task-card--below {
+  .wl-task-card {
     animation: none;
   }
 }

@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-
 import { FinancialTask } from '../../../types';
 import { getTaskUrgency } from '../../../utils/taskUrgency';
 import styles from './TaskCard.module.css';
@@ -15,13 +13,13 @@ interface TaskCardProps {
   onToggleComplete: (completed: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
-  // This card only ever renders as a floating popover anchored to a
-  // TaskMarker now -- titleId/direction/style come from that marker (the
-  // marker owns the aria wiring and the getBoundingClientRect()-derived
-  // fixed position; this component just renders content into them).
+  // This card only ever renders as a floating popover growing out of its
+  // TaskMarker's own content cell (which is position:relative) -- titleId
+  // comes from the marker for aria wiring, direction matches which side of
+  // the central line that marker's content sits on, so the popover expands
+  // outward (away from the line) instead of crossing over it.
   titleId: string;
-  direction: 'above' | 'below';
-  style?: CSSProperties;
+  direction: 'left' | 'right';
 }
 
 const URGENCY_LABEL: Record<string, string | null> = {
@@ -43,7 +41,6 @@ export const TaskCard = ({
   onDelete,
   titleId,
   direction,
-  style,
 }: TaskCardProps) => {
   const urgency = getTaskUrgency(task.dueDate, task.completedAt);
   const isComplete = urgency === 'complete';
@@ -54,7 +51,6 @@ export const TaskCard = ({
       role="dialog"
       aria-labelledby={titleId}
       data-task-popover-active="true"
-      style={style}
       className={[
         styles['wl-task-card'],
         styles[`wl-task-card--${urgency}`],

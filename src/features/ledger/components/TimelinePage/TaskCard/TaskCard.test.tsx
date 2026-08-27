@@ -13,7 +13,7 @@ const renderCard = (overrides: Partial<ComponentProps<typeof TaskCard>> = {}) =>
       canEdit
       pending={false}
       titleId="task-title"
-      direction="below"
+      direction="right"
       onToggleComplete={vi.fn()}
       onEdit={vi.fn()}
       onDelete={vi.fn()}
@@ -119,7 +119,7 @@ describe('TaskCard', () => {
         canEdit
         pending={false}
         titleId="task-title"
-        direction="below"
+        direction="right"
         onToggleComplete={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
@@ -134,7 +134,7 @@ describe('TaskCard', () => {
         canEdit
         pending={false}
         titleId="task-title"
-        direction="below"
+        direction="right"
         onToggleComplete={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
@@ -147,7 +147,7 @@ describe('TaskCard', () => {
     renderCard({
       task: buildMockFinancialTask({ title: 'Submit Contract' }),
       titleId: 'popover-title-t1',
-      direction: 'above',
+      direction: 'left',
     });
     const dialog = screen.getByRole('dialog', { name: 'Submit Contract' });
     expect(dialog).toHaveAttribute('data-task-popover-active', 'true');

@@ -1,0 +1,26 @@
+/* Absolutely fills whichever position:relative center-column cell hosts it
+   (a task marker's dot cell, a month label's center cell, a quarter
+   heading's center cell) so a dot or other content can sit on top of it in
+   the same cell. */
+.wl-line-segment {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  background: var(--color-border);
+  transform-origin: top;
+  transform: translateX(-50%) scaleY(0);
+}
+
+.wl-line-segment[data-revealed='true'] {
+  transform: translateX(-50%) scaleY(1);
+  transition: transform 0.6s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-line-segment {
+    transition: none;
+    transform: translateX(-50%) scaleY(1);
+  }
+}

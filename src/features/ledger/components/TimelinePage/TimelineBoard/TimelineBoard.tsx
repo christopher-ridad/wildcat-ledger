@@ -4,7 +4,7 @@ import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { FinancialTask } from '../../../types';
 import { TaskFormModal } from '../TaskFormModal';
-import { TimelineTrack } from '../TimelineTrack';
+import { VerticalTimeline } from '../VerticalTimeline';
 import styles from './TimelineBoard.module.css';
 
 export const TimelineBoard = () => {
@@ -81,7 +81,7 @@ export const TimelineBoard = () => {
         )}
       </div>
 
-      <TimelineTrack
+      <VerticalTimeline
         tasks={financialTasks}
         peopleNames={peopleNames}
         canEdit={canEdit}

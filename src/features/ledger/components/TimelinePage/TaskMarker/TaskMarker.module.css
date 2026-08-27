@@ -1,46 +1,53 @@
-.wl-marker {
-  position: absolute;
-  top: 50%;
-  opacity: 0;
-  animation: wl-marker-enter 0.4s ease-out forwards;
+.wl-marker-line-cell {
+  position: relative;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
 }
 
-@keyframes wl-marker-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wl-marker {
-    animation: none;
-    opacity: 1;
+@media (max-width: 700px) {
+  .wl-marker-line-cell {
+    grid-column: 1;
   }
 }
 
 .wl-marker-dot {
-  position: absolute;
-  top: 0;
-  left: 0;
-  transform: translate(-50%, -50%);
-  width: 12px;
-  height: 12px;
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
   padding: 0;
   border: 2px solid var(--color-card);
   border-radius: 50%;
   cursor: pointer;
-  transition: transform 0.15s ease;
+  opacity: 0;
+  transform: translateY(8px) scale(1);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.15s ease;
 }
 
-.wl-marker:hover .wl-marker-dot,
-.wl-marker[data-task-popover-active='true'] .wl-marker-dot {
-  transform: translate(-50%, -50%) scale(1.5);
+.wl-marker-dot[data-revealed='true'] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s ease-out;
+}
+
+.wl-marker-dot:hover,
+.wl-marker-line-cell[data-task-popover-active='true'] .wl-marker-dot {
+  transform: translateY(0) scale(1.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-marker-dot {
+    transition: none;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .wl-marker-dot--overdue {
@@ -82,58 +89,79 @@
   }
 }
 
-.wl-marker-stem {
-  position: absolute;
-  left: 0;
-  width: 1.5px;
-  height: 14px;
-  background: var(--color-border);
-  transform: translateX(-50%);
+.wl-marker-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 0;
+  opacity: 0;
+  transform: translateY(16px);
 }
 
-.wl-marker--above .wl-marker-stem {
-  bottom: 6px;
+.wl-marker-content[data-revealed='true'] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s ease-out;
 }
 
-.wl-marker--below .wl-marker-stem {
-  top: 6px;
+@media (prefers-reduced-motion: reduce) {
+  .wl-marker-content {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.wl-marker-content--left {
+  grid-column: 1;
+  justify-content: flex-end;
+  padding-right: 24px;
+  text-align: right;
+}
+
+.wl-marker-content--right {
+  grid-column: 3;
+  justify-content: flex-start;
+  padding-left: 24px;
+  text-align: left;
+}
+
+@media (max-width: 700px) {
+  .wl-marker-content--left,
+  .wl-marker-content--right {
+    grid-column: 2;
+    justify-content: flex-start;
+    padding-right: 0;
+    padding-left: 16px;
+    text-align: left;
+  }
 }
 
 .wl-marker-label {
-  position: absolute;
-  left: 0;
-  max-width: 44px;
+  display: inline-block;
+  max-width: 220px;
   overflow: hidden;
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: var(--color-text-muted);
-  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transform: translateX(-50%);
   transition:
-    max-width 0.2s ease,
-    color 0.2s ease;
+    color 0.2s ease,
+    max-width 0.2s ease;
 }
 
-.wl-marker--above .wl-marker-label {
-  bottom: 22px;
-}
-
-.wl-marker--below .wl-marker-label {
-  top: 22px;
-}
-
-.wl-marker:hover:not([data-task-popover-active='true']) .wl-marker-label {
-  /* Stays single-line and just widens -- wrapping to multiple lines would
-     grow the label taller than the track's compact reserved height and get
-     clipped (overflow-x: auto on the scroll container forces overflow-y:
-     auto too). 400px comfortably fits any realistic title on one line. */
-  max-width: 400px;
+.wl-marker-content:hover .wl-marker-label,
+.wl-marker-line-cell:hover + .wl-marker-content .wl-marker-label {
+  max-width: none;
   color: var(--color-text);
+  white-space: normal;
 }
 
 /* The open popover already shows the full title -- keeping this label
-   expanded too would render it twice, overlapping the popover panel. */
-.wl-marker[data-task-popover-active='true'] .wl-marker-label {
+   visible too would duplicate it right next to the panel. */
+.wl-marker-content[data-task-popover-active='true'] .wl-marker-label {
   opacity: 0;
 }
