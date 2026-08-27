@@ -227,15 +227,13 @@ export const TransactionRow = ({
                 </div>
               ) : canApprove ? (
                 <div className={styles['wl-approve-actions']}>
-                  {pending.type === 'edit' && (
-                    <button
-                      type="button"
-                      className={styles['wl-btn-view-details']}
-                      onClick={() => setShowDetail((v) => !v)}
-                    >
-                      {showDetail ? 'Hide' : 'View details'}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className={styles['wl-btn-view-details']}
+                    onClick={() => setShowDetail((v) => !v)}
+                  >
+                    {showDetail ? 'Hide' : 'View details'}
+                  </button>
                   <button
                     type="button"
                     className={styles['wl-btn-approve']}

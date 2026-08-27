@@ -33,36 +33,24 @@
   background: #fafafa;
 }
 
-.wl-inline-confirm {
-  background: #fff8e1;
-  border: 1.5px solid #f59e0b;
-  border-radius: var(--radius-sm);
-  padding: 12px 16px;
-  margin-top: 12px;
-  font-size: 0.88rem;
-  color: #92400e;
-}
-
-.wl-inline-confirm p {
-  margin: 0 0 10px;
+.wl-delete-confirm-text {
+  font-size: 0.95rem;
+  color: var(--color-text);
+  margin: 0 0 6px;
   word-break: break-word;
   overflow-wrap: break-word;
 }
 
-.wl-delete-confirm-row td {
-  padding: 0 !important;
-  border-top: none !important;
+.wl-delete-confirm-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 16px;
 }
 
-.wl-delete-confirm-cell {
-  padding: 0 !important;
-}
-
-.wl-inline-confirm--inline {
-  margin: 0;
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  border-top: none;
-  animation: wl-slide-down 0.2s ease-out forwards;
+.wl-delete-confirm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .wl-empty-state {

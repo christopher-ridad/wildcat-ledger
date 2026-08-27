@@ -84,7 +84,7 @@ describe('TransactionList', () => {
     expect(screen.queryByText('Actions')).not.toBeInTheDocument();
   });
 
-  test('clicking delete shows an inline confirmation, and confirming calls deleteTransaction', () => {
+  test('clicking delete shows a confirmation dialog, and confirming calls deleteTransaction', () => {
     const deleteTransaction = vi.fn().mockResolvedValue(undefined);
     mockUseLedger.mockReturnValue({
       ...baseLedger,
@@ -100,6 +100,24 @@ describe('TransactionList', () => {
 
     fireEvent.click(screen.getByText('Submit Request'));
     expect(deleteTransaction).toHaveBeenCalledWith('t1');
+  });
+
+  test('shows an error message when the delete request fails, and keeps the confirmation open', async () => {
+    const deleteTransaction = vi.fn().mockRejectedValue(new Error('Not authorized'));
+    mockUseLedger.mockReturnValue({
+      ...baseLedger,
+      userRole: 'sofoApprover',
+      canEdit: true,
+      deleteTransaction,
+      filteredTransactions: [buildMockTransaction({ id: 't1', title: 'Pizza' })],
+    } as never);
+    render(<TransactionList />);
+
+    fireEvent.click(screen.getByLabelText('Delete transaction'));
+    fireEvent.click(screen.getByText('Submit Request'));
+
+    expect(await screen.findByText('Not authorized')).toBeInTheDocument();
+    expect(screen.getByText(/Submit a delete request for/)).toBeInTheDocument();
   });
 
   test('clicking Cancel on the delete confirmation dismisses it without deleting', () => {

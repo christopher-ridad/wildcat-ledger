@@ -310,6 +310,27 @@
   cursor: not-allowed;
 }
 
+.wl-btn-danger {
+  background: var(--color-negative);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.wl-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.wl-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ─── Register / Set Budget Page ────────────────────────────────── */
 .wl-register-root {
   min-height: 100vh;

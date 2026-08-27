@@ -534,8 +534,11 @@ describe('TransactionRow', () => {
         requestedBy: 'someone-else@example.com',
       });
       renderRow({ canEdit: true, pending });
-      expect(screen.queryByText('View details')).not.toBeInTheDocument();
       expect(screen.getByText('Delete requested')).toBeInTheDocument();
+
+      expect(screen.queryByText(/permanently deleted/)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText('View details'));
+      expect(screen.getByText(/permanently deleted/)).toBeInTheDocument();
     });
 
     test('disables action buttons while an action is in flight', async () => {
