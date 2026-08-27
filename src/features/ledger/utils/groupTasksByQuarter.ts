@@ -34,15 +34,33 @@ const MONTH_NAMES = [
 
 const monthKeyOf = (dateStr: string) => dateStr.slice(0, 7);
 
+// Academic quarters, not calendar quarters -- this app tracks student-org
+// budget activity against Northwestern's own academic calendar, not Jan-Mar/
+// Apr-Jun/etc. Jul-Aug (summer) has no quarter of its own here; it's bucketed
+// with the upcoming Fall since that's when org activity actually resumes
+// (RSO renewal, room booking, etc.), not a real season of its own for SOFO
+// purposes. Each quarter is labeled by the calendar year its months fall in
+// (e.g. "Fall Quarter 2026" = Jul-Dec 2026, followed by "Winter Quarter
+// 2027" = Jan-Mar 2027) -- ordering this way means a plain `${year}-${order}`
+// string sort is already chronologically correct with no cross-year
+// juggling, since Winter/Spring/Fall of the same labeled year occur in that
+// order within the year, and Fall of year Y always precedes Winter of Y+1.
+const ACADEMIC_QUARTERS = ['Winter', 'Spring', 'Fall'] as const;
+
+const academicQuarterOrderOf = (month: number) => {
+  if (month <= 3) return 0; // Jan-Mar -> Winter
+  if (month <= 6) return 1; // Apr-Jun -> Spring
+  return 2; // Jul-Dec -> Fall
+};
+
 const quarterKeyOf = (monthKey: string) => {
   const [year, month] = monthKey.split('-').map(Number);
-  const quarter = Math.floor((month - 1) / 3) + 1;
-  return `${year}-Q${quarter}`;
+  return `${year}-${academicQuarterOrderOf(month)}`;
 };
 
 const quarterLabelOf = (quarterKey: string) => {
-  const [year, quarter] = quarterKey.split('-Q');
-  return `Q${quarter} ${year}`;
+  const [year, order] = quarterKey.split('-');
+  return `${ACADEMIC_QUARTERS[Number(order)]} Quarter ${year}`;
 };
 
 const monthLabelOf = (monthKey: string) => {

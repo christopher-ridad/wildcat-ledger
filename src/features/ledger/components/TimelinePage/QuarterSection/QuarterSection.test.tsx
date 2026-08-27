@@ -7,8 +7,8 @@ import { QuarterGroup } from '../../../utils/groupTasksByQuarter';
 import { QuarterSection } from './QuarterSection';
 
 const baseQuarter: QuarterGroup = {
-  key: '2026-Q3',
-  label: 'Q3 2026',
+  key: '2026-2',
+  label: 'Fall Quarter 2026',
   months: [
     {
       key: '2026-09',
@@ -65,7 +65,9 @@ const renderSection = (overrides: Partial<ComponentProps<typeof QuarterSection>>
 describe('QuarterSection', () => {
   test('renders the quarter label', () => {
     renderSection();
-    expect(screen.getByRole('heading', { name: 'Q3 2026' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Fall Quarter 2026' }),
+    ).toBeInTheDocument();
   });
 
   test('renders one MonthLandmark per month, in the order given', () => {

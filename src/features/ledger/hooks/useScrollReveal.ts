@@ -5,12 +5,14 @@ export interface UseScrollRevealOptions {
   rootMargin?: string;
 }
 
-// Reveal-once: an element fades/grows into view the first time it crosses
-// into the viewport and then stays revealed, even after scrolling back up
-// past it. Shared by every animated element in the vertical timeline
-// (quarter headings, month labels, line segments, task markers) so the
-// "progressively reveals itself while scrolling" effect comes from one
-// mechanism rather than bespoke logic per component.
+// Reversible: an element's revealed state tracks the observed element's
+// current viewport intersection -- fades/rises in when scrolled into the
+// reveal zone, fades/rises back out when scrolled away from it (in either
+// direction). The observer is never disconnected except on unmount, unlike
+// a "reveal once" pattern. Shared by every animated element in the vertical
+// timeline (quarter headings, month labels, line segments, task markers) so
+// the "the timeline is revealed as you move through time" effect comes from
+// one mechanism rather than bespoke logic per component.
 export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
   options: UseScrollRevealOptions = {},
 ) {
@@ -28,12 +30,7 @@ export function useScrollReveal<T extends HTMLElement = HTMLDivElement>(
     if (!el) return;
 
     const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setRevealed(true);
-          observer.disconnect();
-        }
-      },
+      ([entry]) => setRevealed(entry.isIntersecting),
       { threshold, rootMargin },
     );
     observer.observe(el);

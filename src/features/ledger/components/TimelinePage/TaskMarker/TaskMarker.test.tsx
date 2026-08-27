@@ -10,6 +10,7 @@ const renderMarker = (overrides: Partial<ComponentProps<typeof TaskMarker>> = {}
     <TaskMarker
       task={buildMockFinancialTask({ title: 'Submit Contract' })}
       side="left"
+      staggerIndex={0}
       isActive={false}
       onToggleActive={vi.fn()}
       peopleNames={{}}
@@ -57,6 +58,7 @@ describe('TaskMarker', () => {
       <TaskMarker
         task={buildMockFinancialTask({ title: 'Left Task' })}
         side="left"
+        staggerIndex={0}
         isActive
         onToggleActive={vi.fn()}
         peopleNames={{}}
@@ -73,6 +75,7 @@ describe('TaskMarker', () => {
       <TaskMarker
         task={buildMockFinancialTask({ title: 'Right Task' })}
         side="right"
+        staggerIndex={0}
         isActive
         onToggleActive={vi.fn()}
         peopleNames={{}}
@@ -108,6 +111,7 @@ describe('TaskMarker', () => {
       <TaskMarker
         task={buildMockFinancialTask({ title: 'Submit Contract' })}
         side="left"
+        staggerIndex={0}
         isActive
         onToggleActive={vi.fn()}
         peopleNames={{}}

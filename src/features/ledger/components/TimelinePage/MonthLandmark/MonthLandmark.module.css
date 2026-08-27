@@ -1,7 +1,7 @@
 .wl-month-line-cell {
   position: relative;
   grid-column: 2;
-  min-height: 48px;
+  min-height: 72px;
 }
 
 @media (max-width: 700px) {
@@ -12,29 +12,33 @@
 
 .wl-month-label {
   grid-column: 1 / -1;
-  padding-top: 24px;
-  padding-bottom: 8px;
-  font-size: 1.05rem;
+  padding-top: 40px;
+  padding-bottom: 16px;
+  font-size: 1.65rem;
   font-weight: 700;
   color: var(--color-text);
   text-align: center;
+  letter-spacing: 0.01em;
   opacity: 0;
-  transform: translateY(16px);
+  /* Subtler motion than the quarter heading (fade-only, no rise) -- month
+     labels are secondary landmarks under a quarter, not their own chapter. */
+  transition: opacity 0.55s ease-out;
 }
 
 .wl-month-label[data-revealed='true'] {
   opacity: 1;
-  transform: none;
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
+}
+
+@media (max-width: 700px) {
+  .wl-month-label {
+    font-size: 1.3rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .wl-month-label {
     transition: none;
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -44,7 +48,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
+  min-height: 40px;
 }
 
 @media (max-width: 700px) {
@@ -56,9 +60,9 @@
 .wl-today-tick {
   position: relative;
   z-index: 1;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--color-card);
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--color-card);
   border-radius: 50%;
   background: var(--color-primary);
   opacity: 0;
@@ -66,41 +70,36 @@
 }
 
 .wl-today-tick[data-revealed='true'] {
-  opacity: 0.6;
+  opacity: 0.65;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .wl-today-tick {
     transition: none;
-    opacity: 0.6;
+    opacity: 0.65;
   }
 }
 
 .wl-today-label {
   grid-column: 1 / -1;
-  padding-bottom: 8px;
-  font-size: 0.7rem;
-  font-weight: 600;
+  padding-bottom: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   opacity: 0;
-  transform: translateY(8px);
+  transition: opacity 0.5s ease-out;
 }
 
 .wl-today-label[data-revealed='true'] {
-  opacity: 0.8;
-  transform: none;
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
+  opacity: 0.85;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .wl-today-label {
     transition: none;
-    opacity: 0.8;
-    transform: none;
+    opacity: 0.85;
   }
 }

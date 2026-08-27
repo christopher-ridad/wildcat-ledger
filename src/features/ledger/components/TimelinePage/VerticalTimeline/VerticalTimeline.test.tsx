@@ -44,17 +44,21 @@ describe('VerticalTimeline', () => {
         buildMockFinancialTask({
           id: 't1',
           title: 'Submit Contract',
-          dueDate: '2026-09-12',
+          dueDate: '2026-09-12', // Fall Quarter 2026
         }),
         buildMockFinancialTask({
           id: 't2',
           title: 'Reimburse Trip',
-          dueDate: '2026-10-01',
+          dueDate: '2027-02-01', // Winter Quarter 2027
         }),
       ],
     });
-    expect(screen.getByRole('heading', { name: 'Q3 2026' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Q4 2026' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Fall Quarter 2026' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Winter Quarter 2027' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Submit Contract' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reimburse Trip' })).toBeInTheDocument();
   });

@@ -4,7 +4,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
+  min-height: 84px;
 }
 
 @media (max-width: 700px) {
@@ -16,25 +16,27 @@
 .wl-marker-dot {
   position: relative;
   z-index: 1;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   padding: 0;
-  border: 2px solid var(--color-card);
+  border: 3px solid var(--color-card);
   border-radius: 50%;
   cursor: pointer;
   opacity: 0;
-  transform: translateY(8px) scale(1);
+  transform: translateY(10px) scale(1);
+  /* Lives on the base rule (not gated by [data-revealed]) so it animates
+     both ways -- reveal fades/rises in, reverse fades/settles back out. The
+     faster transform duration keeps hover-enlarge feeling snappy even
+     though the same declaration also drives the (slower-feeling, because
+     it's paired with a bigger opacity move) reveal transition. */
   transition:
-    opacity 0.5s ease-out,
-    transform 0.15s ease;
+    opacity 0.6s ease-out,
+    transform 0.25s ease-out;
 }
 
 .wl-marker-dot[data-revealed='true'] {
   opacity: 1;
   transform: translateY(0) scale(1);
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
 }
 
 .wl-marker-dot:hover,
@@ -79,7 +81,7 @@
   }
 
   50% {
-    box-shadow: 0 0 0 6px rgb(217 119 6 / 0%);
+    box-shadow: 0 0 0 8px rgb(217 119 6 / 0%);
   }
 }
 
@@ -93,18 +95,18 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 56px;
-  padding: 8px 0;
+  min-height: 84px;
+  padding: 12px 0;
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(20px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
 }
 
 .wl-marker-content[data-revealed='true'] {
   opacity: 1;
   transform: none;
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -118,14 +120,14 @@
 .wl-marker-content--left {
   grid-column: 1;
   justify-content: flex-end;
-  padding-right: 24px;
+  padding-right: 36px;
   text-align: right;
 }
 
 .wl-marker-content--right {
   grid-column: 3;
   justify-content: flex-start;
-  padding-left: 24px;
+  padding-left: 36px;
   text-align: left;
 }
 
@@ -135,16 +137,17 @@
     grid-column: 2;
     justify-content: flex-start;
     padding-right: 0;
-    padding-left: 16px;
+    padding-left: 20px;
     text-align: left;
   }
 }
 
 .wl-marker-label {
   display: inline-block;
-  max-width: 220px;
+  max-width: 300px;
   overflow: hidden;
-  font-size: 0.85rem;
+  font-size: 1.05rem;
+  font-weight: 500;
   color: var(--color-text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;

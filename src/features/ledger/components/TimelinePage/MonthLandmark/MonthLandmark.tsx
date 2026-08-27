@@ -51,7 +51,7 @@ export const MonthLandmark = ({
         {month.label}
       </div>
 
-      {month.entries.map((entry) => {
+      {month.entries.map((entry, entryIndex) => {
         if (entry.isToday) {
           return (
             <Fragment key="today">
@@ -78,6 +78,7 @@ export const MonthLandmark = ({
             key={task.id}
             task={task}
             side={taskSides.get(task.id) ?? 'left'}
+            staggerIndex={entryIndex}
             isActive={activeTaskId === task.id}
             onToggleActive={() => onToggleActive(task.id)}
             peopleNames={peopleNames}

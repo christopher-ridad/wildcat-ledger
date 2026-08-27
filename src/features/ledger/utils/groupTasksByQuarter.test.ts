@@ -3,30 +3,35 @@ import { describe, expect, test } from 'vitest';
 import { buildMockFinancialTask } from '../../../test/mocks';
 import { assignTaskSides, groupTasksByQuarter } from './groupTasksByQuarter';
 
-const TODAY = '2026-09-10';
+const TODAY = '2026-09-10'; // September -> Fall Quarter 2026
 
 describe('groupTasksByQuarter', () => {
   test('with no tasks, still produces a single quarter/month holding only the Today landmark', () => {
     const quarters = groupTasksByQuarter([], TODAY);
     expect(quarters).toHaveLength(1);
-    expect(quarters[0].label).toBe('Q3 2026');
+    expect(quarters[0].label).toBe('Fall Quarter 2026');
     expect(quarters[0].months).toHaveLength(1);
     expect(quarters[0].months[0].label).toBe('September');
     expect(quarters[0].months[0].entries).toEqual([{ isToday: true }]);
   });
 
-  test('groups tasks by quarter and month, sorted chronologically regardless of input order', () => {
+  test('groups tasks by academic quarter and month, sorted chronologically regardless of input order', () => {
     const quarters = groupTasksByQuarter(
       [
-        buildMockFinancialTask({ id: 't-dec', dueDate: '2026-12-05' }),
-        buildMockFinancialTask({ id: 't-jan', dueDate: '2027-01-10' }),
-        buildMockFinancialTask({ id: 't-feb', dueDate: '2026-02-01' }),
+        buildMockFinancialTask({ id: 't-dec', dueDate: '2026-12-05' }), // Fall 2026
+        buildMockFinancialTask({ id: 't-jan', dueDate: '2027-01-10' }), // Winter 2027
+        buildMockFinancialTask({ id: 't-feb', dueDate: '2026-02-01' }), // Winter 2026
       ],
-      '2026-06-15', // today, in a gap quarter with no tasks
+      '2026-06-15', // today, June -> Spring 2026, a gap quarter with no tasks
     );
 
-    const quarterKeys = quarters.map((q) => q.label);
-    expect(quarterKeys).toEqual(['Q1 2026', 'Q2 2026', 'Q4 2026', 'Q1 2027']);
+    const quarterLabels = quarters.map((q) => q.label);
+    expect(quarterLabels).toEqual([
+      'Winter Quarter 2026',
+      'Spring Quarter 2026',
+      'Fall Quarter 2026',
+      'Winter Quarter 2027',
+    ]);
 
     expect(quarters[0].months[0].label).toBe('February');
     expect(quarters[0].months[0].entries[0].task?.id).toBe('t-feb');
@@ -38,17 +43,24 @@ describe('groupTasksByQuarter', () => {
   test('omits empty months/quarters between populated ones, except one holding the Today landmark', () => {
     const quarters = groupTasksByQuarter(
       [
-        buildMockFinancialTask({ id: 't1', dueDate: '2026-01-15' }),
-        buildMockFinancialTask({ id: 't2', dueDate: '2026-11-01' }),
+        buildMockFinancialTask({ id: 't1', dueDate: '2026-01-15' }), // Winter 2026
+        buildMockFinancialTask({ id: 't2', dueDate: '2026-11-01' }), // Fall 2026
       ],
-      TODAY, // September -- a gap month between January and November
+      '2026-05-10', // today, May -> Spring 2026, a genuine gap quarter
     );
 
-    const allMonthLabels = quarters.flatMap((q) => q.months.map((m) => m.label));
-    expect(allMonthLabels).toEqual(['January', 'September', 'November']);
+    const quarterLabels = quarters.map((q) => q.label);
+    expect(quarterLabels).toEqual([
+      'Winter Quarter 2026',
+      'Spring Quarter 2026',
+      'Fall Quarter 2026',
+    ]);
 
-    const septMonth = quarters.find((q) => q.label === 'Q3 2026')!.months[0];
-    expect(septMonth.entries).toEqual([{ isToday: true }]);
+    const allMonthLabels = quarters.flatMap((q) => q.months.map((m) => m.label));
+    expect(allMonthLabels).toEqual(['January', 'May', 'November']);
+
+    const mayMonth = quarters.find((q) => q.label === 'Spring Quarter 2026')!.months[0];
+    expect(mayMonth.entries).toEqual([{ isToday: true }]);
   });
 
   test("inserts the Today landmark in correct chronological order among that month's tasks", () => {
@@ -82,10 +94,10 @@ describe('groupTasksByQuarter', () => {
   test('assignTaskSides alternates left/right by a single running index across quarter/month boundaries', () => {
     const quarters = groupTasksByQuarter(
       [
-        buildMockFinancialTask({ id: 't1', dueDate: '2026-01-05' }), // Q1, odd count in month
+        buildMockFinancialTask({ id: 't1', dueDate: '2026-01-05' }), // Winter, odd count in month
         buildMockFinancialTask({ id: 't2', dueDate: '2026-01-06' }),
         buildMockFinancialTask({ id: 't3', dueDate: '2026-01-07' }),
-        buildMockFinancialTask({ id: 't4', dueDate: '2026-04-01' }), // Q2 -- would flip if reset per quarter
+        buildMockFinancialTask({ id: 't4', dueDate: '2026-04-01' }), // Spring -- would flip if reset per quarter
       ],
       '2099-01-01', // today far away, doesn't land in either populated month
     );
@@ -96,7 +108,24 @@ describe('groupTasksByQuarter', () => {
     expect(sides.get('t4')).toBe('right'); // continues the running count, not reset at the quarter seam
   });
 
-  test('a year boundary does not merge Q4 of one year with Q1 of the next', () => {
+  test('Jul-Aug (summer) is bucketed with the upcoming Fall quarter, not left as its own', () => {
+    const quarters = groupTasksByQuarter(
+      [
+        buildMockFinancialTask({ id: 't-jul', dueDate: '2026-07-10' }),
+        buildMockFinancialTask({ id: 't-aug', dueDate: '2026-08-15' }),
+        buildMockFinancialTask({ id: 't-sep', dueDate: '2026-09-01' }),
+      ],
+      '2099-01-01', // today, far away -- lands in its own separate Winter Quarter 2099
+    );
+    const fallQuarter = quarters.find((q) => q.label === 'Fall Quarter 2026')!;
+    expect(fallQuarter.months.map((m) => m.label)).toEqual([
+      'July',
+      'August',
+      'September',
+    ]);
+  });
+
+  test('a year boundary does not merge Fall Quarter of one year with Winter Quarter of the next', () => {
     const quarters = groupTasksByQuarter(
       [
         buildMockFinancialTask({ id: 't-dec', dueDate: '2025-12-01' }),
@@ -105,8 +134,10 @@ describe('groupTasksByQuarter', () => {
       TODAY,
     );
     const labels = quarters.map((q) => q.label);
-    expect(labels).toContain('Q4 2025');
-    expect(labels).toContain('Q1 2026');
-    expect(labels.indexOf('Q4 2025')).toBeLessThan(labels.indexOf('Q1 2026'));
+    expect(labels).toContain('Fall Quarter 2025');
+    expect(labels).toContain('Winter Quarter 2026');
+    expect(labels.indexOf('Fall Quarter 2025')).toBeLessThan(
+      labels.indexOf('Winter Quarter 2026'),
+    );
   });
 });

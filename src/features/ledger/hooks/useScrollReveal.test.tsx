@@ -68,22 +68,42 @@ describe('useScrollReveal', () => {
     act(() => {
       intersectionCallback?.(
         [{ isIntersecting: true } as IntersectionObserverEntry],
-        new ManualIntersectionObserver(() => {}),
+        {} as IntersectionObserver,
       );
     });
 
     expect(getByTestId('target')).toHaveTextContent('revealed');
   });
 
-  test('disconnects the observer once revealed (reveal-once, no re-hide)', () => {
+  test('does not disconnect the observer once revealed -- stays reversible', () => {
     render(<TestComponent />);
     act(() => {
       intersectionCallback?.(
         [{ isIntersecting: true } as IntersectionObserverEntry],
-        new ManualIntersectionObserver(() => {}),
+        {} as IntersectionObserver,
       );
     });
-    expect(disconnectSpy).toHaveBeenCalledTimes(1);
+    expect(disconnectSpy).not.toHaveBeenCalled();
+  });
+
+  test('reverses back to hidden once the element leaves the reveal zone', () => {
+    const { getByTestId } = render(<TestComponent />);
+
+    act(() => {
+      intersectionCallback?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+    expect(getByTestId('target')).toHaveTextContent('revealed');
+
+    act(() => {
+      intersectionCallback?.(
+        [{ isIntersecting: false } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+    });
+    expect(getByTestId('target')).toHaveTextContent('hidden');
   });
 
   test('does not reveal on a non-intersecting entry', () => {
@@ -91,7 +111,7 @@ describe('useScrollReveal', () => {
     act(() => {
       intersectionCallback?.(
         [{ isIntersecting: false } as IntersectionObserverEntry],
-        new ManualIntersectionObserver(() => {}),
+        {} as IntersectionObserver,
       );
     });
     expect(getByTestId('target')).toHaveTextContent('hidden');

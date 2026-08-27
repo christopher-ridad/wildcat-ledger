@@ -8,6 +8,10 @@ import styles from './TaskMarker.module.css';
 interface TaskMarkerProps {
   task: FinancialTask;
   side: 'left' | 'right';
+  // This task's position among its month's tasks (0-based) -- staggers its
+  // reveal transition slightly behind the ones before it, so a month with
+  // several tasks settles in as a brief cascade rather than all at once.
+  staggerIndex: number;
   isActive: boolean;
   onToggleActive: () => void;
   peopleNames: Record<string, string>;
@@ -19,6 +23,9 @@ interface TaskMarkerProps {
   onDelete: () => void;
 }
 
+const STAGGER_STEP_MS = 70;
+const STAGGER_CAP_MS = 280;
+
 // Renders as a Fragment (not a wrapping div) with two grid items -- a
 // centered line/dot cell and a side content cell -- so both land as direct
 // children of the parent grid QuarterSection owns. See TimelineLineSegment
@@ -27,6 +34,7 @@ interface TaskMarkerProps {
 export const TaskMarker = ({
   task,
   side,
+  staggerIndex,
   isActive,
   onToggleActive,
   peopleNames,
@@ -40,6 +48,7 @@ export const TaskMarker = ({
   const urgency = getTaskUrgency(task.dueDate, task.completedAt);
   const titleId = `task-popover-title-${task.id}`;
   const { ref, revealed } = useScrollReveal<HTMLDivElement>();
+  const transitionDelay = `${Math.min(staggerIndex * STAGGER_STEP_MS, STAGGER_CAP_MS)}ms`;
 
   return (
     <>
@@ -54,6 +63,7 @@ export const TaskMarker = ({
           className={[styles['wl-marker-dot'], styles[`wl-marker-dot--${urgency}`]]
             .filter(Boolean)
             .join(' ')}
+          style={{ transitionDelay }}
           data-revealed={revealed ? 'true' : undefined}
           onClick={onToggleActive}
           aria-haspopup="dialog"
@@ -66,6 +76,7 @@ export const TaskMarker = ({
         className={[styles['wl-marker-content'], styles[`wl-marker-content--${side}`]]
           .filter(Boolean)
           .join(' ')}
+        style={{ transitionDelay }}
         data-revealed={revealed ? 'true' : undefined}
         data-task-popover-active={isActive ? 'true' : undefined}
       >
