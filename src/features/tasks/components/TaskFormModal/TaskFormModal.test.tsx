@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
-import { buildMockFinancialTask } from '../../../../../test/mocks';
+import { buildMockFinancialTask } from '../../../../test/mocks';
 import { TaskFormModal } from './TaskFormModal';
 
 const rosterEmails = ['approver@u.northwestern.edu', 'officer@u.northwestern.edu'];

@@ -3,20 +3,11 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../../config/supabase';
 import {
   rowToAuditEntry,
-  rowToFinancialTask,
-  rowToFinancialTaskRequirement,
   rowToOrganization,
   rowToPendingChange,
   rowToTransaction,
 } from '../services/dbMapping';
-import {
-  AuditEntry,
-  BudgetLine,
-  FinancialTask,
-  FinancialTaskRequirement,
-  Organization,
-  PendingChange,
-} from '../types';
+import { AuditEntry, BudgetLine, Organization, PendingChange } from '../types';
 
 // Shared by the three org-scoped Realtime-backed loaders below (transactions,
 // audit_log, pending_changes), which otherwise repeated this same
@@ -49,10 +40,6 @@ export function useOrganizationsData(userEmail: string | null) {
   const [loading, setLoading] = useState(true);
   const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PendingChange[]>([]);
-  const [financialTasks, setFinancialTasks] = useState<FinancialTask[]>([]);
-  const [financialTaskRequirements, setFinancialTaskRequirements] = useState<
-    FinancialTaskRequirement[]
-  >([]);
   const [activeOrganizationId, setActiveOrganizationIdState] = useState<string | null>(
     () => localStorage.getItem('activeOrganizationId'),
   );
@@ -168,31 +155,9 @@ export function useOrganizationsData(userEmail: string | null) {
       );
     };
 
-    const loadFinancialTasks = async () => {
-      setFinancialTasks(
-        await fetchOrgRows('financial_tasks', activeOrganizationId, rowToFinancialTask, {
-          column: 'due_date',
-          ascending: true,
-        }),
-      );
-    };
-
-    const loadFinancialTaskRequirements = async () => {
-      setFinancialTaskRequirements(
-        await fetchOrgRows(
-          'financial_task_requirements',
-          activeOrganizationId,
-          rowToFinancialTaskRequirement,
-          { column: 'created_at', ascending: true },
-        ),
-      );
-    };
-
     loadTransactions();
     loadAuditLog();
     loadPendingChanges();
-    loadFinancialTasks();
-    loadFinancialTaskRequirements();
 
     const channel = supabase
       .channel(`org-${activeOrganizationId}-changes`)
@@ -226,26 +191,6 @@ export function useOrganizationsData(userEmail: string | null) {
         },
         loadPendingChanges,
       )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'financial_tasks',
-          filter: `org_id=eq.${activeOrganizationId}`,
-        },
-        loadFinancialTasks,
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'financial_task_requirements',
-          filter: `org_id=eq.${activeOrganizationId}`,
-        },
-        loadFinancialTaskRequirements,
-      )
       .subscribe();
 
     return () => {
@@ -259,8 +204,6 @@ export function useOrganizationsData(userEmail: string | null) {
     loading,
     auditLog,
     pendingChanges,
-    financialTasks,
-    financialTaskRequirements,
     activeOrganizationId,
     setActiveOrganizationId,
     selectedBudgetLine,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
-import { getRequiredDocuments } from './documentRequirements';
+import { getRequiredDocuments } from '../../ledger/utils/documentRequirements';
 import { requirementSeedsForPaymentType } from './financialTaskRequirements';
 
 describe('requirementSeedsForPaymentType', () => {

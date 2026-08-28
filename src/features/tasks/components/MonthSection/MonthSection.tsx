@@ -1,5 +1,5 @@
-import { FinancialTask, FinancialTaskRequirement } from '../../../types';
-import { MonthGroup } from '../../../utils/groupTasksByQuarter';
+import { FinancialTask, FinancialTaskRequirement } from '../../types';
+import { MonthGroup } from '../../utils/groupTasksByQuarter';
 import { TaskRow } from '../TaskRow';
 import styles from './MonthSection.module.css';
 

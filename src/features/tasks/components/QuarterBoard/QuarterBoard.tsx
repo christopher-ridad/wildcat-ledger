@@ -1,11 +1,8 @@
 import { ReactNode, useMemo, useState } from 'react';
 
-import { FinancialTask, FinancialTaskRequirement } from '../../../types';
-import {
-  currentQuarterKey,
-  groupTasksByQuarter,
-} from '../../../utils/groupTasksByQuarter';
-import { todayDateString } from '../../../utils/today';
+import { FinancialTask, FinancialTaskRequirement } from '../../types';
+import { currentQuarterKey, groupTasksByQuarter } from '../../utils/groupTasksByQuarter';
+import { todayDateString } from '../../utils/today';
 import { MonthSection } from '../MonthSection';
 import { QuarterSelector } from '../QuarterSelector';
 import styles from './QuarterBoard.module.css';

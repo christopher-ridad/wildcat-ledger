@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { buildMockFinancialTask } from '../../../../../test/mocks';
+import { buildMockFinancialTask } from '../../../../test/mocks';
 import { QuarterBoard } from './QuarterBoard';
 
 const renderBoard = (overrides: Partial<ComponentProps<typeof QuarterBoard>> = {}) =>

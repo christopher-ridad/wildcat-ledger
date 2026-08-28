@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   buildMockFinancialTask,
   buildMockFinancialTaskRequirement,
-} from '../../../../../test/mocks';
+} from '../../../../test/mocks';
 import { TaskRow } from './TaskRow';
 
 const renderRow = (overrides: Partial<ComponentProps<typeof TaskRow>> = {}) =>

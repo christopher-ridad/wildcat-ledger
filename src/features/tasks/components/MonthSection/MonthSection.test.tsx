@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
-import { buildMockFinancialTask } from '../../../../../test/mocks';
-import { MonthGroup } from '../../../utils/groupTasksByQuarter';
+import { buildMockFinancialTask } from '../../../../test/mocks';
+import { MonthGroup } from '../../utils/groupTasksByQuarter';
 import { MonthSection } from './MonthSection';
 
 const baseMonth: MonthGroup = {

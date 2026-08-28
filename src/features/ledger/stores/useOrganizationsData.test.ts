@@ -71,8 +71,6 @@ const mockSuccessfulLoad = (
     transactions: { data: [] },
     audit_log: { data: [] },
     pending_changes: { data: [] },
-    financial_tasks: { data: [] },
-    financial_task_requirements: { data: [] },
     ...overrides,
   };
   mockFrom.mockImplementation(
@@ -199,99 +197,6 @@ describe('useOrganizationsData', () => {
       expect(result.current.organizations[0].transactions).toEqual([
         expect.objectContaining({ id: 'txn-1', title: 'Pizza' }),
       ]),
-    );
-  });
-
-  test('loads financialTasks for the active organization', async () => {
-    mockSuccessfulLoad({
-      financial_tasks: {
-        data: [
-          {
-            id: 'task-1',
-            org_id: 'org-1',
-            title: 'Submit Contract',
-            description: null,
-            due_date: '2026-09-15',
-            assignee_emails: [],
-            completed_at: null,
-            created_by: 'treasurer@example.com',
-            created_at: '2026-08-01T00:00:00.000Z',
-          },
-        ],
-      },
-    });
-    const { result } = renderHook(() => useOrganizationsData('treasurer@example.com'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    result.current.setActiveOrganizationId('org-1');
-
-    await waitFor(() =>
-      expect(result.current.financialTasks).toEqual([
-        expect.objectContaining({ id: 'task-1', title: 'Submit Contract' }),
-      ]),
-    );
-  });
-
-  test('subscribes to Realtime changes on financial_tasks for the active organization', async () => {
-    mockSuccessfulLoad();
-    const { result } = renderHook(() => useOrganizationsData('treasurer@example.com'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    result.current.setActiveOrganizationId('org-1');
-
-    await waitFor(() => expect(mockChannel).toHaveBeenCalledWith('org-org-1-changes'));
-    const channelInstance = mockChannel.mock.results.at(-1)?.value;
-    expect(channelInstance.on).toHaveBeenCalledWith(
-      'postgres_changes',
-      expect.objectContaining({ table: 'financial_tasks', filter: 'org_id=eq.org-1' }),
-      expect.any(Function),
-    );
-  });
-
-  test('loads financialTaskRequirements for the active organization', async () => {
-    mockSuccessfulLoad({
-      financial_task_requirements: {
-        data: [
-          {
-            id: 'req-1',
-            task_id: 'task-1',
-            org_id: 'org-1',
-            key: 'contract',
-            label: 'RSO Agreement',
-            completed_at: null,
-            created_at: '2026-08-01T00:00:00.000Z',
-          },
-        ],
-      },
-    });
-    const { result } = renderHook(() => useOrganizationsData('treasurer@example.com'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    result.current.setActiveOrganizationId('org-1');
-
-    await waitFor(() =>
-      expect(result.current.financialTaskRequirements).toEqual([
-        expect.objectContaining({ id: 'req-1', label: 'RSO Agreement' }),
-      ]),
-    );
-  });
-
-  test('subscribes to Realtime changes on financial_task_requirements for the active organization', async () => {
-    mockSuccessfulLoad();
-    const { result } = renderHook(() => useOrganizationsData('treasurer@example.com'));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    result.current.setActiveOrganizationId('org-1');
-
-    await waitFor(() => expect(mockChannel).toHaveBeenCalledWith('org-org-1-changes'));
-    const channelInstance = mockChannel.mock.results.at(-1)?.value;
-    expect(channelInstance.on).toHaveBeenCalledWith(
-      'postgres_changes',
-      expect.objectContaining({
-        table: 'financial_task_requirements',
-        filter: 'org_id=eq.org-1',
-      }),
-      expect.any(Function),
     );
   });
 

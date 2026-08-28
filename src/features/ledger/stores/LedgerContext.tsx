@@ -19,8 +19,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     auditLog,
     pendingChanges,
-    financialTasks,
-    financialTaskRequirements,
     activeOrganizationId,
     setActiveOrganizationId,
     selectedBudgetLine,
@@ -66,8 +64,6 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const value: LedgerContextValue = {
     auditLog,
     pendingChanges,
-    financialTasks,
-    financialTaskRequirements,
     pendingChangeForTransaction,
     organizations,
     loading,

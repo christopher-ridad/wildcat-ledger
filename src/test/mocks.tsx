@@ -8,13 +8,17 @@ import { AuthContext } from '../features/authentication/stores/AuthContext';
 import { LedgerContext } from '../features/ledger/stores/LedgerContext';
 import {
   AuditEntry,
-  FinancialTask,
-  FinancialTaskRequirement,
   LedgerContextValue,
   Organization,
   PendingChange,
   Transaction,
 } from '../features/ledger/types';
+import { TasksContext } from '../features/tasks/stores/TasksContext';
+import {
+  FinancialTask,
+  FinancialTaskRequirement,
+  TasksContextValue,
+} from '../features/tasks/types';
 
 export const buildMockUser = (overrides: Partial<User> = {}): User =>
   ({
@@ -85,13 +89,6 @@ export const buildMockLedgerContext = (
     uploadExemptionForm: vi.fn().mockResolvedValue(undefined),
     markTaxReimbursed: vi.fn().mockResolvedValue(undefined),
     requestTransactionDocument: vi.fn().mockResolvedValue('mock-token'),
-    financialTasks: [],
-    addFinancialTask: vi.fn().mockResolvedValue(undefined),
-    updateFinancialTask: vi.fn().mockResolvedValue(undefined),
-    deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
-    toggleFinancialTaskComplete: vi.fn().mockResolvedValue(undefined),
-    financialTaskRequirements: [],
-    toggleFinancialTaskRequirement: vi.fn().mockResolvedValue(undefined),
     selectedBudgetLine: null,
     setSelectedBudgetLine: vi.fn(),
     filteredTransactions: [],
@@ -164,6 +161,19 @@ export const buildMockAuditEntry = (overrides: Partial<AuditEntry> = {}): AuditE
   ...overrides,
 });
 
+export const buildMockTasksContext = (
+  overrides: Partial<TasksContextValue> = {},
+): TasksContextValue => ({
+  financialTasks: [],
+  addFinancialTask: vi.fn().mockResolvedValue(undefined),
+  updateFinancialTask: vi.fn().mockResolvedValue(undefined),
+  deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
+  toggleFinancialTaskComplete: vi.fn().mockResolvedValue(undefined),
+  financialTaskRequirements: [],
+  toggleFinancialTaskRequirement: vi.fn().mockResolvedValue(undefined),
+  ...overrides,
+});
+
 export const buildMockFinancialTask = (
   overrides: Partial<FinancialTask> = {},
 ): FinancialTask => ({
@@ -213,4 +223,16 @@ export const MockLedgerProvider = ({
   <LedgerContext.Provider value={buildMockLedgerContext(value)}>
     {children}
   </LedgerContext.Provider>
+);
+
+export const MockTasksProvider = ({
+  value,
+  children,
+}: {
+  value?: Partial<TasksContextValue>;
+  children: React.ReactNode;
+}) => (
+  <TasksContext.Provider value={buildMockTasksContext(value)}>
+    {children}
+  </TasksContext.Provider>
 );

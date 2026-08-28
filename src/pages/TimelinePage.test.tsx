@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { useAuth } from '../features/authentication/hooks/useAuth';
 import { useLedger } from '../features/ledger/hooks/useLedger';
+import { useTasks } from '../features/tasks/hooks/useTasks';
 import {
   buildMockFinancialTask,
   buildMockOrganization,
@@ -12,6 +13,7 @@ import { TimelinePage } from './TimelinePage';
 
 vi.mock('../features/authentication/hooks/useAuth');
 vi.mock('../features/ledger/hooks/useLedger');
+vi.mock('../features/tasks/hooks/useTasks');
 
 const navigateMock = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -21,13 +23,17 @@ vi.mock('react-router-dom', async () => {
 
 const mockUseAuth = vi.mocked(useAuth);
 const mockUseLedger = vi.mocked(useLedger);
+const mockUseTasks = vi.mocked(useTasks);
 
 const baseLedger = {
-  financialTasks: [] as ReturnType<typeof buildMockFinancialTask>[],
-  financialTaskRequirements: [],
   activeOrganization: null,
   peopleNames: {},
   canEdit: true,
+};
+
+const baseTasks = {
+  financialTasks: [] as ReturnType<typeof buildMockFinancialTask>[],
+  financialTaskRequirements: [],
   addFinancialTask: vi.fn().mockResolvedValue(undefined),
   updateFinancialTask: vi.fn().mockResolvedValue(undefined),
   deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
@@ -46,6 +52,7 @@ describe('TimelinePage', () => {
       signInWithGoogle: vi.fn(),
       signOut: vi.fn(),
     } as never);
+    mockUseTasks.mockReturnValue(baseTasks as never);
   });
 
   test('renders the Financial Tasks heading and an empty state with no tasks', () => {
@@ -70,8 +77,9 @@ describe('TimelinePage', () => {
   });
 
   test('renders financial tasks via the TimelineBoard', () => {
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
+    mockUseLedger.mockReturnValue(baseLedger as never);
+    mockUseTasks.mockReturnValue({
+      ...baseTasks,
       financialTasks: [
         buildMockFinancialTask({ title: 'Submit Contract', dueDate: '2026-09-05' }),
       ],

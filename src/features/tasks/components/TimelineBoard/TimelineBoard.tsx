@@ -1,25 +1,25 @@
 import { useMemo, useState } from 'react';
 
-import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
-import { useLedger } from '../../../hooks/useLedger';
-import { FinancialTask, FinancialTaskRequirement, TransactionType } from '../../../types';
+import { useAsyncActionMap } from '../../../ledger/hooks/useAsyncAction';
+import { useLedger } from '../../../ledger/hooks/useLedger';
+import { TransactionType } from '../../../ledger/types';
+import { useTasks } from '../../hooks/useTasks';
+import { FinancialTask, FinancialTaskRequirement } from '../../types';
 import { QuarterBoard } from '../QuarterBoard';
 import { TaskFormModal } from '../TaskFormModal';
 import styles from './TimelineBoard.module.css';
 
 export const TimelineBoard = () => {
+  const { activeOrganization, peopleNames, canEdit } = useLedger();
   const {
     financialTasks,
     financialTaskRequirements,
-    activeOrganization,
-    peopleNames,
-    canEdit,
     addFinancialTask,
     updateFinancialTask,
     deleteFinancialTask,
     toggleFinancialTaskComplete,
     toggleFinancialTaskRequirement,
-  } = useLedger();
+  } = useTasks();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<FinancialTask | undefined>(undefined);

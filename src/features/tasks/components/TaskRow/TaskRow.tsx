@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 
-import { FinancialTask, FinancialTaskRequirement } from '../../../types';
-import { getTaskUrgency } from '../../../utils/taskUrgency';
+import { FinancialTask, FinancialTaskRequirement } from '../../types';
+import { getTaskUrgency } from '../../utils/taskUrgency';
 import styles from './TaskRow.module.css';
 
 interface TaskRowProps {

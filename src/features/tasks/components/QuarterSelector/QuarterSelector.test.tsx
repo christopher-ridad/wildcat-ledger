@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 
-import { QuarterGroup } from '../../../utils/groupTasksByQuarter';
+import { QuarterGroup } from '../../utils/groupTasksByQuarter';
 import { QuarterSelector } from './QuarterSelector';
 
 const quarters: QuarterGroup[] = [

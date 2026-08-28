@@ -1,4 +1,4 @@
-import { QuarterGroup } from '../../../utils/groupTasksByQuarter';
+import { QuarterGroup } from '../../utils/groupTasksByQuarter';
 import styles from './QuarterSelector.module.css';
 
 interface QuarterSelectorProps {

@@ -2,11 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { buildMockFinancialTask, buildMockOrganization } from '../../../../../test/mocks';
-import { useLedger } from '../../../hooks/useLedger';
+import { buildMockFinancialTask, buildMockOrganization } from '../../../../test/mocks';
+import { useLedger } from '../../../ledger/hooks/useLedger';
+import { useTasks } from '../../hooks/useTasks';
 import { TimelineBoard } from './TimelineBoard';
 
-vi.mock('../../../hooks/useLedger');
+vi.mock('../../../ledger/hooks/useLedger');
+vi.mock('../../hooks/useTasks');
 vi.mock('../TaskFormModal', () => ({
   TaskFormModal: ({
     isOpen,
@@ -51,16 +53,20 @@ vi.mock('../QuarterBoard', () => ({
 }));
 
 const mockUseLedger = vi.mocked(useLedger);
+const mockUseTasks = vi.mocked(useTasks);
 
 const baseLedger = {
-  financialTasks: [] as ReturnType<typeof buildMockFinancialTask>[],
-  financialTaskRequirements: [],
   activeOrganization: buildMockOrganization({
     officers: ['officer@u.northwestern.edu'],
     sofoApprovers: ['approver@u.northwestern.edu'],
   }),
   peopleNames: {},
   canEdit: true,
+};
+
+const baseTasks = {
+  financialTasks: [] as ReturnType<typeof buildMockFinancialTask>[],
+  financialTaskRequirements: [],
   addFinancialTask: vi.fn().mockResolvedValue(undefined),
   updateFinancialTask: vi.fn().mockResolvedValue(undefined),
   deleteFinancialTask: vi.fn().mockResolvedValue(undefined),
@@ -71,10 +77,11 @@ const baseLedger = {
 describe('TimelineBoard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseLedger.mockReturnValue(baseLedger as never);
+    mockUseTasks.mockReturnValue(baseTasks as never);
   });
 
   test('shows "+ Add Task" only when canEdit', () => {
-    mockUseLedger.mockReturnValue(baseLedger as never);
     const { rerender } = render(<TimelineBoard />);
     expect(screen.getByText('+ Add Task')).toBeInTheDocument();
 
@@ -84,7 +91,6 @@ describe('TimelineBoard', () => {
   });
 
   test('clicking "+ Add Task" opens the form in add mode', () => {
-    mockUseLedger.mockReturnValue(baseLedger as never);
     render(<TimelineBoard />);
     expect(screen.queryByTestId('task-form-modal')).not.toBeInTheDocument();
 
@@ -93,8 +99,8 @@ describe('TimelineBoard', () => {
   });
 
   test('triggering edit from the track opens the form in edit mode with that task', () => {
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
+    mockUseTasks.mockReturnValue({
+      ...baseTasks,
       financialTasks: [
         buildMockFinancialTask({
           id: 't1',
@@ -113,7 +119,7 @@ describe('TimelineBoard', () => {
 
   test('saving from the form calls addFinancialTask when adding', async () => {
     const addFinancialTask = vi.fn().mockResolvedValue(undefined);
-    mockUseLedger.mockReturnValue({ ...baseLedger, addFinancialTask } as never);
+    mockUseTasks.mockReturnValue({ ...baseTasks, addFinancialTask } as never);
     render(<TimelineBoard />);
 
     fireEvent.click(screen.getByText('+ Add Task'));
@@ -129,8 +135,8 @@ describe('TimelineBoard', () => {
 
   test('saving from the form calls updateFinancialTask when editing', async () => {
     const updateFinancialTask = vi.fn().mockResolvedValue(undefined);
-    mockUseLedger.mockReturnValue({
-      ...baseLedger,
+    mockUseTasks.mockReturnValue({
+      ...baseTasks,
       updateFinancialTask,
       financialTasks: [
         buildMockFinancialTask({

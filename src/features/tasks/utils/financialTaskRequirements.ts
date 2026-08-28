@@ -1,5 +1,8 @@
-import { TransactionType } from '../types';
-import { DocumentTypeKey, getRequiredDocuments } from './documentRequirements';
+import { TransactionType } from '../../ledger/types';
+import {
+  DocumentTypeKey,
+  getRequiredDocuments,
+} from '../../ledger/utils/documentRequirements';
 
 export interface RequirementSeed {
   key: DocumentTypeKey;

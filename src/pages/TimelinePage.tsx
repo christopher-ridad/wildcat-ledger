@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../features/authentication/hooks/useAuth';
-import { TimelineBoard } from '../features/ledger/components/TimelinePage/TimelineBoard';
 import { useLedger } from '../features/ledger/hooks/useLedger';
-import { currentAcademicYearLabel } from '../features/ledger/utils/groupTasksByQuarter';
-import { todayDateString } from '../features/ledger/utils/today';
+import { TimelineBoard } from '../features/tasks/components/TimelineBoard';
+import { currentAcademicYearLabel } from '../features/tasks/utils/groupTasksByQuarter';
+import { todayDateString } from '../features/tasks/utils/today';
 
 export const TimelinePage = () => {
   const { activeOrganization, peopleNames } = useLedger();
