@@ -98,8 +98,9 @@ export const LandingPage = () => (
           Every receipt, W-9, and contract lives on the transaction it belongs to.
         </h2>
         <p className="wl-landing-proof-body">
-          Attach documents once and find them again months later, instead of digging
-          through email when SOFO or the Cashier&rsquo;s Office asks for proof.
+          Every debit card purchase needs a receipt to reconcile, every contract and
+          reimbursement needs to be complete before it&rsquo;s submitted, and ASG funding
+          renewal each spring needs real records to justify last year&rsquo;s spending.
         </p>
         <div className="wl-landing-doc-chips">
           {PREVIEW_DOCUMENTS.map((doc) => (
@@ -142,7 +143,7 @@ export const LandingPage = () => (
     <div className="wl-landing-cta-band">
       <div className="wl-landing-cta-band-inner">
         <h2 className="wl-landing-cta-band-heading">
-          Less guesswork for your treasurer, more visibility for your whole board.
+          Easier for your treasurer, clearer for your whole board.
         </h2>
         <Link to="/login" className="wl-btn-primary wl-landing-cta">
           Sign in with Northwestern
