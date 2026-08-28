@@ -29,21 +29,6 @@ const PREVIEW_DOCUMENTS = [
   { label: 'Special Pay Form', attached: false },
 ];
 
-const WORKFLOW_STEPS = [
-  {
-    verb: 'Log it',
-    detail: 'Enter the purchase, pick the type, and attach the receipt or contract.',
-  },
-  {
-    verb: 'Get it approved',
-    detail: 'A teammate takes a quick look before it’s added to the balance.',
-  },
-  {
-    verb: 'Reconcile it',
-    detail: 'Match debit card purchases to statements without leaving the ledger.',
-  },
-];
-
 export const LandingPage = () => (
   <div className="wl-landing">
     <nav className="wl-landing-nav">
@@ -63,7 +48,7 @@ export const LandingPage = () => (
         </h1>
         <p className="wl-landing-subtext">
           A shared ledger for your org&rsquo;s transactions, receipts, and SOFO or
-          Cashier&rsquo;s Office paperwork, so nothing lives in six different inboxes.
+          Cashier&rsquo;s Office paperwork, so nothing gets lost along the way.
         </p>
         <div className="wl-landing-hero-actions">
           <Link to="/login" className="wl-btn-primary wl-landing-cta">
@@ -144,27 +129,20 @@ export const LandingPage = () => (
             approver before they stick.
           </p>
         </div>
-      </div>
-    </section>
-
-    <section className="wl-landing-workflow">
-      <h2 className="wl-landing-workflow-heading">
-        From purchase to reconciled, without leaving the ledger.
-      </h2>
-      <div className="wl-landing-workflow-steps">
-        {WORKFLOW_STEPS.map((step) => (
-          <div key={step.verb} className="wl-landing-workflow-step">
-            <h3 className="wl-landing-workflow-verb">{step.verb}</h3>
-            <p className="wl-landing-workflow-detail">{step.detail}</p>
-          </div>
-        ))}
+        <div className="wl-landing-proof-item">
+          <h3>Deadlines, not just dollars</h3>
+          <p>
+            Log the SOFO paperwork and contract renewals your org owes each quarter,
+            assign who&rsquo;s responsible, and let the document checklist build itself.
+          </p>
+        </div>
       </div>
     </section>
 
     <div className="wl-landing-cta-band">
       <div className="wl-landing-cta-band-inner">
         <h2 className="wl-landing-cta-band-heading">
-          Leave your successor a ledger they can actually follow.
+          Less guesswork for your treasurer, more visibility for your whole board.
         </h2>
         <Link to="/login" className="wl-btn-primary wl-landing-cta">
           Sign in with Northwestern

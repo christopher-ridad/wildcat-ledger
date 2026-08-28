@@ -1332,53 +1332,6 @@ tbody tr:hover {
   margin: 0;
 }
 
-/* Workflow -- a plain left-to-right flow, deliberately distinct from the
-   proof section's layout so the page doesn't repeat the same composition. */
-.wl-landing-workflow {
-  max-width: 1160px;
-  margin: 0 auto;
-  padding: 56px 24px 72px;
-  border-top: 1px solid var(--color-border);
-}
-
-.wl-landing-workflow-heading {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--color-text);
-  margin: 0 0 32px;
-  max-width: 32ch;
-}
-
-.wl-landing-workflow-steps {
-  display: flex;
-  align-items: flex-start;
-}
-
-.wl-landing-workflow-step {
-  flex: 1;
-  padding-right: 28px;
-}
-
-.wl-landing-workflow-step:not(:first-child) {
-  padding-left: 28px;
-  border-left: 1px solid var(--color-border);
-}
-
-.wl-landing-workflow-verb {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0 0 8px;
-}
-
-.wl-landing-workflow-detail {
-  font-size: 0.86rem;
-  color: var(--color-text-muted);
-  line-height: 1.5;
-  margin: 0;
-}
-
 .wl-landing-cta-band {
   background: var(--color-primary);
   padding: 56px 24px;
@@ -1444,18 +1397,6 @@ tbody tr:hover {
 
   .wl-landing-proof {
     grid-template-columns: 1fr;
-  }
-
-  .wl-landing-workflow-steps {
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .wl-landing-workflow-step:not(:first-child) {
-    padding-left: 0;
-    border-left: none;
-    border-top: 1px solid var(--color-border);
-    padding-top: 20px;
   }
 
   .wl-landing-cta-band-inner {
