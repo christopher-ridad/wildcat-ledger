@@ -57,7 +57,7 @@ describe('BudgetUploadArea', () => {
     render(<Harness scanState="error" scanError="Could not read the document" />);
     expect(
       screen.getByText(
-        /Could not read the document.*you can enter amounts manually below/,
+        /Could not read the document.*You can enter amounts manually below/,
       ),
     ).toBeInTheDocument();
   });
@@ -65,7 +65,7 @@ describe('BudgetUploadArea', () => {
   test('does not show an error message outside of the error state', () => {
     render(<Harness scanState="done" />);
     expect(
-      screen.queryByText(/you can enter amounts manually below/),
+      screen.queryByText(/You can enter amounts manually below/),
     ).not.toBeInTheDocument();
   });
 

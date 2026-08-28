@@ -61,7 +61,7 @@ export const ReceiptUploadField = ({
       </div>
       {ocrError && (
         <div className="wl-form-error" style={{ marginTop: 8 }}>
-          {ocrError} — you can enter the title/amount manually.
+          {ocrError} You can enter the title/amount manually.
         </div>
       )}
     </div>

@@ -270,8 +270,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                             className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
                             title={
                               t.noReceiptAcknowledged
-                                ? 'Submitted without receipt — attach completed PERF to reconcile'
-                                : 'Missing receipt — attach receipt or completed PERF to reconcile'
+                                ? 'Submitted without receipt. Attach a completed PERF to reconcile.'
+                                : 'Missing receipt. Attach a receipt or completed PERF to reconcile.'
                             }
                           >
                             ⚠
@@ -288,7 +288,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                         {pending && (
                           <span
                             className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--warn']}`}
-                            title="Awaiting approval — resolve before reconciling"
+                            title="Awaiting approval. Resolve before reconciling."
                           >
                             ⏳
                           </span>
@@ -350,7 +350,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                       {needsTax && (
                         <div className={styles['wl-recon-missing']}>
                           <p className={styles['wl-recon-missing-msg']}>
-                            Owes {formatCurrency(t.taxAmount ?? 0)} in tax to SOFO —{' '}
+                            Owes {formatCurrency(t.taxAmount ?? 0)} in tax to SOFO.{' '}
                             <a
                               href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
                               target="_blank"
@@ -384,8 +384,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                         <div className={styles['wl-recon-missing']}>
                           <p className={styles['wl-recon-missing-msg']}>
                             Has a pending {pending.type === 'delete' ? 'delete' : 'edit'}{' '}
-                            request awaiting approval — resolve it from the dashboard,
-                            then reopen this dialog.
+                            request awaiting approval. Resolve it from the dashboard, then
+                            reopen this dialog.
                           </p>
                         </div>
                       )}
@@ -496,8 +496,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
             </h3>
             {reloadRequested ? (
               <p className={styles['wl-recon-reload-confirm']}>
-                ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added —
-                pending approval.
+                ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added, pending
+                approval.
               </p>
             ) : (
               <>

@@ -29,7 +29,7 @@ export const UploadDocumentPage = () => {
 
   useEffect(() => {
     if (!transactionId || !orgId || !token) {
-      setLoadError('Invalid link — missing transaction, organization, or token.');
+      setLoadError('Invalid link. Missing transaction, organization, or token.');
       setLoading(false);
       return;
     }

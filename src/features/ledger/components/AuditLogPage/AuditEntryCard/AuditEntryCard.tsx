@@ -192,16 +192,11 @@ export const AuditEntryCard = ({
         <div className={styles['wl-audit-recon-summary']}>
           <span>{entry.reconciliationSummary.transactionCount} transactions</span>
           <span className={styles['wl-audit-recon-sep']}>·</span>
-          <span>${entry.reconciliationSummary.totalAmount.toFixed(2)} total</span>
-          {entry.reconciliationSummary.exemptionCount > 0 && (
-            <>
-              <span className={styles['wl-audit-recon-sep']}>·</span>
-              <span>
-                {entry.reconciliationSummary.exemptionCount}{' '}
-                {pluralize(entry.reconciliationSummary.exemptionCount, 'exemption')}
-              </span>
-            </>
-          )}
+          <span>
+            ${entry.reconciliationSummary.totalAmount.toFixed(2)} total
+            {entry.reconciliationSummary.exemptionCount > 0 &&
+              `, ${entry.reconciliationSummary.exemptionCount} ${pluralize(entry.reconciliationSummary.exemptionCount, 'exemption')}`}
+          </span>
         </div>
       )}
     </div>

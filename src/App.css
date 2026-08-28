@@ -18,6 +18,8 @@
   --color-submitted-text: #065f46;
   --color-flag-bg: #fee2e2;
   --color-flag-text: #991b1b;
+  --color-warning: #d97706;
+  --color-warning-bg: #fef3c7;
   --radius: 12px;
   --radius-sm: 6px;
   --shadow: 0 1px 4px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -36,6 +38,13 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+/* Financial Tasks gets a wider column than other pages -- its task cards
+   are the page's primary content and should use more of the available
+   width instead of being capped at the same 1100px as narrower pages. */
+.wl-main--wide {
+  max-width: 1320px;
 }
 
 /* ─── Header ─────────────────────────────────────────────────────── */
@@ -565,6 +574,50 @@ tbody tr:hover {
   margin: 0;
 }
 
+/* ─── Financial Tasks page ───────────────────────────────────────── */
+/* Wraps the header + task board as one composed unit -- keeps the title
+   and the quarter-selector/Add-Task control row below it reading as one
+   composed area with real breathing room between them, rather than two
+   pieces crowded on top of each other. */
+.wl-tasks-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Title and year sit on one baseline-aligned row, left-aligned to match
+   the rest of the page (the quarter-selector/Add-Task control row below,
+   which spans edge to edge). The org name isn't repeated here -- it's
+   already shown in the fixed header bar above. */
+.wl-timeline-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 16px 0;
+}
+
+.wl-timeline-header-title {
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.wl-timeline-header-year {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 700px) {
+  .wl-timeline-header-title {
+    font-size: 1.6rem;
+  }
+}
+
 /* ─── Login Page ─────────────────────────────────────────────────── */
 .wl-login-field {
   display: flex;
@@ -757,10 +810,9 @@ tbody tr:hover {
   width: 260px;
   background: #fff;
   border-right: 1px solid #e5e0f0;
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  box-shadow: 3px 0 12px rgba(78, 42, 132, 0.08);
   position: fixed;
   top: 76px;
   left: 0;
@@ -770,16 +822,16 @@ tbody tr:hover {
 }
 
 .wl-sidebar-header-optionB {
-  margin-bottom: 28px;
-  padding-bottom: 16px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
   border-bottom: 1px solid #f0eef8;
 }
 
 .wl-sidebar-section-optionB {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 28px;
+  gap: 4px;
+  margin-bottom: 22px;
   flex: 1;
 }
 
@@ -788,9 +840,7 @@ tbody tr:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  /* Darkened from the original #9b8abc (3.1:1 against white, well under
-     WCAG AA's 4.5:1) -- same purple hue, dark enough to pass. */
-  color: #6b5a94;
+  color: var(--color-text-muted);
   margin: 0 0 12px 8px;
 }
 
@@ -798,10 +848,10 @@ tbody tr:hover {
   background: none;
   border: none;
   border-radius: 8px;
-  padding: 11px 14px;
+  padding: 9px 12px;
   font-size: 0.92rem;
   font-weight: 500;
-  color: #5a5370;
+  color: var(--color-text-muted);
   cursor: pointer;
   text-align: left;
   display: flex;
@@ -898,26 +948,26 @@ tbody tr:hover {
 
 .wl-main-optionB {
   flex: 1;
-  padding: 32px;
+  padding: 28px;
   overflow-y: auto;
 }
 
 .wl-optionB-section {
-  margin-bottom: 40px;
+  margin-bottom: 32px;
 }
 
 .wl-optionB-section > .wl-section-title {
   font-size: 1.2rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  margin-bottom: 18px;
-  color: #2a2535;
+  margin-bottom: 14px;
+  color: var(--color-text);
 }
 
 .wl-budget-grid-optionB {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 
@@ -925,21 +975,19 @@ tbody tr:hover {
   background: #fff;
   border: 1px solid #e8e3f0;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 0;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    border-color 0.15s ease,
+    background-color 0.15s ease;
   cursor: pointer;
 }
 
 .wl-budget-card-optionB:hover {
   border-color: #d4c5e8;
-  box-shadow: 0 4px 12px rgba(78, 42, 132, 0.08);
-  transform: translateY(-2px);
+  background: #fbfaff;
 }
 
 .wl-budget-card-optionB-header {
@@ -953,16 +1001,14 @@ tbody tr:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  /* Darkened from the original #9b8abc (3.1:1 against white, well under
-     WCAG AA's 4.5:1) -- same purple hue, dark enough to pass. */
-  color: #6b5a94;
+  color: var(--color-text-muted);
 }
 
 .wl-budget-card-optionB-balance {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #2a2535;
+  color: var(--color-text);
 }
 
 @media (max-width: 1200px) {

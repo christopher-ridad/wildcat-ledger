@@ -1,0 +1,53 @@
+.wl-quarter-board {
+  /* No inner max-width of its own -- fills the same width .wl-main already
+     gives every other page's content, rather than an artificially narrow
+     column, so the task list reads as the page's primary content. */
+  padding: 0 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Groups the quarter selector with any header actions (e.g. "+ Add Task")
+   into one control area instead of a separate, standalone action bar --
+   selector at the leading edge, actions at the trailing edge. */
+.wl-quarter-board-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.wl-quarter-board-panel {
+  /* key={quarter.key} on this element forces a full remount on every
+     quarter switch, so this autoplaying animation fires fresh each time --
+     "subtle, but fast and direct" per the brief, distinctly shorter than
+     TaskRow's own entrance so the whole panel doesn't feel sluggish. */
+  animation: wl-quarter-board-panel-in 0.18s ease-out both;
+}
+
+@keyframes wl-quarter-board-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-quarter-board-panel {
+    animation: none;
+  }
+}
+
+.wl-quarter-board-empty {
+  padding: 48px 16px;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  text-align: center;
+}

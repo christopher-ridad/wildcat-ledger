@@ -6,6 +6,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import { useAuth } from './features/authentication/hooks/useAuth';
 import { AuthProvider } from './features/authentication/stores/AuthContext';
 import { LedgerProvider } from './features/ledger/stores/LedgerContext';
+import { TasksProvider } from './features/tasks/stores/TasksContext';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
 // Route-level code splitting -- each page becomes its own chunk instead of
@@ -46,6 +47,10 @@ const AuditLogPage = lazyWithRetry(
   () => import('./pages/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
   'chunk-retry:AuditLogPage',
 );
+const TimelinePage = lazyWithRetry(
+  () => import('./pages/TimelinePage').then((m) => ({ default: m.TimelinePage })),
+  'chunk-retry:TimelinePage',
+);
 const PrivacyPage = lazyWithRetry(
   () => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
   'chunk-retry:PrivacyPage',
@@ -78,6 +83,14 @@ const App = () => (
             <Route path="/budget-setup" element={<CreateOrganization />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/audit-log" element={<AuditLogPage />} />
+            <Route
+              path="/timeline"
+              element={
+                <TasksProvider>
+                  <TimelinePage />
+                </TasksProvider>
+              }
+            />
           </Route>
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

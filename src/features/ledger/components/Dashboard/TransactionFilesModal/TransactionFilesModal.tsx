@@ -128,7 +128,7 @@ export const TransactionFilesModal = ({
           ? `\n\nYou can download a blank ${doc.label} here:\n${window.location.origin}${doc.templatePath}`
           : '';
       const subject = encodeURIComponent(
-        `${isSignature ? 'Signature Request' : 'Document Request'} — ${doc.label} for "${transaction.title}"`,
+        `${isSignature ? 'Signature Request' : 'Document Request'}: ${doc.label} for "${transaction.title}"`,
       );
       const body = encodeURIComponent(
         isSignature
@@ -152,7 +152,7 @@ export const TransactionFilesModal = ({
       isOpen
       onClose={onClose}
       titleId="files-modal-title"
-      title={`Documents — ${transaction.title}`}
+      title={`Documents: ${transaction.title}`}
       className={styles['wl-files-modal']}
     >
       {missingDocs.length > 0 && (
@@ -182,13 +182,13 @@ export const TransactionFilesModal = ({
                 {doc.requestBehavior === 'prepareFirst' && (
                   <p className={styles['wl-missing-doc-hint']}>
                     Download the template, fill in your org&apos;s details, and attach
-                    your version to the email before sending — a mailto link can&apos;t
+                    your version to the email before sending. A mailto link can&apos;t
                     attach it for you.
                   </p>
                 )}
                 {doc.requestBehavior === 'none' ? (
                   <p className={styles['wl-missing-doc-hint']}>
-                    Nobody else needs to fill this out — complete and upload it yourself.
+                    Nobody else needs to fill this out. Complete and upload it yourself.
                   </p>
                 ) : (
                   <div className={styles['wl-missing-doc-actions']}>
@@ -204,7 +204,7 @@ export const TransactionFilesModal = ({
                     </button>
                     {isRequested(doc.key) && (
                       <span className={styles['wl-missing-doc-requested-note']}>
-                        Requested — waiting for upload
+                        Requested, waiting for upload
                       </span>
                     )}
                   </div>

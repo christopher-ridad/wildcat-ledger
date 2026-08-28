@@ -117,6 +117,31 @@ test('the edit-transaction modal has no WCAG 2.0/2.1 A/AA violations', async ({
   expect(results.violations).toEqual([]);
 });
 
+test('the Financial Tasks page has no WCAG 2.0/2.1 A/AA violations', async ({ page }) => {
+  await page.goto('/timeline');
+  await expect(page.getByRole('heading', { name: 'Financial Tasks' })).toBeVisible();
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
+test('the Add Task modal has no WCAG 2.0/2.1 A/AA violations', async ({ page }) => {
+  await page.goto('/timeline');
+  await page.getByRole('button', { name: '+ Add Task' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible();
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .include('[role="dialog"]')
+    .analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
 test('the transaction files modal has no WCAG 2.0/2.1 A/AA violations', async ({
   page,
 }) => {

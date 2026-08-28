@@ -79,6 +79,101 @@ export type Database = {
           },
         ];
       };
+      financial_task_requirements: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          key: string;
+          label: string;
+          org_id: string;
+          task_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          key: string;
+          label: string;
+          org_id: string;
+          task_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          key?: string;
+          label?: string;
+          org_id?: string;
+          task_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'financial_task_requirements_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'financial_task_requirements_task_id_fkey';
+            columns: ['task_id'];
+            isOneToOne: false;
+            referencedRelation: 'financial_tasks';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      financial_tasks: {
+        Row: {
+          assignee_emails: string[];
+          completed_at: string | null;
+          created_at: string;
+          created_by: string;
+          description: string | null;
+          due_date: string;
+          id: string;
+          is_individual_vendor: boolean;
+          org_id: string;
+          payment_type: string | null;
+          title: string;
+        };
+        Insert: {
+          assignee_emails?: string[];
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string | null;
+          due_date: string;
+          id?: string;
+          is_individual_vendor?: boolean;
+          org_id: string;
+          payment_type?: string | null;
+          title: string;
+        };
+        Update: {
+          assignee_emails?: string[];
+          completed_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string | null;
+          due_date?: string;
+          id?: string;
+          is_individual_vendor?: boolean;
+          org_id?: string;
+          payment_type?: string | null;
+          title?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'financial_tasks_org_id_fkey';
+            columns: ['org_id'];
+            isOneToOne: false;
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       organizations: {
         Row: {
           budget_allocations: Json;
@@ -425,6 +520,10 @@ export type Database = {
         Args: { p_org_id_text: string };
         Returns: boolean;
       };
+      is_wildcatledger_allowed_email: {
+        Args: { v_email: string };
+        Returns: boolean;
+      };
       ledger_now_ms: { Args: never; Returns: number };
       mark_tax_reimbursed_with_audit: {
         Args: { p_org_id: string; p_transaction_id: string };
@@ -457,6 +556,14 @@ export type Database = {
       resolve_pending_change_with_audit: {
         Args: { p_approved: boolean; p_org_id: string; p_pending_id: string };
         Returns: undefined;
+      };
+      restrict_login_to_northwestern_email: {
+        Args: { event: Json };
+        Returns: Json;
+      };
+      restrict_signup_to_northwestern_email: {
+        Args: { event: Json };
+        Returns: Json;
       };
       submit_document_upload: {
         Args: {

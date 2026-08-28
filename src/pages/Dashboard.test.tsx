@@ -185,6 +185,13 @@ describe('Dashboard', () => {
     expect(navigateMock).toHaveBeenCalledWith('/audit-log');
   });
 
+  test('"Tasks" navigates to /timeline', () => {
+    mockUseLedger.mockReturnValue(baseLedger as never);
+    render(<Dashboard />);
+    fireEvent.click(screen.getByText('Tasks'));
+    expect(navigateMock).toHaveBeenCalledWith('/timeline');
+  });
+
   test('"Sign Out" calls signOut', () => {
     const signOut = vi.fn().mockResolvedValue(undefined);
     mockUseAuth.mockReturnValue({

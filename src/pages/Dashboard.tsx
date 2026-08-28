@@ -51,6 +51,13 @@ export const Dashboard = () => {
           <button
             type="button"
             className="wl-header-audit-btn"
+            onClick={() => navigate('/timeline')}
+          >
+            Tasks
+          </button>
+          <button
+            type="button"
+            className="wl-header-audit-btn"
             onClick={() => navigate('/audit-log')}
           >
             Audit History
