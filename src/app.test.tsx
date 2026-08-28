@@ -46,7 +46,7 @@ describe('WildcatLedger App', () => {
     window.history.pushState({}, '', '/');
   });
 
-  test('renders the login screen by default', async () => {
+  test('renders the landing page by default', async () => {
     mockUseAuth.mockReturnValue({
       user: null,
       loading: false,
@@ -55,9 +55,29 @@ describe('WildcatLedger App', () => {
     });
     render(<App />);
 
-    // LoginPage is now code-split (see App.tsx), so it isn't in the DOM
-    // until its chunk resolves -- find* waits for that instead of asserting
+    // LandingPage is code-split (see App.tsx), so it isn't in the DOM until
+    // its chunk resolves -- find* waits for that instead of asserting
     // synchronously.
+    expect(
+      await screen.findByRole('heading', {
+        name: /Track everything your student org spends/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link', { name: /sign in with northwestern/i }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test('renders the login screen at /login', async () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      loading: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    setPath('/login');
+    render(<App />);
+
     expect(
       await screen.findByRole('heading', { name: /wildcatledger/i }),
     ).toBeInTheDocument();

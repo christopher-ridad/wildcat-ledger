@@ -1125,3 +1125,328 @@ tbody tr:hover {
   color: var(--color-positive);
   margin: 0;
 }
+
+/* ─── Landing Page ───────────────────────────────────────────────── */
+.wl-landing {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.wl-landing-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+.wl-landing-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+}
+
+.wl-landing-logo img {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+.wl-landing-nav-signin {
+  padding: 8px 18px;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.wl-landing-hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 36px 24px 72px;
+}
+
+.wl-landing-headline {
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+
+.wl-landing-headline span {
+  color: var(--color-primary);
+}
+
+.wl-landing-subtext {
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+  max-width: 46ch;
+  margin: 0 0 28px;
+}
+
+.wl-landing-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.wl-landing-cta {
+  padding: 13px 26px;
+  font-size: 0.95rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+}
+
+.wl-landing-hero-note {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* Authentic dashboard preview -- reuses the real budget-card classes from
+   the Dashboard (.wl-budget-card-optionB and friends, defined above) so
+   this is a pixel-accurate mirror of the actual product, not a mockup. */
+.wl-landing-preview-frame {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.wl-landing-preview-titlebar {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.wl-landing-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.wl-landing-preview-txns {
+  border-top: 1px solid var(--color-border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wl-landing-preview-txn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.82rem;
+}
+
+.wl-landing-preview-txn-title {
+  color: var(--color-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wl-landing-preview-txn-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.wl-landing-preview-amount {
+  font-weight: 700;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.wl-landing-preview-tag {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.wl-landing-preview-tag--approved {
+  background: var(--color-ready-bg);
+  color: var(--color-ready-text);
+}
+
+.wl-landing-preview-tag--reconciled {
+  background: var(--color-submitted-bg);
+  color: var(--color-submitted-text);
+}
+
+/* Proof section -- an asymmetric 1.6fr/1fr split (one wide panel, two
+   stacked items) instead of the generic three-equal-cards row. */
+.wl-landing-proof {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 8px 24px 72px;
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 40px;
+}
+
+.wl-landing-proof-main {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 32px;
+}
+
+.wl-landing-proof-heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+
+.wl-landing-proof-body {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  max-width: 52ch;
+  margin: 0 0 24px;
+}
+
+.wl-landing-doc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wl-landing-doc-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.01em;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.wl-landing-doc-chip--done {
+  background: var(--color-submitted-bg);
+  color: var(--color-submitted-text);
+  border-color: transparent;
+}
+
+.wl-landing-proof-side {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.wl-landing-proof-item {
+  padding-left: 16px;
+  border-left: 2px solid var(--color-primary);
+}
+
+.wl-landing-proof-item h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.wl-landing-proof-item p {
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.wl-landing-cta-band {
+  background: var(--color-primary);
+  padding: 56px 24px;
+}
+
+.wl-landing-cta-band-inner {
+  max-width: 1160px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.wl-landing-cta-band-heading {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0;
+  max-width: 34ch;
+}
+
+.wl-landing-cta-band .wl-btn-primary {
+  background: #fff;
+  color: var(--color-primary);
+}
+
+.wl-landing-cta-band .wl-btn-primary:hover {
+  background: #f3f0f8;
+}
+
+.wl-landing-footer {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 28px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.wl-landing-footer a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.wl-landing-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .wl-landing-hero {
+    grid-template-columns: 1fr;
+    padding-top: 28px;
+  }
+
+  .wl-landing-headline {
+    font-size: 2.1rem;
+  }
+
+  .wl-landing-proof {
+    grid-template-columns: 1fr;
+  }
+
+  .wl-landing-cta-band-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
