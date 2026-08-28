@@ -98,9 +98,9 @@ export const LandingPage = () => (
           Every receipt, W-9, and contract lives on the transaction it belongs to.
         </h2>
         <p className="wl-landing-proof-body">
-          Every debit card purchase needs a receipt to reconcile, every contract and
-          reimbursement needs to be complete before it&rsquo;s submitted, and ASG funding
-          renewal each spring needs real records to justify last year&rsquo;s spending.
+          Every debit card purchase needs receipts for reconciliation, every direct
+          payment or reimbursement needs complete documentation before submission, and ASG
+          funding renewal requires itemized budgets backed by spending records.
         </p>
         <div className="wl-landing-doc-chips">
           {PREVIEW_DOCUMENTS.map((doc) => (
@@ -133,8 +133,9 @@ export const LandingPage = () => (
         <div className="wl-landing-proof-item">
           <h3>Deadlines, not just dollars</h3>
           <p>
-            Log the SOFO paperwork and contract renewals your org owes each quarter,
-            assign who&rsquo;s responsible, and let the document checklist build itself.
+            Create financial tasks for the paperwork and deadlines your org needs to
+            complete each quarter, assign responsibility, and let the checklist build
+            itself.
           </p>
         </div>
       </div>
