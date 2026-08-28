@@ -41,11 +41,10 @@ describe('QuarterBoard', () => {
     );
   });
 
-  test('shows the empty-quarter message for a quarter with no tasks and no Today landmark', () => {
-    // Fall (the default-selected quarter) always has at least a "Today"
-    // landmark month -- Winter genuinely has zero months when there are no
-    // tasks in it.
+  test('shows the empty-quarter message for a quarter with no tasks', () => {
     renderBoard();
+    expect(screen.getByText('No tasks this quarter.')).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole('tab', { name: 'Winter Quarter' }));
     expect(screen.getByText('No tasks this quarter.')).toBeInTheDocument();
   });

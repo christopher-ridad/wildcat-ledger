@@ -734,7 +734,7 @@ describe('ReconciliationModal', () => {
       ),
     );
     expect(
-      await screen.findByText(/Reload of \$200\.00 added — pending approval/),
+      await screen.findByText(/Reload of \$200\.00 added, pending approval/),
     ).toBeInTheDocument();
   });
 

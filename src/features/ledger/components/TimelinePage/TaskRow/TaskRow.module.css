@@ -1,12 +1,21 @@
 .wl-task-row {
-  border-bottom: 1px solid var(--color-border);
-  padding: 18px 4px;
-  transition: background-color 0.15s ease;
+  background: var(--color-card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 18px;
+  margin-bottom: 8px;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
   /* Autoplays once on mount (quarter switches remount the whole panel, see
      QuarterBoard) -- no scroll-driven reveal anymore, so a plain animation
      is enough; animation-delay (via the inline style prop) staggers rows
      within a month. */
   animation: wl-task-row-in 0.3s ease-out both;
+}
+
+.wl-task-row:last-child {
+  margin-bottom: 0;
 }
 
 @keyframes wl-task-row-in {
@@ -22,7 +31,10 @@
 }
 
 .wl-task-row:hover {
-  background: var(--color-bg);
+  background: rgba(78, 42, 132, 0.06);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -69,8 +81,10 @@
 }
 
 .wl-task-row-due {
+  margin-left: auto;
   font-size: 0.85rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .wl-task-row--overdue .wl-task-row-due {
@@ -86,7 +100,6 @@
 
 .wl-task-row-chevron {
   align-self: center;
-  margin-left: auto;
   width: 9px;
   height: 9px;
   border-right: 2px solid var(--color-text-muted);
@@ -111,7 +124,7 @@
   margin-left: 32px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
 }
 
 .wl-task-row-description {
@@ -129,8 +142,8 @@
 .wl-task-row-requirements {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 4px 0 0;
+  gap: 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -158,7 +171,7 @@
 .wl-task-row-actions {
   display: flex;
   gap: 14px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .wl-task-row-actions button {

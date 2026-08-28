@@ -53,7 +53,7 @@ export const Dashboard = () => {
             className="wl-header-audit-btn"
             onClick={() => navigate('/timeline')}
           >
-            Timeline
+            Tasks
           </button>
           <button
             type="button"

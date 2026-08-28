@@ -40,6 +40,13 @@
   gap: 24px;
 }
 
+/* Financial Tasks gets a wider column than other pages -- its task cards
+   are the page's primary content and should use more of the available
+   width instead of being capped at the same 1100px as narrower pages. */
+.wl-main--wide {
+  max-width: 1320px;
+}
+
 /* ─── Header ─────────────────────────────────────────────────────── */
 .wl-header-title {
   font-size: 1.6rem;
@@ -567,36 +574,39 @@ tbody tr:hover {
   margin: 0;
 }
 
-/* ─── Financial Timeline header ──────────────────────────────────── */
-.wl-timeline-header {
+/* ─── Financial Tasks page ───────────────────────────────────────── */
+/* Wraps the header + task board as one composed unit -- keeps the title
+   and the quarter-selector/Add-Task control row below it reading as one
+   composed area with real breathing room between them, rather than two
+   pieces crowded on top of each other. */
+.wl-tasks-page {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 16px 4px;
-  text-align: center;
+  gap: 20px;
 }
 
-.wl-timeline-header-org {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+/* Title and year sit on one baseline-aligned row, left-aligned to match
+   the rest of the page (the quarter-selector/Add-Task control row below,
+   which spans edge to edge). The org name isn't repeated here -- it's
+   already shown in the fixed header bar above. */
+.wl-timeline-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 16px 0;
 }
 
 .wl-timeline-header-title {
-  margin: 4px 0 0;
-  font-size: 3.5rem;
-  font-weight: 800;
+  margin: 0;
+  font-size: 1.9rem;
+  font-weight: 700;
   color: var(--color-text);
   letter-spacing: -0.01em;
 }
 
 .wl-timeline-header-year {
-  margin: 0;
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-primary);
   letter-spacing: 0.02em;
@@ -604,7 +614,7 @@ tbody tr:hover {
 
 @media (max-width: 700px) {
   .wl-timeline-header-title {
-    font-size: 2.25rem;
+    font-size: 1.6rem;
   }
 }
 

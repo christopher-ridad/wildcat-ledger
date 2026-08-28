@@ -120,7 +120,7 @@ export const rowToFinancialTask = (row: FinancialTaskRow): FinancialTask => ({
   title: row.title,
   description: row.description ?? undefined,
   dueDate: row.due_date,
-  assigneeEmail: row.assignee_email ?? undefined,
+  assigneeEmails: row.assignee_emails,
   completedAt: row.completed_at,
   createdBy: row.created_by,
   createdAt: row.created_at,

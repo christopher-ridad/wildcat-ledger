@@ -185,10 +185,10 @@ describe('Dashboard', () => {
     expect(navigateMock).toHaveBeenCalledWith('/audit-log');
   });
 
-  test('"Timeline" navigates to /timeline', () => {
+  test('"Tasks" navigates to /timeline', () => {
     mockUseLedger.mockReturnValue(baseLedger as never);
     render(<Dashboard />);
-    fireEvent.click(screen.getByText('Timeline'));
+    fireEvent.click(screen.getByText('Tasks'));
     expect(navigateMock).toHaveBeenCalledWith('/timeline');
   });
 

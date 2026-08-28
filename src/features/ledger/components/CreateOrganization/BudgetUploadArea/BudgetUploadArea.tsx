@@ -66,7 +66,7 @@ export const BudgetUploadArea = ({
 
     {scanState === 'error' && (
       <div className="wl-form-error" style={{ marginTop: 8 }}>
-        {scanError} — you can enter amounts manually below.
+        {scanError} You can enter amounts manually below.
       </div>
     )}
   </>

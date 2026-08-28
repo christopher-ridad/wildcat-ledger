@@ -120,8 +120,7 @@ describe('AuditEntryCard', () => {
       }),
     );
     expect(screen.getByText('3 transactions')).toBeInTheDocument();
-    expect(screen.getByText('$45.50 total')).toBeInTheDocument();
-    expect(screen.getByText('2 exemptions')).toBeInTheDocument();
+    expect(screen.getByText('$45.50 total, 2 exemptions')).toBeInTheDocument();
   });
 
   test('uses singular "exemption" when the count is 1', () => {
@@ -136,7 +135,7 @@ describe('AuditEntryCard', () => {
         },
       }),
     );
-    expect(screen.getByText('1 exemption')).toBeInTheDocument();
+    expect(screen.getByText('$10.00 total, 1 exemption')).toBeInTheDocument();
   });
 
   test('omits the exemption clause when the count is 0', () => {

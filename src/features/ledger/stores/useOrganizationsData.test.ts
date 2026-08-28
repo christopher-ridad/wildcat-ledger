@@ -212,7 +212,7 @@ describe('useOrganizationsData', () => {
             title: 'Submit Contract',
             description: null,
             due_date: '2026-09-15',
-            assignee_email: null,
+            assignee_emails: [],
             completed_at: null,
             created_by: 'treasurer@example.com',
             created_at: '2026-08-01T00:00:00.000Z',

@@ -36,33 +36,22 @@ export const MonthSection = ({
   <section className={styles['wl-month-section']}>
     <h3 className={styles['wl-month-section-label']}>{month.label}</h3>
 
-    {month.entries.map((entry, entryIndex) => {
-      if (entry.isToday) {
-        return (
-          <div key="today" className={styles['wl-today-divider']} role="separator">
-            <span className={styles['wl-today-divider-label']}>Today</span>
-          </div>
-        );
-      }
-
-      const task = entry.task!;
-      return (
-        <TaskRow
-          key={task.id}
-          task={task}
-          staggerIndex={entryIndex}
-          requirements={requirementsByTaskId.get(task.id) ?? []}
-          peopleNames={peopleNames}
-          canEdit={canEdit}
-          pending={isTaskPending(task.id)}
-          error={taskError(task.id) || undefined}
-          isRequirementPending={isRequirementPending}
-          onToggleComplete={(completed) => onToggleComplete(task, completed)}
-          onToggleRequirement={onToggleRequirement}
-          onEdit={() => onEdit(task)}
-          onDelete={() => onDelete(task)}
-        />
-      );
-    })}
+    {month.tasks.map((task, taskIndex) => (
+      <TaskRow
+        key={task.id}
+        task={task}
+        staggerIndex={taskIndex}
+        requirements={requirementsByTaskId.get(task.id) ?? []}
+        peopleNames={peopleNames}
+        canEdit={canEdit}
+        pending={isTaskPending(task.id)}
+        error={taskError(task.id) || undefined}
+        isRequirementPending={isRequirementPending}
+        onToggleComplete={(completed) => onToggleComplete(task, completed)}
+        onToggleRequirement={onToggleRequirement}
+        onEdit={() => onEdit(task)}
+        onDelete={() => onDelete(task)}
+      />
+    ))}
   </section>
 );

@@ -400,7 +400,7 @@ describe('addFinancialTask', () => {
     await addFinancialTask({
       title: 'Submit Contract',
       dueDate: '2026-09-15',
-      assigneeEmail: 'officer@u.northwestern.edu',
+      assigneeEmails: ['officer@u.northwestern.edu'],
     });
     expect(mockFrom).toHaveBeenCalledWith('financial_tasks');
     expect(insert).toHaveBeenCalledWith({
@@ -408,7 +408,7 @@ describe('addFinancialTask', () => {
       title: 'Submit Contract',
       description: null,
       due_date: '2026-09-15',
-      assignee_email: 'officer@u.northwestern.edu',
+      assignee_emails: ['officer@u.northwestern.edu'],
       payment_type: null,
       is_individual_vendor: false,
     });
@@ -468,7 +468,7 @@ describe('updateFinancialTask', () => {
       title: 'Updated Title',
       description: null,
       due_date: '2026-10-01',
-      assignee_email: null,
+      assignee_emails: [],
       payment_type: null,
       is_individual_vendor: false,
     });

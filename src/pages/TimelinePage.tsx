@@ -1,36 +1,63 @@
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../features/authentication/hooks/useAuth';
 import { TimelineBoard } from '../features/ledger/components/TimelinePage/TimelineBoard';
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { currentAcademicYearLabel } from '../features/ledger/utils/groupTasksByQuarter';
 import { todayDateString } from '../features/ledger/utils/today';
-import { TopNav } from '../layouts/TopNav';
 
 export const TimelinePage = () => {
-  const { activeOrganization } = useLedger();
+  const { activeOrganization, peopleNames } = useLedger();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const displayName = (email: string) => peopleNames[email] ?? email;
+  const approversSubtitle = activeOrganization
+    ? `SOFO Approvers: ${activeOrganization.sofoApprovers.map(displayName).join(', ') || '—'}`
+    : '';
 
   return (
     <div className="wl-app">
-      <TopNav />
-      <div className="wl-main" style={{ marginTop: 64, paddingTop: 24 }}>
-        <button
-          type="button"
-          className="wl-btn-back"
-          onClick={() => navigate('/dashboard')}
-        >
-          ← Back to Dashboard
-        </button>
-        <div className="wl-timeline-header">
+      <div className="wl-header-optionB">
+        <div className="wl-header-optionB-left">
+          <h1 className="wl-header-title">{activeOrganization?.name}</h1>
           {activeOrganization && (
-            <p className="wl-timeline-header-org">{activeOrganization.name}</p>
+            <p className="wl-header-approvers" title={approversSubtitle}>
+              {approversSubtitle}
+            </p>
           )}
-          <h1 className="wl-timeline-header-title">Financial Timeline</h1>
-          <p className="wl-timeline-header-year">
-            {currentAcademicYearLabel(todayDateString())}
-          </p>
         </div>
-        <TimelineBoard />
+        <div className="wl-header-optionB-right">
+          <button
+            type="button"
+            className="wl-header-audit-btn"
+            onClick={() => navigate('/audit-log')}
+          >
+            Audit History
+          </button>
+          <button
+            type="button"
+            className="wl-header-audit-btn"
+            onClick={() => navigate('/dashboard')}
+          >
+            ← Back to Dashboard
+          </button>
+          <button type="button" className="wl-header-signout-btn" onClick={signOut}>
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      <div className="wl-main wl-main--wide" style={{ marginTop: 76, paddingTop: 24 }}>
+        <div className="wl-tasks-page">
+          <div className="wl-timeline-header">
+            <h2 className="wl-timeline-header-title">Financial Tasks</h2>
+            <span className="wl-timeline-header-year">
+              {currentAcademicYearLabel(todayDateString())}
+            </span>
+          </div>
+          <TimelineBoard />
+        </div>
       </div>
     </div>
   );

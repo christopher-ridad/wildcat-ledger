@@ -155,7 +155,7 @@ export interface FinancialTask {
   title: string;
   description?: string;
   dueDate: string; // YYYY-MM-DD
-  assigneeEmail?: string;
+  assigneeEmails: string[];
   // undefined/null = not yet done.
   completedAt?: string | null;
   createdBy: string;
@@ -263,7 +263,7 @@ export interface LedgerContextValue {
     title: string;
     description?: string;
     dueDate: string;
-    assigneeEmail?: string;
+    assigneeEmails?: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
   }) => Promise<void>;
@@ -273,7 +273,7 @@ export interface LedgerContextValue {
       title: string;
       description?: string;
       dueDate: string;
-      assigneeEmail?: string;
+      assigneeEmails?: string[];
       paymentType?: TransactionType;
       isIndividualVendor?: boolean;
     },

@@ -31,7 +31,7 @@ const STATUS_LABEL: Record<string, string | null> = {
   overdue: 'Overdue',
   dueSoon: 'Due soon',
   dueThisWeek: 'Due this week',
-  normal: null,
+  normal: 'Upcoming',
   complete: null,
 };
 
@@ -89,7 +89,7 @@ export const TaskRow = ({
           <span className={styles['wl-task-row-due']}>
             Due {task.dueDate}
             {task.paymentType && ` · ${task.paymentType}`}
-            {statusLabel && ` · ${statusLabel}`}
+            {statusLabel && `${task.paymentType ? ',' : ' ·'} ${statusLabel}`}
           </span>
           <span
             className={[
@@ -114,9 +114,10 @@ export const TaskRow = ({
           {task.description && (
             <p className={styles['wl-task-row-description']}>{task.description}</p>
           )}
-          {task.assigneeEmail && (
+          {task.assigneeEmails.length > 0 && (
             <p className={styles['wl-task-row-assignee']}>
-              {peopleNames[task.assigneeEmail] ?? task.assigneeEmail}
+              Assigned to:{' '}
+              {task.assigneeEmails.map((email) => peopleNames[email] ?? email).join(', ')}
             </p>
           )}
 

@@ -31,7 +31,7 @@ describe('UploadDocumentPage', () => {
   test('shows an error for a link missing required parameters, without calling supabase', () => {
     renderAtUrl('');
     expect(
-      screen.getByText('Invalid link — missing transaction, organization, or token.'),
+      screen.getByText('Invalid link. Missing transaction, organization, or token.'),
     ).toBeInTheDocument();
     expect(mockRpc).not.toHaveBeenCalled();
   });

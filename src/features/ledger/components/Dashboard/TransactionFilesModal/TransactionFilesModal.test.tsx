@@ -64,7 +64,7 @@ describe('TransactionFilesModal', () => {
 
   test('shows the transaction title in the header', () => {
     renderModal(buildMockTransaction({ title: 'Pizza for meeting' }));
-    expect(screen.getByText('Documents — Pizza for meeting')).toBeInTheDocument();
+    expect(screen.getByText('Documents: Pizza for meeting')).toBeInTheDocument();
   });
 
   test('renders an image preview once the signed URL resolves', async () => {
@@ -169,7 +169,7 @@ describe('TransactionFilesModal', () => {
         }),
       );
       expect(screen.getByText('Conflict of Interest Form')).toBeInTheDocument();
-      expect(screen.getByText(/complete and upload it yourself/)).toBeInTheDocument();
+      expect(screen.getByText(/Complete and upload it yourself/)).toBeInTheDocument();
       expect(screen.queryByText('Request via Email')).not.toBeInTheDocument();
       expect(screen.queryByText('Send for Signature')).not.toBeInTheDocument();
     });
@@ -205,7 +205,7 @@ describe('TransactionFilesModal', () => {
       const [url] = openSpy.mock.calls[0];
       expect(url).toContain('https://mail.google.com/mail/?view=cm');
       expect(
-        await screen.findByText('Requested — waiting for upload'),
+        await screen.findByText('Requested, waiting for upload'),
       ).toBeInTheDocument();
     });
 
@@ -238,7 +238,7 @@ describe('TransactionFilesModal', () => {
           uploadTokens: { w9: { token: 'existing-token', mintedAt: Date.now() } },
         }),
       );
-      expect(screen.getByText('Requested — waiting for upload')).toBeInTheDocument();
+      expect(screen.getByText('Requested, waiting for upload')).toBeInTheDocument();
     });
 
     test('shows an error message when the request fails', async () => {

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { buildMockFinancialTask, buildMockOrganization } from '../../../../../test/mocks';
@@ -32,11 +33,14 @@ vi.mock('../QuarterBoard', () => ({
   QuarterBoard: ({
     tasks,
     onEdit,
+    headerActions,
   }: {
     tasks: { id: string; title: string }[];
     onEdit: (task: { id: string; title: string }) => void;
+    headerActions?: ReactNode;
   }) => (
     <div data-testid="quarter-board">
+      {headerActions}
       {tasks.map((task) => (
         <button key={task.id} onClick={() => onEdit(task)}>
           Edit {task.title}

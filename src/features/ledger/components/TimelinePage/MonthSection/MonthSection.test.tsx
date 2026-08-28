@@ -9,7 +9,7 @@ import { MonthSection } from './MonthSection';
 const baseMonth: MonthGroup = {
   key: '2026-09',
   label: 'September',
-  entries: [],
+  tasks: [],
 };
 
 const renderSection = (overrides: Partial<ComponentProps<typeof MonthSection>> = {}) =>
@@ -36,13 +36,13 @@ describe('MonthSection', () => {
     expect(screen.getByText('September')).toBeInTheDocument();
   });
 
-  test('renders one task row per entry, in order', () => {
+  test('renders one task row per task, in order', () => {
     renderSection({
       month: {
         ...baseMonth,
-        entries: [
-          { task: buildMockFinancialTask({ id: 't1', title: 'Submit Contract' }) },
-          { task: buildMockFinancialTask({ id: 't2', title: 'File SOFO Form' }) },
+        tasks: [
+          buildMockFinancialTask({ id: 't1', title: 'Submit Contract' }),
+          buildMockFinancialTask({ id: 't2', title: 'File SOFO Form' }),
         ],
       },
     });
@@ -53,47 +53,14 @@ describe('MonthSection', () => {
     ]);
   });
 
-  test('renders the Today divider in its chronological position among tasks', () => {
-    renderSection({
-      month: {
-        ...baseMonth,
-        entries: [
-          { task: buildMockFinancialTask({ id: 'before', title: 'Before Today' }) },
-          { isToday: true },
-          { task: buildMockFinancialTask({ id: 'after', title: 'After Today' }) },
-        ],
-      },
-    });
-    expect(screen.getByRole('separator')).toBeInTheDocument();
-    expect(screen.getByText('Today')).toBeInTheDocument();
-
-    const rendered = screen.getByRole('separator').parentElement!;
-    const order = [...rendered.children].map((el) => el.textContent);
-    const beforeIndex = order.findIndex((t) => t?.includes('Before Today'));
-    const todayIndex = order.findIndex((t) => t === 'Today');
-    const afterIndex = order.findIndex((t) => t?.includes('After Today'));
-    expect(beforeIndex).toBeLessThan(todayIndex);
-    expect(todayIndex).toBeLessThan(afterIndex);
-  });
-
-  test('omits the Today divider when no entry is today', () => {
-    renderSection({
-      month: {
-        ...baseMonth,
-        entries: [{ task: buildMockFinancialTask({ id: 't1' }) }],
-      },
-    });
-    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
-  });
-
   test("clicking a task row's checkbox calls onToggleComplete with that task", () => {
     const onToggleComplete = vi.fn();
     renderSection({
       month: {
         ...baseMonth,
-        entries: [
-          { task: buildMockFinancialTask({ id: 't1', title: 'Submit Contract' }) },
-          { task: buildMockFinancialTask({ id: 't2', title: 'File SOFO Form' }) },
+        tasks: [
+          buildMockFinancialTask({ id: 't1', title: 'Submit Contract' }),
+          buildMockFinancialTask({ id: 't2', title: 'File SOFO Form' }),
         ],
       },
       onToggleComplete,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 
 import { FinancialTask, FinancialTaskRequirement } from '../../../types';
 import {
@@ -25,6 +25,10 @@ interface QuarterBoardProps {
   ) => void;
   onEdit: (task: FinancialTask) => void;
   onDelete: (task: FinancialTask) => void;
+  // Rendered alongside the quarter selector (e.g. "+ Add Task") so the
+  // page's controls read as one grouped area instead of a separate,
+  // standalone action bar floating above the selector.
+  headerActions?: ReactNode;
 }
 
 export const QuarterBoard = ({
@@ -39,6 +43,7 @@ export const QuarterBoard = ({
   onToggleRequirement,
   onEdit,
   onDelete,
+  headerActions,
 }: QuarterBoardProps) => {
   const today = todayDateString();
   const quarters = useMemo(() => groupTasksByQuarter(tasks, today), [tasks, today]);
@@ -48,11 +53,14 @@ export const QuarterBoard = ({
 
   return (
     <div className={styles['wl-quarter-board']}>
-      <QuarterSelector
-        quarters={quarters}
-        selectedKey={selectedQuarter.key}
-        onSelect={setSelectedKey}
-      />
+      <div className={styles['wl-quarter-board-controls']}>
+        <QuarterSelector
+          quarters={quarters}
+          selectedKey={selectedQuarter.key}
+          onSelect={setSelectedKey}
+        />
+        {headerActions}
+      </div>
 
       <div key={selectedQuarter.key} className={styles['wl-quarter-board-panel']}>
         {selectedQuarter.months.length === 0 ? (

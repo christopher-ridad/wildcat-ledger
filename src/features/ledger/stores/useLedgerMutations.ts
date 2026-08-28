@@ -211,7 +211,7 @@ export function useLedgerMutations(
     title: string;
     description?: string;
     dueDate: string;
-    assigneeEmail?: string;
+    assigneeEmails?: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
   }) => {
@@ -223,7 +223,7 @@ export function useLedgerMutations(
         title: task.title,
         description: task.description ?? null,
         due_date: task.dueDate,
-        assignee_email: task.assigneeEmail ?? null,
+        assignee_emails: task.assigneeEmails ?? [],
         payment_type: task.paymentType ?? null,
         is_individual_vendor: task.isIndividualVendor ?? false,
       })
@@ -243,7 +243,7 @@ export function useLedgerMutations(
       title: string;
       description?: string;
       dueDate: string;
-      assigneeEmail?: string;
+      assigneeEmails?: string[];
       paymentType?: TransactionType;
       isIndividualVendor?: boolean;
     },
@@ -255,7 +255,7 @@ export function useLedgerMutations(
         title: task.title,
         description: task.description ?? null,
         due_date: task.dueDate,
-        assignee_email: task.assigneeEmail ?? null,
+        assignee_emails: task.assigneeEmails ?? [],
         payment_type: task.paymentType ?? null,
         is_individual_vendor: task.isIndividualVendor ?? false,
       })

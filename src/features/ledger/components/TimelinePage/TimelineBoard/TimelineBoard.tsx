@@ -84,7 +84,7 @@ export const TimelineBoard = () => {
     title: string;
     description?: string;
     dueDate: string;
-    assigneeEmail?: string;
+    assigneeEmails: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
   }) => {
@@ -102,14 +102,6 @@ export const TimelineBoard = () => {
 
   return (
     <div className={styles['wl-timeline-board']}>
-      <div className={styles['wl-timeline-board-header']}>
-        {canEdit && (
-          <button type="button" className="wl-btn-primary" onClick={openAddForm}>
-            + Add Task
-          </button>
-        )}
-      </div>
-
       <QuarterBoard
         tasks={financialTasks}
         requirementsByTaskId={requirementsByTaskId}
@@ -122,6 +114,13 @@ export const TimelineBoard = () => {
         onToggleRequirement={handleToggleRequirement}
         onEdit={openEditForm}
         onDelete={handleDelete}
+        headerActions={
+          canEdit && (
+            <button type="button" className="wl-btn-primary" onClick={openAddForm}>
+              + Add Task
+            </button>
+          )
+        }
       />
 
       <TaskFormModal

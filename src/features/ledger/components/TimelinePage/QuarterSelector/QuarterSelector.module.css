@@ -3,8 +3,7 @@
   width: fit-content;
   gap: 4px;
   padding: 4px;
-  margin: 0 auto;
-  background: var(--color-bg);
+  background: rgba(78, 42, 132, 0.08);
   border: 1px solid var(--color-border);
   border-radius: 999px;
 }

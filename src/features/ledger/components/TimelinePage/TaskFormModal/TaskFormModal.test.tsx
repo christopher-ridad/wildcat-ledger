@@ -31,49 +31,69 @@ describe('TaskFormModal', () => {
     expect(screen.getByRole('heading', { name: 'Add Task' })).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toHaveValue('');
     expect(screen.getByLabelText('Due Date')).toHaveValue('');
-    expect(screen.getByLabelText('Assign to (optional)')).toHaveValue('');
+    expect(screen.getByRole('checkbox', { name: 'Jane Approver' })).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }),
+    ).not.toBeChecked();
   });
 
   test('shows "Edit Task" and pre-fills fields from the task prop', () => {
     const task = buildMockFinancialTask({
       title: 'Submit Contract',
       description: 'Send to SOFO',
-      dueDate: '2026-09-15',
-      assigneeEmail: 'approver@u.northwestern.edu',
+      dueDate: '2026-09-25',
+      assigneeEmails: ['approver@u.northwestern.edu'],
     });
     renderModal({ task });
     expect(screen.getByRole('heading', { name: 'Edit Task' })).toBeInTheDocument();
     expect(screen.getByLabelText('Title')).toHaveValue('Submit Contract');
     expect(screen.getByLabelText('Description (optional)')).toHaveValue('Send to SOFO');
-    expect(screen.getByLabelText('Due Date')).toHaveValue('2026-09-15');
-    expect(screen.getByLabelText('Assign to (optional)')).toHaveValue(
-      'approver@u.northwestern.edu',
-    );
+    expect(screen.getByLabelText('Due Date')).toHaveValue('2026-09-25');
+    expect(screen.getByRole('checkbox', { name: 'Jane Approver' })).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }),
+    ).not.toBeChecked();
   });
 
   test('resolves roster emails to names via peopleNames, falling back to the email', () => {
     renderModal();
-    const select = screen.getByLabelText('Assign to (optional)');
-    expect(screen.getByRole('option', { name: 'Jane Approver' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Jane Approver' })).toBeInTheDocument();
     expect(
-      screen.getByRole('option', { name: 'officer@u.northwestern.edu' }),
+      screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }),
     ).toBeInTheDocument();
-    expect(select).toHaveValue('');
   });
 
-  test("includes the task's current assignee as an option even if they've left the roster", () => {
-    const task = buildMockFinancialTask({ assigneeEmail: 'former@u.northwestern.edu' });
+  test("includes the task's current assignees as options even if they've left the roster", () => {
+    const task = buildMockFinancialTask({
+      assigneeEmails: ['former@u.northwestern.edu'],
+    });
     renderModal({ task, rosterEmails: ['approver@u.northwestern.edu'] });
     expect(
-      screen.getByRole('option', { name: 'former@u.northwestern.edu' }),
+      screen.getByRole('checkbox', { name: 'former@u.northwestern.edu' }),
     ).toBeInTheDocument();
+  });
+
+  test('multiple people can be selected as assignees', () => {
+    renderModal();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Jane Approver' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }));
+    expect(screen.getByRole('checkbox', { name: 'Jane Approver' })).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }),
+    ).toBeChecked();
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Jane Approver' }));
+    expect(screen.getByRole('checkbox', { name: 'Jane Approver' })).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }),
+    ).toBeChecked();
   });
 
   test('shows a validation error and does not save when title is missing', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     renderModal({ onSave });
     fireEvent.change(screen.getByLabelText('Due Date'), {
-      target: { value: '2026-09-15' },
+      target: { value: '2026-09-25' },
     });
     fireEvent.click(screen.getByText('Save'));
 
@@ -97,6 +117,83 @@ describe('TaskFormModal', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  test('rejects a July/August due date, leaving the field unset', () => {
+    renderModal();
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-08-01' },
+    });
+    expect(
+      screen.getByText(/Due date must fall between September 23 and June 11/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Due Date')).toHaveValue('');
+  });
+
+  test('rejects dates before Fall starts (Sep 1-22) and after Spring ends (Jun 12-30)', () => {
+    renderModal();
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-09-22' },
+    });
+    expect(
+      screen.getByText(/Due date must fall between September 23 and June 11/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Due Date')).toHaveValue('');
+
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2027-06-12' },
+    });
+    expect(
+      screen.getByText(/Due date must fall between September 23 and June 11/),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Due Date')).toHaveValue('');
+  });
+
+  test('accepts the exact boundary dates: September 23 and June 11', () => {
+    renderModal();
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-09-23' },
+    });
+    expect(
+      screen.queryByText(/Due date must fall between September 23 and June 11/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Due Date')).toHaveValue('2026-09-23');
+
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2027-06-11' },
+    });
+    expect(
+      screen.queryByText(/Due date must fall between September 23 and June 11/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Due Date')).toHaveValue('2027-06-11');
+  });
+
+  test('a valid due date clears a prior out-of-range error', () => {
+    renderModal();
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-07-15' },
+    });
+    expect(
+      screen.getByText(/Due date must fall between September 23 and June 11/),
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Due Date'), {
+      target: { value: '2026-09-25' },
+    });
+    expect(
+      screen.queryByText(/Due date must fall between September 23 and June 11/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Due Date')).toHaveValue('2026-09-25');
+  });
+
+  test('bounds the native date picker itself to the current academic year via min/max', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-10T12:00:00'));
+    renderModal();
+    const input = screen.getByLabelText('Due Date');
+    expect(input).toHaveAttribute('min', '2026-09-23');
+    expect(input).toHaveAttribute('max', '2027-06-11');
+    vi.useRealTimers();
+  });
+
   test('calls onSave with the entered values, trimmed, and closes on success', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     const onClose = vi.fn();
@@ -106,19 +203,17 @@ describe('TaskFormModal', () => {
       target: { value: '  Submit Contract  ' },
     });
     fireEvent.change(screen.getByLabelText('Due Date'), {
-      target: { value: '2026-09-15' },
+      target: { value: '2026-09-25' },
     });
-    fireEvent.change(screen.getByLabelText('Assign to (optional)'), {
-      target: { value: 'officer@u.northwestern.edu' },
-    });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'officer@u.northwestern.edu' }));
     fireEvent.click(screen.getByText('Save'));
 
     await screen.findByText('Save'); // let the async save settle
     expect(onSave).toHaveBeenCalledWith({
       title: 'Submit Contract',
       description: undefined,
-      dueDate: '2026-09-15',
-      assigneeEmail: 'officer@u.northwestern.edu',
+      dueDate: '2026-09-25',
+      assigneeEmails: ['officer@u.northwestern.edu'],
     });
     expect(onClose).toHaveBeenCalled();
   });
@@ -130,7 +225,7 @@ describe('TaskFormModal', () => {
 
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'x' } });
     fireEvent.change(screen.getByLabelText('Due Date'), {
-      target: { value: '2026-09-15' },
+      target: { value: '2026-09-25' },
     });
     fireEvent.click(screen.getByText('Save'));
 
@@ -147,7 +242,7 @@ describe('TaskFormModal', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  test("payment type select is populated from the app's existing supported types", () => {
+  test("payment type select is populated from the app's existing supported types, excluding Deposit", () => {
     renderModal();
     expect(screen.getByRole('option', { name: 'No payment type' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Debit Card' })).toBeInTheDocument();
@@ -158,7 +253,9 @@ describe('TaskFormModal', () => {
     expect(
       screen.getByRole('option', { name: 'Payment to NU Employee' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Deposit' })).toBeInTheDocument();
+    // Deposits are Debit Card reloads, not something a task's payment type
+    // ever needs to represent.
+    expect(screen.queryByRole('option', { name: 'Deposit' })).not.toBeInTheDocument();
   });
 
   test('the individual-vendor checkbox and hint only appear once Payment Request is selected', () => {
@@ -190,7 +287,7 @@ describe('TaskFormModal', () => {
       target: { value: 'Submit Contract' },
     });
     fireEvent.change(screen.getByLabelText('Due Date'), {
-      target: { value: '2026-09-15' },
+      target: { value: '2026-09-25' },
     });
     fireEvent.change(screen.getByLabelText('Payment Type (optional)'), {
       target: { value: 'Payment Request' },
@@ -215,7 +312,7 @@ describe('TaskFormModal', () => {
       target: { value: 'Reload debit card' },
     });
     fireEvent.change(screen.getByLabelText('Due Date'), {
-      target: { value: '2026-09-15' },
+      target: { value: '2026-09-25' },
     });
     fireEvent.change(screen.getByLabelText('Payment Type (optional)'), {
       target: { value: 'Debit Card' },

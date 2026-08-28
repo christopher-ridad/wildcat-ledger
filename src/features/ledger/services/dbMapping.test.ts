@@ -342,7 +342,7 @@ describe('rowToFinancialTask', () => {
     title: 'Submit Contract',
     description: null,
     due_date: '2026-09-15',
-    assignee_email: null,
+    assignee_emails: [],
     completed_at: null,
     created_by: 'treasurer@example.com',
     created_at: '2026-08-01T00:00:00.000Z',
@@ -350,14 +350,14 @@ describe('rowToFinancialTask', () => {
     is_individual_vendor: false,
   };
 
-  test('maps a minimal (no description/assignee, incomplete, no payment type) row', () => {
+  test('maps a minimal (no description/assignees, incomplete, no payment type) row', () => {
     const task = rowToFinancialTask(minimalFinancialTaskRow);
     expect(task).toEqual({
       id: 'task-1',
       title: 'Submit Contract',
       description: undefined,
       dueDate: '2026-09-15',
-      assigneeEmail: undefined,
+      assigneeEmails: [],
       completedAt: null,
       createdBy: 'treasurer@example.com',
       createdAt: '2026-08-01T00:00:00.000Z',
@@ -366,16 +366,19 @@ describe('rowToFinancialTask', () => {
     });
   });
 
-  test('passes through description, assignee, and a completed_at timestamp', () => {
+  test('passes through description, assignees, and a completed_at timestamp', () => {
     const row: FinancialTaskRow = {
       ...minimalFinancialTaskRow,
       description: 'Send the signed copy to SOFO',
-      assignee_email: 'officer@u.northwestern.edu',
+      assignee_emails: ['officer@u.northwestern.edu', 'president@u.northwestern.edu'],
       completed_at: '2026-09-10T12:00:00.000Z',
     };
     const task = rowToFinancialTask(row);
     expect(task.description).toBe('Send the signed copy to SOFO');
-    expect(task.assigneeEmail).toBe('officer@u.northwestern.edu');
+    expect(task.assigneeEmails).toEqual([
+      'officer@u.northwestern.edu',
+      'president@u.northwestern.edu',
+    ]);
     expect(task.completedAt).toBe('2026-09-10T12:00:00.000Z');
   });
 

@@ -170,6 +170,7 @@ export const buildMockFinancialTask = (
   id: 'task-1',
   title: 'Submit Contract for Womans Club of Evanston',
   dueDate: '2026-09-15',
+  assigneeEmails: [],
   createdBy: 'treasurer@example.com',
   createdAt: new Date().toISOString(),
   ...overrides,

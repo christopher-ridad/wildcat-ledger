@@ -43,13 +43,13 @@ describe('TaskRow', () => {
         title: 'Submit Contract',
         dueDate: '2026-09-15',
         description: 'Long description text',
-        assigneeEmail: 'officer@u.northwestern.edu',
+        assigneeEmails: ['officer@u.northwestern.edu'],
       }),
     });
     expect(screen.getByText('Submit Contract')).toBeInTheDocument();
     expect(screen.getByText(/Due 2026-09-15/)).toBeInTheDocument();
     expect(screen.queryByText('Long description text')).not.toBeInTheDocument();
-    expect(screen.queryByText('officer@u.northwestern.edu')).not.toBeInTheDocument();
+    expect(screen.queryByText(/officer@u.northwestern.edu/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Edit/ })).not.toBeInTheDocument();
   });
 
@@ -58,12 +58,14 @@ describe('TaskRow', () => {
       task: buildMockFinancialTask({
         title: 'Submit Contract',
         description: 'Long description text',
-        assigneeEmail: 'unknown@u.northwestern.edu',
+        assigneeEmails: ['unknown@u.northwestern.edu'],
       }),
     });
     clickToggle();
     expect(screen.getByText('Long description text')).toBeInTheDocument();
-    expect(screen.getByText('unknown@u.northwestern.edu')).toBeInTheDocument();
+    expect(
+      screen.getByText('Assigned to: unknown@u.northwestern.edu'),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Edit Submit Contract' }),
     ).toBeInTheDocument();
@@ -84,12 +86,26 @@ describe('TaskRow', () => {
     renderRow({
       task: buildMockFinancialTask({
         title: 'Submit Contract',
-        assigneeEmail: 'a@u.edu',
+        assigneeEmails: ['a@u.edu'],
       }),
       peopleNames: { 'a@u.edu': 'Jane Officer' },
     });
     clickToggle();
-    expect(screen.getByText('Jane Officer')).toBeInTheDocument();
+    expect(screen.getByText('Assigned to: Jane Officer')).toBeInTheDocument();
+  });
+
+  test('shows multiple assignees joined by comma', () => {
+    renderRow({
+      task: buildMockFinancialTask({
+        title: 'Submit Contract',
+        assigneeEmails: ['a@u.edu', 'b@u.edu'],
+      }),
+      peopleNames: { 'a@u.edu': 'Jane Officer', 'b@u.edu': 'John Officer' },
+    });
+    clickToggle();
+    expect(
+      screen.getByText('Assigned to: Jane Officer, John Officer'),
+    ).toBeInTheDocument();
   });
 
   test('hides Edit/Delete when canEdit is false, even when expanded', () => {
@@ -261,8 +277,9 @@ describe('TaskRow', () => {
       expect(screen.getByText(/Due this week/)).toBeInTheDocument();
     });
 
-    test('shows no status label for a task due more than a week out', () => {
+    test('shows "Upcoming" for a task due more than a week out', () => {
       renderRow({ task: buildMockFinancialTask({ dueDate: '2026-09-25' }) });
+      expect(screen.getByText(/Upcoming/)).toBeInTheDocument();
       expect(screen.queryByText(/Overdue/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Due soon/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Due this week/)).not.toBeInTheDocument();

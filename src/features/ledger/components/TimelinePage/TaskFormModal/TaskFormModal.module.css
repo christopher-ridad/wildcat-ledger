@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
+  margin: 10px 0;
   font-size: 0.88rem;
   color: var(--color-text);
   cursor: pointer;
@@ -31,6 +31,42 @@
   margin: 6px 0 0;
   font-size: 0.8rem;
   color: var(--color-text-muted);
+}
+
+/* Vertical rhythm between the modal's fields -- Modal's body has no gap of
+   its own (see Modal.tsx), so without this the fields stack with no space
+   between them at all. */
+.wl-task-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wl-assignee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 168px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.wl-assignee-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.wl-assignee-option input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
 }
 
 .wl-task-form-actions {

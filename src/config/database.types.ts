@@ -126,7 +126,7 @@ export type Database = {
       };
       financial_tasks: {
         Row: {
-          assignee_email: string | null;
+          assignee_emails: string[];
           completed_at: string | null;
           created_at: string;
           created_by: string;
@@ -139,7 +139,7 @@ export type Database = {
           title: string;
         };
         Insert: {
-          assignee_email?: string | null;
+          assignee_emails?: string[];
           completed_at?: string | null;
           created_at?: string;
           created_by?: string;
@@ -152,7 +152,7 @@ export type Database = {
           title: string;
         };
         Update: {
-          assignee_email?: string | null;
+          assignee_emails?: string[];
           completed_at?: string | null;
           created_at?: string;
           created_by?: string;
