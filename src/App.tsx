@@ -15,6 +15,10 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 // so splitting it out matters most. lazyWithRetry (rather than React's own
 // lazy) handles the resulting "chunk 404s after a new deploy" failure mode
 // -- see its own comment.
+const LandingPage = lazyWithRetry(
+  () => import('./pages/LandingPage').then((m) => ({ default: m.LandingPage })),
+  'chunk-retry:LandingPage',
+);
 const LoginPage = lazyWithRetry(
   () => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })),
   'chunk-retry:LoginPage',
@@ -63,6 +67,7 @@ const App = () => (
     <AuthProvider>
       <Suspense fallback={null}>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/upload-document" element={<UploadDocumentPage />} />
