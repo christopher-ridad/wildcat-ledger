@@ -5,6 +5,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 import App from './App';
+import { ErrorFallback } from './layouts/ErrorFallback';
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -17,6 +18,12 @@ Sentry.init({
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <Sentry.ErrorBoundary
+      fallback={({ eventId, resetError }) => (
+        <ErrorFallback eventId={eventId} resetError={resetError} />
+      )}
+    >
+      <App />
+    </Sentry.ErrorBoundary>
   </React.StrictMode>,
 );

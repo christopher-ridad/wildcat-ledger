@@ -1,0 +1,45 @@
+.wl-error-fallback {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 20px;
+}
+
+.wl-error-fallback-card {
+  max-width: 420px;
+  width: 100%;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 32px;
+  text-align: center;
+}
+
+.wl-error-fallback-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 10px;
+}
+
+.wl-error-fallback-body {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0 0 24px;
+}
+
+.wl-error-fallback-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.wl-error-fallback-reference {
+  margin: 20px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
