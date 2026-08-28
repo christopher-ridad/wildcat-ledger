@@ -255,12 +255,10 @@ test('a Debit Card purchase affects its budget line balance immediately', async 
 // ─── docs/BUSINESS_RULES.md#debit-card-reconciliation ───────────────────
 // A purchase can only be reconciled once "covered" (a real receipt or
 // exemption form actually uploaded to Storage -- not just a client-side
-// flag), and once reconciled it's permanently locked, enforced by
-// reconcile_transactions_with_audit itself rather than the interface
-// hiding the buttons.
-test('reconciling a covered debit card purchase locks it permanently', async ({
-  page,
-}) => {
+// flag), enforced by reconcile_transactions_with_audit. Reconciling it
+// doesn't freeze it, though -- a correction afterward goes through the
+// same dual-approval rule as any other transaction (see the next test).
+test('reconciling a covered debit card purchase', async ({ page }) => {
   const title = `E2E Reconcile ${Date.now()}`;
 
   await page.goto('/dashboard');
@@ -308,8 +306,71 @@ test('reconciling a covered debit card purchase locks it permanently', async ({
   await reconDialog.getByRole('button', { name: 'Done' }).click();
   await expect(reconDialog).toBeHidden();
 
-  // Locked for good: reconciled badge, no Edit/Delete actions available.
   await expect(row.getByText('Reconciled', { exact: true })).toBeVisible();
-  await expect(row.getByLabel('Edit transaction')).toHaveCount(0);
-  await expect(row.getByLabel('Delete transaction')).toHaveCount(0);
+});
+
+// See docs/BUSINESS_RULES.md#dual-approval-workflow -- reconciled
+// transactions aren't a special case, they go through the same rule as
+// everything else. An amount change still needs a second approver; it
+// isn't blocked outright the way it used to be, and it isn't applied
+// unilaterally either.
+test('correcting a reconciled debit card transaction still needs a second approver', async ({
+  page,
+  browser,
+}) => {
+  const title = `E2E Reconciled Correction ${Date.now()}`;
+
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: '+ Add Transaction' }).click();
+  const addDialog = page.getByRole('dialog');
+  await addDialog.getByLabel(/^Title/).fill(title);
+  await addDialog.getByLabel(/^Amount/).fill('20.00');
+  await addDialog.getByLabel('Receipt Photo').setInputFiles(SAMPLE_PDF);
+  await addDialog.getByRole('button', { name: 'Add Transaction', exact: true }).click();
+  await expect(addDialog).toBeHidden();
+
+  const row = page.getByRole('row', { name: new RegExp(title) });
+  await expect(row.getByText('Not Reconciled')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Reconcile Debit Card' }).click();
+  const reconDialog = page.getByRole('dialog');
+
+  // This transaction already has its receipt attached, but another test
+  // sharing this seeded org can leave an uncovered debit card transaction
+  // behind, which hides every checkbox and disables Confirm until it's
+  // covered too -- same defensive covering as the reconciliation test
+  // above.
+  const fileInputs = await reconDialog.locator('input[type="file"]').all();
+  for (const input of fileInputs) {
+    await input.setInputFiles(SAMPLE_PDF);
+  }
+  await reconDialog.getByRole('button', { name: /Confirm & Reconcile/ }).click();
+  await expect(reconDialog.getByText('Reconciliation complete!')).toBeVisible();
+  await reconDialog.getByRole('button', { name: 'Done' }).click();
+  await expect(reconDialog).toBeHidden();
+  await expect(row.getByText('Reconciled', { exact: true })).toBeVisible();
+
+  // Edit/Delete are still there -- reconciliation isn't a dead end.
+  await row.getByLabel('Edit transaction').click();
+  const editDialog = page.getByRole('dialog');
+  await editDialog.getByLabel(/^Amount/).fill('35.00');
+  await editDialog.getByRole('button', { name: 'Save Changes' }).click();
+  await expect(editDialog).toBeHidden();
+
+  // Amount changes still need a second approver -- not applied directly,
+  // and not blocked outright either.
+  await expect(row.getByText('Edit Requested')).toBeVisible();
+  await expect(row.getByText('-$20.00')).toBeVisible();
+
+  const contextB = await browser.newContext({ storageState: AUTH_STATE_PATH_2 });
+  const pageB = await contextB.newPage();
+  await pageB.goto('/dashboard');
+  const rowB = pageB.getByRole('row', { name: new RegExp(title) });
+  await rowB.getByRole('button', { name: 'Approve' }).click();
+
+  await expect(rowB.getByText('-$35.00')).toBeVisible();
+  await expect(rowB.getByText('Reconciled', { exact: true })).toBeVisible();
+  await contextB.close();
+
+  await expect(row.getByText('-$35.00')).toBeVisible();
 });

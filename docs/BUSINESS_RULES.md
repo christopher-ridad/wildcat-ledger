@@ -75,15 +75,21 @@ flow. The one exception: any member can attach a completed Policy Exemption Form
 without needing a treasurer or president to do it for them. That's the one field members are
 allowed to touch directly.
 
-Once a Debit Card transaction has been reconciled, it's locked for good. It can never be edited or
-deleted again, whether directly or through the approval flow (see
-[Debit Card reconciliation](#debit-card-reconciliation)).
+A reconciled Debit Card transaction isn't a special case — it goes through this same rule as any
+other transaction. Reconciliation confirms the amount as of that point in time; it doesn't freeze
+the record. See [Debit Card reconciliation](#debit-card-reconciliation) for the one thing
+reconciliation _does_ still restrict.
 
 **Technical implementation:** the "can't approve your own change" rule and the "only
 amount/type/budget-line edits need approval" split are both enforced in the database, not just the
 interface, in `resolve_pending_change_with_audit` and `transaction_edit_requires_approval`. The
 member-can-only-touch-the-exemption-form rule is a database-level column restriction, so it holds
 even if the interface were bypassed entirely.
+
+**Historical note:** reconciled Debit Card transactions used to be locked permanently — no edits or
+deletes at all, through any path. That made reconciliation the one place in the app where a
+correction had no path, unlike everywhere else, where "no unilateral changes" means "needs a second
+approver," not "impossible." It was changed to use the same dual-approval rule as everything else.
 
 ## Payment status lifecycle
 
@@ -137,12 +143,17 @@ Form. The two are interchangeable. A purchase can't be reconciled if:
 - it owes an unresolved tax reimbursement to SOFO (see below), or
 - it has a pending edit or delete request still awaiting approval.
 
-Once a purchase has been reconciled, it's locked permanently. It can never be edited or deleted
-again, through any path.
+Reconciling a purchase doesn't freeze it — a correction afterward goes through the same
+dual-approval rule any other transaction edit does (see
+[Dual-approval workflow](#dual-approval-workflow)). What reconciliation does still prevent is
+starting one while the purchase already has an edit or delete request awaiting approval, since
+reconciling in the middle of an undecided change would leave it unclear which version actually got
+confirmed.
 
-**Technical implementation:** the "covered" check and all three reconciliation blockers are
-enforced in `reconcile_transactions_with_audit`, and the post-reconciliation lock is enforced by the
-same database functions that handle edits and deletes, not by the interface hiding the buttons.
+**Technical implementation:** the "covered" check and the pending-request blocker are enforced in
+`reconcile_transactions_with_audit`. `request_transaction_change_with_audit` and
+`resolve_pending_change_with_audit` don't special-case a reconciled transaction — they use the same
+`transaction_edit_requires_approval` logic as any other.
 
 ## Tax exemption & SOFO reimbursement
 
