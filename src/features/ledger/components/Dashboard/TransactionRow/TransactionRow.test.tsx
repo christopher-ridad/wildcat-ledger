@@ -73,12 +73,13 @@ describe('TransactionRow', () => {
     expect(screen.getByLabelText('Delete transaction')).toBeInTheDocument();
   });
 
-  test('hides Edit/Delete once the transaction is reconciled', () => {
+  test('still shows Edit/Delete once the transaction is reconciled', () => {
     renderRow({
       canEdit: true,
       t: buildMockTransaction({ budgetLine: 'Debit Card', reconciledAt: Date.now() }),
     });
-    expect(screen.queryByLabelText('Edit transaction')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Edit transaction')).toBeInTheDocument();
+    expect(screen.getByLabelText('Delete transaction')).toBeInTheDocument();
     expect(screen.getByText('Reconciled')).toBeInTheDocument();
   });
 
