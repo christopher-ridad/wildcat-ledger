@@ -8,7 +8,7 @@ describe('LandingPage', () => {
   test('renders the headline and links every sign-in CTA to /login', () => {
     renderWithRouter(<LandingPage />);
     expect(
-      screen.getByRole('heading', { name: /SOFO actually reviews your books/i }),
+      screen.getByRole('heading', { name: /Track everything your student org spends/i }),
     ).toBeInTheDocument();
 
     const signInLinks = screen.getAllByRole('link', {
@@ -35,5 +35,13 @@ describe('LandingPage', () => {
     expect(screen.getByText('Debit Card')).toBeInTheDocument();
     expect(screen.getAllByText('Approved').length).toBeGreaterThan(0);
     expect(screen.getByText('Reconciled')).toBeInTheDocument();
+  });
+
+  test('highlights document tracking with attached and pending examples', () => {
+    renderWithRouter(<LandingPage />);
+    expect(screen.getByText('✓ Receipt')).toBeInTheDocument();
+    expect(screen.getByText('✓ W-9')).toBeInTheDocument();
+    expect(screen.getByText('✓ Contract')).toBeInTheDocument();
+    expect(screen.getByText('Special Pay Form')).toBeInTheDocument();
   });
 });

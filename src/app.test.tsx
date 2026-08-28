@@ -59,7 +59,9 @@ describe('WildcatLedger App', () => {
     // its chunk resolves -- find* waits for that instead of asserting
     // synchronously.
     expect(
-      await screen.findByRole('heading', { name: /SOFO actually reviews your books/i }),
+      await screen.findByRole('heading', {
+        name: /Track everything your student org spends/i,
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link', { name: /sign in with northwestern/i }).length,

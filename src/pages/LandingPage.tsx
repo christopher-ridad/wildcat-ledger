@@ -22,6 +22,13 @@ const PREVIEW_TRANSACTIONS = [
   { title: 'Spring formal deposit', amount: '-$500.00', tag: 'approved' as const },
 ];
 
+const PREVIEW_DOCUMENTS = [
+  { label: 'Receipt', attached: true },
+  { label: 'W-9', attached: true },
+  { label: 'Contract', attached: true },
+  { label: 'Special Pay Form', attached: false },
+];
+
 const WORKFLOW_STEPS = [
   {
     verb: 'Log it',
@@ -29,7 +36,7 @@ const WORKFLOW_STEPS = [
   },
   {
     verb: 'Get it approved',
-    detail: 'A second SOFO approver reviews the change before it touches the balance.',
+    detail: 'A teammate takes a quick look before it’s added to the balance.',
   },
   {
     verb: 'Reconcile it',
@@ -52,11 +59,11 @@ export const LandingPage = () => (
     <section className="wl-landing-hero">
       <div>
         <h1 className="wl-landing-headline">
-          Built for the way <span>SOFO</span> actually reviews your books.
+          Track everything your student org spends, and the paperwork that goes with it.
         </h1>
         <p className="wl-landing-subtext">
-          Track every transaction by budget line, route edits through a second approver,
-          and keep SOFO&rsquo;s paperwork in one place.
+          A shared ledger for your org&rsquo;s transactions, receipts, and SOFO or
+          Cashier&rsquo;s Office paperwork, so nothing lives in six different inboxes.
         </p>
         <div className="wl-landing-hero-actions">
           <Link to="/login" className="wl-btn-primary wl-landing-cta">
@@ -103,39 +110,38 @@ export const LandingPage = () => (
     <section className="wl-landing-proof">
       <div className="wl-landing-proof-main">
         <h2 className="wl-landing-proof-heading">
-          Every edit gets a second set of eyes.
+          Every receipt, W-9, and contract lives on the transaction it belongs to.
         </h2>
         <p className="wl-landing-proof-body">
-          Change an amount, a type, or a budget line and it needs approval from another
-          SOFO approver before it&rsquo;s final. Nothing changes in the ledger until
-          someone else signs off, and nobody can approve their own request.
+          Attach documents once and find them again months later, instead of digging
+          through email when SOFO or the Cashier&rsquo;s Office asks for proof.
         </p>
-        <div className="wl-landing-proof-flow">
-          <span className="wl-landing-proof-pill wl-landing-proof-pill--pending">
-            Edit Requested
-          </span>
-          <span className="wl-landing-proof-arrow" aria-hidden="true">
-            →
-          </span>
-          <span className="wl-landing-proof-pill wl-landing-proof-pill--approved">
-            Approved
-          </span>
+        <div className="wl-landing-doc-chips">
+          {PREVIEW_DOCUMENTS.map((doc) => (
+            <span
+              key={doc.label}
+              className={`wl-landing-doc-chip ${doc.attached ? 'wl-landing-doc-chip--done' : ''}`}
+            >
+              {doc.attached ? '✓ ' : ''}
+              {doc.label}
+            </span>
+          ))}
         </div>
       </div>
 
       <div className="wl-landing-proof-side">
         <div className="wl-landing-proof-item">
-          <h3>Every document, on the transaction</h3>
+          <h3>Organized by budget line</h3>
           <p>
-            Receipts, W-9s, contracts, and Special Pay Forms live on the transaction they
-            belong to, not scattered across email.
+            See exactly what&rsquo;s left in ASG, Operating, Gifts, and your debit card
+            line, always up to date.
           </p>
         </div>
         <div className="wl-landing-proof-item">
-          <h3>A history, not just a balance</h3>
+          <h3>A second approver on changes</h3>
           <p>
-            Every create, edit, approval, and reconciliation is logged with who did it and
-            when.
+            Edits to an amount or budget line get a quick second look from another
+            approver before they stick.
           </p>
         </div>
       </div>
@@ -143,7 +149,7 @@ export const LandingPage = () => (
 
     <section className="wl-landing-workflow">
       <h2 className="wl-landing-workflow-heading">
-        From purchase to reconciled, in the same place.
+        From purchase to reconciled, without leaving the ledger.
       </h2>
       <div className="wl-landing-workflow-steps">
         {WORKFLOW_STEPS.map((step) => (
@@ -158,7 +164,7 @@ export const LandingPage = () => (
     <div className="wl-landing-cta-band">
       <div className="wl-landing-cta-band-inner">
         <h2 className="wl-landing-cta-band-heading">
-          Get your org&rsquo;s books somewhere your successor can actually find them.
+          Leave your successor a ledger they can actually follow.
         </h2>
         <Link to="/login" className="wl-btn-primary wl-landing-cta">
           Sign in with Northwestern

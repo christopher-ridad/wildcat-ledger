@@ -1284,33 +1284,27 @@ tbody tr:hover {
   margin: 0 0 24px;
 }
 
-.wl-landing-proof-flow {
+.wl-landing-doc-chips {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.wl-landing-proof-pill {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 5px 12px;
+.wl-landing-doc-chip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
   border-radius: 999px;
-  letter-spacing: 0.02em;
-}
-
-.wl-landing-proof-pill--pending {
-  background: var(--color-flag-bg);
-  color: var(--color-flag-text);
-}
-
-.wl-landing-proof-pill--approved {
-  background: var(--color-ready-bg);
-  color: var(--color-ready-text);
-}
-
-.wl-landing-proof-arrow {
+  letter-spacing: 0.01em;
+  background: var(--color-bg);
   color: var(--color-text-muted);
-  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+}
+
+.wl-landing-doc-chip--done {
+  background: var(--color-submitted-bg);
+  color: var(--color-submitted-text);
+  border-color: transparent;
 }
 
 .wl-landing-proof-side {
