@@ -99,13 +99,42 @@ const SECTIONS: FaqSection[] = [
                 </a>
               </li>
             </ul>
+            <p>Pick a payment method:</p>
+            <ul>
+              <li>
+                Check sent via mail to the vendor, at the address on their paperwork
+              </li>
+              <li>Student org rep picks up the check from Norris</li>
+              <li>Foreign payment, for any vendor with a non-U.S. address</li>
+            </ul>
           </>
         ),
       },
       {
         question: 'Non-Officer Reimbursement',
-        answer:
-          'Attach a receipt. If you don’t have one, a bank statement showing the charge works too. Just upload it in the receipt slot when you attach it.',
+        answer: (
+          <>
+            <p>
+              Attach a receipt. If you don&rsquo;t have one, a bank statement showing the
+              charge works too. Just upload it in the receipt slot when you attach it.
+            </p>
+            <p>Pick a payment method:</p>
+            <ul>
+              <li>Student org rep picks up the check from Norris</li>
+              <li>
+                Check sent via mail (you&rsquo;ll need to email SOFO to request this)
+              </li>
+              <li>
+                NUQuickPay via Zelle: attach the email you sent to{' '}
+                <a href="mailto:SOFOTransactions@northwestern.edu">
+                  SOFOTransactions@northwestern.edu
+                </a>{' '}
+                requesting the Zelle payment, and include the email address linked to your
+                Zelle account
+              </li>
+            </ul>
+          </>
+        ),
       },
       {
         question: 'Debit Card',
@@ -239,6 +268,11 @@ const SECTIONS: FaqSection[] = [
         question: 'When does a transaction actually affect my budget balance?',
         answer:
           'For Payment Requests, Reimbursements, NU-Employee payments, and debit-card reloads, not until it reaches Paid, since the money hasn’t actually moved before then. A Debit Card purchase or a regular Deposit hits the balance right away, since that money already moved the moment it happened.',
+      },
+      {
+        question: 'How long does processing actually take?',
+        answer:
+          'Usually 2 to 3 weeks for SOFO or the Cashier’s Office to fully process a transaction, sometimes longer mid-quarter since both offices are handling paperwork from hundreds of Northwestern organizations at once. Submitting everything correctly the first time is the biggest lever you have over that timeline. Checking in with them periodically isn’t official policy, just a personal recommendation, but it’s a good way to make sure nothing falls through the cracks.',
       },
     ],
   },
