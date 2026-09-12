@@ -55,6 +55,10 @@ const PrivacyPage = lazyWithRetry(
   () => import('./pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
   'chunk-retry:PrivacyPage',
 );
+const FAQPage = lazyWithRetry(
+  () => import('./pages/FAQPage').then((m) => ({ default: m.FAQPage })),
+  'chunk-retry:FAQPage',
+);
 
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
@@ -75,6 +79,7 @@ const App = () => (
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/faq" element={<FAQPage />} />
           <Route path="/upload-document" element={<UploadDocumentPage />} />
           {/* Old path, kept working for any request emails already sent before the rename */}
           <Route path="/upload-receipt" element={<UploadDocumentPage />} />

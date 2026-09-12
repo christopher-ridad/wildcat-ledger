@@ -78,6 +78,8 @@ export const LoginPage = () => {
           {submitting ? 'Redirecting…' : 'Sign in with Google'}
         </button>
         <p className="wl-login-footer">
+          <Link to="/faq">FAQ</Link>
+          {' · '}
           <Link to="/privacy">Privacy Policy</Link>
         </p>
       </div>

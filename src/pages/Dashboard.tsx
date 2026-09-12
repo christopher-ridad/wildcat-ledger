@@ -62,6 +62,13 @@ export const Dashboard = () => {
           >
             Audit History
           </button>
+          <button
+            type="button"
+            className="wl-header-audit-btn"
+            onClick={() => navigate('/faq')}
+          >
+            FAQ
+          </button>
           <button type="button" className="wl-header-signout-btn" onClick={signOut}>
             Sign Out
           </button>
