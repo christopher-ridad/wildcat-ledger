@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, test } from 'vitest';
 
@@ -64,6 +64,44 @@ describe('FAQPage', () => {
       'href',
       '#debit-card',
     );
+  });
+
+  test('marks the sidebar link for the currently visible section as active', () => {
+    let observerCallback: IntersectionObserverCallback = () => {};
+    class TestObserver {
+      observe = (target: Element) => {
+        if (target.id === 'debit-card') {
+          observerCallback(
+            [{ isIntersecting: true, target } as IntersectionObserverEntry],
+            this as unknown as IntersectionObserver,
+          );
+        }
+      };
+      unobserve = () => {};
+      disconnect = () => {};
+      takeRecords = () => [];
+
+      constructor(callback: IntersectionObserverCallback) {
+        observerCallback = callback;
+      }
+    }
+    const original = window.IntersectionObserver;
+    window.IntersectionObserver = TestObserver as unknown as typeof IntersectionObserver;
+
+    act(() => {
+      renderWithRouter(<FAQPage />);
+    });
+
+    const toc = screen.getByRole('navigation', { name: /table of contents/i });
+    expect(within(toc).getByRole('link', { name: 'Debit Card' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
+    expect(
+      within(toc).getByRole('link', { name: 'Getting started' }),
+    ).not.toHaveAttribute('aria-current');
+
+    window.IntersectionObserver = original;
   });
 
   test('Payment Request links to the real blank RSO Agreement template', () => {

@@ -409,29 +409,31 @@
   max-width: 940px;
 }
 
+/* Deliberately not a bordered card like wl-faq-card next to it -- two
+   adjacent boxes read as generic. Modeled on the Dashboard's own
+   wl-sidebar-optionB nav (title treatment + filter-btn hover/active
+   states) so this reads as the same kind of nav list elsewhere in the
+   app, not a bespoke sidebar. */
 .wl-faq-sidebar {
   position: sticky;
   top: 32px;
-  flex: 0 0 200px;
-  background: var(--color-card);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 16px;
+  flex: 0 0 180px;
+  padding-top: 2px;
 }
 
 .wl-faq-sidebar-label {
-  margin: 0 0 10px;
-  font-size: 0.72rem;
+  margin: 0 0 8px 10px;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
   color: var(--color-text-muted);
 }
 
 .wl-faq-sidebar ul {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -439,19 +441,24 @@
 
 .wl-faq-sidebar a {
   display: block;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
   font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text);
+  font-weight: 500;
+  color: var(--color-text-muted);
   text-decoration: none;
   transition:
     background 0.15s ease,
     color 0.15s ease;
 }
 .wl-faq-sidebar a:hover {
-  background: var(--color-bg);
+  background: #f8f5ff;
   color: var(--color-primary);
+}
+.wl-faq-sidebar a[aria-current='true'] {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
 }
 
 .wl-faq-card {

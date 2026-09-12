@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import {
@@ -312,8 +313,33 @@ const SECTIONS: FaqSection[] = [
   },
 ];
 
+// Only one section sits in this vertical band at a time while scrolling, so
+// whichever entry fires isIntersecting is the current section -- no need to
+// compare boundingClientRect positions across entries.
+const ACTIVE_SECTION_OBSERVER_OPTIONS: IntersectionObserverInit = {
+  rootMargin: '-15% 0px -70% 0px',
+};
+
 export const FAQPage = () => {
   const navigate = useNavigate();
+  const [activeSlug, setActiveSlug] = useState<string>(SECTIONS[0].slug);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          setActiveSlug(entry.target.id);
+        }
+      });
+    }, ACTIVE_SECTION_OBSERVER_OPTIONS);
+
+    SECTIONS.forEach((section) => {
+      const el = document.getElementById(section.slug);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="wl-register-root">
@@ -324,7 +350,12 @@ export const FAQPage = () => {
             <ul>
               {SECTIONS.map((section) => (
                 <li key={section.slug}>
-                  <a href={`#${section.slug}`}>{section.heading}</a>
+                  <a
+                    href={`#${section.slug}`}
+                    aria-current={section.slug === activeSlug ? 'true' : undefined}
+                  >
+                    {section.heading}
+                  </a>
                 </li>
               ))}
             </ul>
