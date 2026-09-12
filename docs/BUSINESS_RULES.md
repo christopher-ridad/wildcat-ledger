@@ -44,8 +44,8 @@ A transaction can always be saved before its paperwork is in hand. Just check "I
 yet" on the form. It gets flagged as missing that document, and can't be moved to Approved or Paid
 until the file actually shows up (see [Payment status lifecycle](#payment-status-lifecycle)).
 
-A Deposit can only be funded from Operating or Gifts, never ASG. ASG funds aren't eligible to back
-a debit-card reload or any other deposit.
+A Deposit can be funded from any of ASG, Operating, or Gifts, same as an outgoing transaction.
+Incoming ASG money (a supplemental grant or Senate appeal, say) needs somewhere to go too.
 
 **Technical implementation:** this matrix is defined once, in `getRequiredDocuments()` in
 [`documentRequirements.ts`](../src/features/ledger/utils/documentRequirements.ts). The database has

@@ -40,17 +40,15 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     form.type === 'Payment to NU Employee' ||
     form.type === 'Deposit';
 
-  const fundingOptions: { value: FundingOption; label: string }[] =
-    form.type === 'Deposit'
-      ? [
-          { value: 'Operating', label: 'Operations' },
-          { value: 'Gifts', label: 'Gifts' },
-        ]
-      : [
-          { value: 'ASG', label: 'ASG' },
-          { value: 'Operating', label: 'Operations' },
-          { value: 'Gifts', label: 'Gifts' },
-        ];
+  // ASG grants and appeals can land throughout the year, not just as the
+  // base Spring Funding allocation, so a Deposit can legitimately record
+  // incoming ASG money same as any other type -- see
+  // docs/BUSINESS_RULES.md#transaction-types--their-documents.
+  const fundingOptions: { value: FundingOption; label: string }[] = [
+    { value: 'ASG', label: 'ASG' },
+    { value: 'Operating', label: 'Operations' },
+    { value: 'Gifts', label: 'Gifts' },
+  ];
 
   return (
     <form onSubmit={handleSubmit} className={styles['wl-form']} noValidate>

@@ -160,9 +160,6 @@ export function useAddTransactionForm({
     setForm((prev) => ({
       ...prev,
       type: newType,
-      // Deposits can't be funded from ASG -- see docs/BUSINESS_RULES.md#transaction-types--their-documents.
-      funding:
-        newType === 'Deposit' && prev.funding === 'ASG' ? 'Operating' : prev.funding,
       receiptFile: null,
       noReceiptAcknowledged: false,
       taxExemptFormSubmitted: false,

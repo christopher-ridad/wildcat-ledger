@@ -88,8 +88,8 @@ const SECTIONS: FaqSection[] = [
           <>
             <p>
               Every transaction type asks you to pick which line is funding it: ASG,
-              Operating, or Gifts. A debit-card reload counts here too, since it still has
-              to be funded from one of those lines.
+              Operating, or Gifts, including a Deposit. Incoming ASG money (a supplemental
+              grant or Senate appeal, say) needs somewhere to go too.
             </p>
             <ul>
               <li>
@@ -110,11 +110,6 @@ const SECTIONS: FaqSection[] = [
                 can only be spent however the original donor specified.
               </li>
             </ul>
-            <p>
-              Because ASG funds don&rsquo;t roll over and are meant to be spent down, they
-              can&rsquo;t back a Deposit, including a debit-card reload. A Deposit can
-              only come from Operating or Gifts.
-            </p>
           </>
         ),
       },
@@ -324,10 +319,10 @@ const SECTIONS: FaqSection[] = [
               Deposit doesn&rsquo;t need a document attached.
             </p>
             <p>
-              It can only be funded from Operating or Gifts, never ASG (see above). Unlike
-              an outgoing payment, it hits your budget balance right away, since that
-              money already moved the moment it came in. A debit-card reload is a special
-              case of this, see Debit Card above.
+              It can be funded from ASG, Operating, or Gifts, whichever the money actually
+              came from (see above). Unlike an outgoing payment, it hits your budget
+              balance right away, since that money already moved the moment it came in. A
+              debit-card reload is a special case of this, see Debit Card above.
             </p>
           </>
         ),
