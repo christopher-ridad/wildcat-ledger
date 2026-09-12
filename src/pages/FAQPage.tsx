@@ -356,8 +356,8 @@ const SECTIONS: FaqSection[] = [
         answer: (
           <>
             <p>
-              WildcatLedger currently only supports the four types above. SOFO also
-              handles a few others that aren&rsquo;t in the app yet:
+              WildcatLedger only supports the types above. SOFO also handles a few others
+              that aren&rsquo;t in the app yet:
             </p>
             <ul>
               <li>

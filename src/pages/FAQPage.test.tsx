@@ -65,6 +65,18 @@ describe('FAQPage', () => {
     );
   });
 
+  test('links to the real SOFO Microsoft Form and Cashier’s Office email', () => {
+    renderWithRouter(<FAQPage />);
+    fireEvent.click(screen.getByText('How do I actually submit a transaction?'));
+    expect(screen.getByRole('link', { name: 'SOFO Microsoft Form' })).toHaveAttribute(
+      'href',
+      'https://forms.office.com/Pages/ResponsePage.aspx?id=YdN2fXeCCEekd2ToNmzRvPTAeBa6n3hLtPXRTAWTmwxUQUZHMU45WUpIV1BEV0xNWFZSRjdOUllMVyQlQCN0PWcu',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Norris-Cashier@northwestern.edu' }),
+    ).toHaveAttribute('href', 'mailto:Norris-Cashier@northwestern.edu');
+  });
+
   test('Payment Request links to the real blank RSO Agreement template', () => {
     renderWithRouter(<FAQPage />);
     fireEvent.click(screen.getByText('Payment Request'));
