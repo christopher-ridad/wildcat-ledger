@@ -317,37 +317,41 @@ export const FAQPage = () => {
 
   return (
     <div className="wl-register-root">
-      <div className="wl-register-card wl-faq-card">
-        <button type="button" className="wl-btn-back" onClick={() => navigate(-1)}>
-          ← Back
-        </button>
-        <h1 className="wl-register-title">Frequently Asked Questions</h1>
-        <p className="wl-register-subtitle">
-          How WildcatLedger actually works, in plain terms.
-        </p>
+      <div className="wl-faq-shell">
+        <aside className="wl-faq-sidebar">
+          <nav aria-label="Table of contents">
+            <p className="wl-faq-sidebar-label">On this page</p>
+            <ul>
+              {SECTIONS.map((section) => (
+                <li key={section.slug}>
+                  <a href={`#${section.slug}`}>{section.heading}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </aside>
 
-        <nav className="wl-faq-toc" aria-label="Table of contents">
-          <p className="wl-faq-toc-label">On this page</p>
-          <ul>
-            {SECTIONS.map((section) => (
-              <li key={section.slug}>
-                <a href={`#${section.slug}`}>{section.heading}</a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <div className="wl-register-card wl-faq-card">
+          <button type="button" className="wl-btn-back" onClick={() => navigate(-1)}>
+            ← Back
+          </button>
+          <h1 className="wl-register-title">Frequently Asked Questions</h1>
+          <p className="wl-register-subtitle">
+            How WildcatLedger actually works, in plain terms.
+          </p>
 
-        {SECTIONS.map((section) => (
-          <div key={section.slug} id={section.slug} className="wl-faq-section">
-            <h2>{section.heading}</h2>
-            {section.items.map((item) => (
-              <details key={item.question} className="wl-faq-item">
-                <summary className="wl-faq-question">{item.question}</summary>
-                <div className="wl-faq-answer">{item.answer}</div>
-              </details>
-            ))}
-          </div>
-        ))}
+          {SECTIONS.map((section) => (
+            <div key={section.slug} id={section.slug} className="wl-faq-section">
+              <h2>{section.heading}</h2>
+              {section.items.map((item) => (
+                <details key={item.question} className="wl-faq-item">
+                  <summary className="wl-faq-question">{item.question}</summary>
+                  <div className="wl-faq-answer">{item.answer}</div>
+                </details>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
