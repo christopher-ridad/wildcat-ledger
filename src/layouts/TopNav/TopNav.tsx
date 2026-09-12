@@ -19,9 +19,18 @@ export const TopNav = () => {
         <img src={logo} alt="WildcatLedger" className={styles['wl-topnav-logo-img']} />
         <span className={styles['wl-topnav-logo-text']}>WildcatLedger</span>
       </button>
-      <button type="button" className={styles['wl-topnav-signout']} onClick={signOut}>
-        Sign Out
-      </button>
+      <div className={styles['wl-topnav-actions']}>
+        <button
+          type="button"
+          className={styles['wl-topnav-faq']}
+          onClick={() => navigate('/faq')}
+        >
+          FAQ
+        </button>
+        <button type="button" className={styles['wl-topnav-signout']} onClick={signOut}>
+          Sign Out
+        </button>
+      </div>
     </nav>
   );
 };

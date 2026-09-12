@@ -62,6 +62,14 @@ export const Dashboard = () => {
           >
             Audit History
           </button>
+          <span className="wl-header-divider" aria-hidden="true" />
+          <button
+            type="button"
+            className="wl-header-faq-btn"
+            onClick={() => navigate('/faq')}
+          >
+            FAQ
+          </button>
           <button type="button" className="wl-header-signout-btn" onClick={signOut}>
             Sign Out
           </button>

@@ -154,7 +154,10 @@ export const LandingPage = () => (
 
     <footer className="wl-landing-footer">
       <span>WildcatLedger, for Northwestern student organizations.</span>
-      <Link to="/privacy">Privacy Policy</Link>
+      <span className="wl-landing-footer-links">
+        <Link to="/faq">FAQ</Link>
+        <Link to="/privacy">Privacy Policy</Link>
+      </span>
     </footer>
   </div>
 );

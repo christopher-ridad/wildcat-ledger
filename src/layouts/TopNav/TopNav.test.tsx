@@ -32,4 +32,10 @@ describe('TopNav', () => {
     fireEvent.click(screen.getByRole('button', { name: /sign out/i }));
     expect(signOut).toHaveBeenCalled();
   });
+
+  test('clicking FAQ navigates to /faq', () => {
+    renderTopNav();
+    fireEvent.click(screen.getByRole('button', { name: 'FAQ' }));
+    expect(navigateMock).toHaveBeenCalledWith('/faq');
+  });
 });

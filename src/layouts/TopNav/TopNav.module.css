@@ -13,6 +13,12 @@
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
+.wl-topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .wl-topnav-signout {
   background: none;
   border: 1px solid rgba(255, 255, 255, 0.4);
@@ -26,6 +32,21 @@
 }
 .wl-topnav-signout:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+.wl-topnav-faq {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.wl-topnav-faq:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .wl-topnav-logo {
