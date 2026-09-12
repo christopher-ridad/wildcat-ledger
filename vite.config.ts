@@ -10,7 +10,10 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     // e2e/ holds Playwright specs -- run only via `npx playwright test`,
     // never picked up by Vitest even though they also match *.spec.ts.
-    exclude: [...configDefaults.exclude, 'e2e/**'],
+    // supabase/functions/ holds Deno tests (Deno.test, jsr: imports) --
+    // run only via `npm run test:functions`; Vite can't even transform
+    // them, so they must stay out of Vitest's glob entirely.
+    exclude: [...configDefaults.exclude, 'e2e/**', 'supabase/functions/**'],
     // Defined here (not as CLI --reporter flags in ci.yml) because CLI
     // reporter flags fully replace this array rather than merge with it --
     // confirmed by testing, not assumed. github-actions defaults to ALSO
