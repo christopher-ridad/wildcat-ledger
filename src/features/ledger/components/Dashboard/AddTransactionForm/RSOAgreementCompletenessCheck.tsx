@@ -7,7 +7,7 @@ import {
   Box,
   drawFlagBoxes,
   MAX_DOCUMENT_CHECK_FILE_BYTES,
-  MAX_DOCUMENT_CHECK_PAGES,
+  MAX_RSO_PAGES,
 } from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
 
@@ -163,7 +163,7 @@ export const RSOAgreementCompletenessCheck = ({
 
         const pdf = await loadPdf(file);
         if (cancelled) return;
-        if (pdf.numPages > MAX_DOCUMENT_CHECK_PAGES) {
+        if (pdf.numPages > MAX_RSO_PAGES) {
           setErrorMessage(TOO_MANY_PAGES_MESSAGE);
           setStatus('error');
           onBlockingChange(false);

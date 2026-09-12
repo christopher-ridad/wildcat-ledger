@@ -164,7 +164,7 @@ describe('W9CompletenessCheck', () => {
   });
 
   test('skips the check and shows a page-count warning when the document has too many pages', async () => {
-    pdfMock.numPages = 5;
+    pdfMock.numPages = 12;
     const onBlockingChange = vi.fn();
     render(<W9CompletenessCheck file={file} onBlockingChange={onBlockingChange} />);
 

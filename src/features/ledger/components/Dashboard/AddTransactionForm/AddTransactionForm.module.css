@@ -79,6 +79,13 @@
 
 .wl-doc-check {
   margin-top: 8px;
+  /* The parent form's own gap (12px) alone reads as barely more than the
+     8px gap used *within* this component's own flag list, so a flagged
+     check and the next, unrelated form field below it (e.g. "Is this an
+     individual vendor?") looked like one connected block. This bottom
+     margin gives real separation between "the check's own advisory UI"
+     and whatever comes next. */
+  margin-bottom: 8px;
 }
 
 .wl-doc-check-canvas-wrap {
@@ -170,6 +177,15 @@
 }
 .wl-form-no-receipt-notice a:hover {
   color: #5b21b6;
+}
+
+/* The flag list's own 8px gap reads fine between two padded amber
+   notice boxes, but the same 8px felt cramped between the last notice
+   and this bare (unpadded) checkbox row below it -- extra top margin
+   groups the flags as "here's what's wrong" and sets this row apart as
+   the actual action to take. */
+.wl-doc-check-acknowledge {
+  margin-top: 4px;
 }
 
 .wl-form-required {

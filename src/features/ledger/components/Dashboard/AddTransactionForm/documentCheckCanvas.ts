@@ -14,10 +14,17 @@ export const MAX_DOCUMENT_CHECK_FILE_BYTES = 15 * 1024 * 1024;
 // A byte cap alone doesn't catch a long-but-small file (a multi-page
 // essay is easily under 15MB) -- Document AI bills per page, so page
 // count is the more direct guard against sending the wrong kind of
-// document entirely. Generous enough for a 1-page W-9 or 2-page RSO
-// Agreement plus a stray blank/cover page, not so generous it lets an
-// actual multi-page document through.
-export const MAX_DOCUMENT_CHECK_PAGES = 4;
+// document entirely. The two document types need different thresholds:
+// an RSO Agreement really is always exactly 2 pages, so its cap stays
+// tight, but an official W-9 downloaded straight from irs.gov commonly
+// bundles 4-6 pages of IRS instructions after the 1-page form itself --
+// a real, common, legitimate upload that the check only ever reads page
+// 1 of. A shared low threshold rejected those outright; MAX_W9_PAGES is
+// deliberately generous so that doesn't happen, while MAX_RSO_PAGES
+// stays tight since there's no equivalent legitimate reason for extra
+// pages there.
+export const MAX_W9_PAGES = 10;
+export const MAX_RSO_PAGES = 4;
 
 // Document AI's coordinates are normalized (0-1) to the page, so they
 // scale to whatever size the canvas actually rendered at.
