@@ -47,6 +47,43 @@ const SECTIONS: FaqSection[] = [
     heading: 'Transaction types',
     items: [
       {
+        question: 'Which budget line does a transaction draw from?',
+        answer: (
+          <>
+            <p>
+              Every transaction type except Debit Card asks you to pick which line is
+              funding it: ASG, Operating, or Gifts. A Debit Card purchase or reload always
+              draws from the Debit Card line itself instead, since that&rsquo;s a separate
+              pool of money the card draws down directly.
+            </p>
+            <ul>
+              <li>
+                <strong>Operating:</strong> your org&rsquo;s baseline revenue, money it
+                earns or collects directly (dues, ticket sales, fundraising, merch).
+                Unrestricted, belongs entirely to your org, and rolls over year to year.
+              </li>
+              <li>
+                <strong>ASG:</strong> student activity fee money allocated by Associated
+                Student Government (your base ASG Spring Funding, supplemental grants,
+                Senate appeals). Tightly restricted and audited, and doesn&rsquo;t roll
+                over. Whatever&rsquo;s left at the end of the fiscal year gets swept back
+                to ASG.
+              </li>
+              <li>
+                <strong>Gifts:</strong> donated money, whether through university
+                crowdfunding, alumni donations, or corporate sponsorships. Rolls over, but
+                can only be spent however the original donor specified.
+              </li>
+            </ul>
+            <p>
+              Because ASG funds don&rsquo;t roll over and are meant to be spent down, they
+              can&rsquo;t back a Deposit, including a debit-card reload. A Deposit can
+              only come from Operating or Gifts.
+            </p>
+          </>
+        ),
+      },
+      {
         question: 'Payment Request',
         answer: (
           <>
