@@ -313,12 +313,22 @@ const SECTIONS: FaqSection[] = [
           <>
             <p>
               Deposit isn&rsquo;t one of SOFO&rsquo;s own transaction types. It&rsquo;s
-              WildcatLedger&rsquo;s way of tracking money coming into a budget line:
-              ticket sales, dues, other fundraising revenue, a supplemental ASG grant, or
-              a donation. There&rsquo;s no SOFO paperwork to submit for one of these, so a
-              Deposit doesn&rsquo;t need a document attached.
+              WildcatLedger&rsquo;s way of tracking money coming into a budget line.
+              There&rsquo;s no SOFO paperwork to submit for one of these, so a Deposit
+              doesn&rsquo;t need a document attached. Some examples:
             </p>
-            <p>It can be funded to ASG, Operating, or Gifts.</p>
+            <ul>
+              <li>
+                <strong>Operating:</strong> ticket sales, dues, or other fundraising
+                revenue
+              </li>
+              <li>
+                <strong>ASG:</strong> a supplemental grant or Senate appeal
+              </li>
+              <li>
+                <strong>Gifts:</strong> a donation
+              </li>
+            </ul>
           </>
         ),
       },
