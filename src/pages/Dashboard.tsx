@@ -62,9 +62,10 @@ export const Dashboard = () => {
           >
             Audit History
           </button>
+          <span className="wl-header-divider" aria-hidden="true" />
           <button
             type="button"
-            className="wl-header-audit-btn"
+            className="wl-header-faq-btn"
             onClick={() => navigate('/faq')}
           >
             FAQ
