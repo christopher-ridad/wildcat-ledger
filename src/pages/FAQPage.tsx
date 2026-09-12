@@ -313,6 +313,26 @@ const SECTIONS: FaqSection[] = [
         ),
       },
       {
+        question: 'What&rsquo;s a Deposit?',
+        answer: (
+          <>
+            <p>
+              Deposit isn&rsquo;t one of SOFO&rsquo;s own transaction types. It&rsquo;s
+              WildcatLedger&rsquo;s way of tracking money coming into a budget line:
+              ticket sales, dues, other fundraising revenue, a supplemental ASG grant, or
+              a donation. There&rsquo;s no SOFO paperwork to submit for one of these, so a
+              Deposit doesn&rsquo;t need a document attached.
+            </p>
+            <p>
+              It can only be funded from Operating or Gifts, never ASG (see above). Unlike
+              an outgoing payment, it hits your budget balance right away, since that
+              money already moved the moment it came in. A debit-card reload is a special
+              case of this, see Debit Card above.
+            </p>
+          </>
+        ),
+      },
+      {
         question: 'What about other SOFO transaction types?',
         answer: (
           <>
