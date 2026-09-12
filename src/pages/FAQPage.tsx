@@ -49,7 +49,8 @@ const SECTIONS: FaqSection[] = [
               digits of the debit card, plus its Load Balance (the fixed card limit set by
               the Cashier&rsquo;s Office, not its current running balance). These exist to
               pre-fill the actual SOFO reconciliation form, not for anything the app
-              calculates from.
+              calculates from, plus easy access to that information whenever else you need
+              it.
             </p>
             <p>
               Only a SOFO Approver can open or edit it, from the gear icon in the sidebar.
@@ -499,7 +500,26 @@ const SECTIONS: FaqSection[] = [
       {
         question: 'What’s the Tasks page for?',
         answer:
-          'Tracking your org’s financial deadlines and paperwork by quarter, separate from the transaction ledger itself. Attach a payment type to a task and it builds a document checklist for it automatically, using the same requirements listed above.',
+          'Tracking your org’s financial deadlines and paperwork by quarter, separate from the transaction ledger itself. It’s a shared to-do list, not a financial record: no audit trail, no approval workflow, and completing a task doesn’t touch or create any transaction. Attach a payment type to a task and it builds a document checklist for it automatically, using the same requirements listed under Transaction types above.',
+      },
+      {
+        question: 'How does the quarter view work?',
+        answer:
+          'Three tabs: Fall, Winter, and Spring, matching the actual academic months. It opens on whichever quarter contains today’s date. Tasks outside the current academic year, or due in July or August, don’t show up in any tab, and the form won’t let you set a due date that would fall into that gap in the first place.',
+      },
+      {
+        question: 'Who can create, edit, or complete a task?',
+        answer:
+          'A SOFO Approver creates, edits, and deletes tasks. Anyone with access to the org, Officer or SOFO Approver, can check off a task or an item on its document checklist.',
+      },
+      {
+        question: 'Can more than one person be assigned to a task?',
+        answer: 'Yes. Pick as many people from your org as you want.',
+      },
+      {
+        question: 'How do I know if a task is overdue?',
+        answer:
+          'Each task shows a status next to its due date: Overdue, Due soon (within 3 days), Due this week (within 7 days), or Upcoming. That label disappears once it’s checked off.',
       },
     ],
   },
