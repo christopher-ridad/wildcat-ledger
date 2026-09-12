@@ -39,6 +39,24 @@ const SECTIONS: FaqSection[] = [
         answer:
           'No. Only the people listed as an Officer or a SOFO Approver for your org can sign in and see its data at all, there’s no broader membership tier underneath that. Any Officer, approver or not, can view every transaction and budget line, and can attach a completed Policy Exemption Form to a Debit Card purchase themselves without needing a SOFO Approver to do it. That’s the one thing an Officer can change directly. Everything else needs a SOFO Approver.',
       },
+      {
+        question: 'What’s the SOFO / Cashier’s Office Settings panel for?',
+        answer: (
+          <>
+            <p>
+              It&rsquo;s where a SOFO Approver enters your org&rsquo;s official
+              identifiers: Project ID, Account No., Inventory Control No., and the last 4
+              digits of the debit card, plus its Load Balance (the fixed card limit set by
+              the Cashier&rsquo;s Office, not its current running balance). These exist to
+              pre-fill the actual SOFO reconciliation form, not for anything the app
+              calculates from.
+            </p>
+            <p>
+              Only a SOFO Approver can open or edit it, from the gear icon in the sidebar.
+            </p>
+          </>
+        ),
+      },
     ],
   },
   {
@@ -397,6 +415,24 @@ const SECTIONS: FaqSection[] = [
           'So a second, independent person always looks at anything that moves money before it sticks. That accountability is the whole point, no one person can move or erase your org’s money unilaterally. The same rule applies to deletions.',
       },
       {
+        question: 'What shows up in the Audit History page?',
+        answer: (
+          <>
+            <p>
+              Every transaction event: created, edited, deleted, an edit or delete request
+              and its approval or rejection, a payment-status change, a reconciliation, or
+              a tax-reimbursement flag being cleared. Each entry shows what changed, who
+              did it, and when.
+            </p>
+            <p>
+              Any Officer or SOFO Approver can view it. It only covers transactions
+              though, not changes to your org&rsquo;s SOFO / Cashier&rsquo;s Office
+              Settings.
+            </p>
+          </>
+        ),
+      },
+      {
         question: 'What do Pending, Approved, and Paid mean?',
         answer: (
           <>
@@ -427,6 +463,11 @@ const SECTIONS: FaqSection[] = [
         question: 'When does a transaction actually affect my budget balance?',
         answer:
           'For Payment Requests, Reimbursements, NU-Employee payments, and debit-card reloads, not until it reaches Paid, since the money hasn’t actually moved before then. A Debit Card purchase or a regular Deposit hits the balance right away, since that money already moved the moment it happened.',
+      },
+      {
+        question: 'What happens if a transaction would overdraw a budget line?',
+        answer:
+          'WildcatLedger warns you ("The account will go negative. Do you want to proceed anyway?"), but it doesn’t block you. If you know what you’re doing, you can proceed and submit it anyway. Nothing on the server enforces this either.',
       },
       {
         question: 'How long does processing actually take?',
