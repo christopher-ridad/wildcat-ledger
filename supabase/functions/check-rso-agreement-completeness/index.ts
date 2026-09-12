@@ -1,12 +1,11 @@
 // Checks Northwestern's RSO Agreement (2025-2026) for likely-missing
-// required sections via Google Document AI's Form Parser, per the same
-// GitHub issue #29 workflow used for the W-9 (see check-w9-completeness).
+// required sections via Google Document AI's Form Parser, using the same
+// approach as check-w9-completeness.
 //
 // Flags here are section-level, not field-level -- if any required field
 // inside a section is blank, this reports one "Section N not filled out"
-// flag for that section rather than one per field, per the requested UX.
-// Section 2 is plain terms text with nothing to fill in, so it's skipped
-// entirely.
+// flag for that section rather than one per field. Section 2 is plain
+// terms text with nothing to fill in, so it's skipped entirely.
 //
 // Section 4 is Yes/No radio-style rows. Document AI's own checkbox
 // classifier (visualElements) only picks up 4 of the 7 rows' circles

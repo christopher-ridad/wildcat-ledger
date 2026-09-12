@@ -19,12 +19,11 @@ interface W9CompletenessCheckProps {
 }
 
 // Renders the uploaded W-9's first page with a red box over anything the
-// check-w9-completeness Edge Function flags as possibly incomplete (see
-// GitHub issue #29 -- currently just the signature date rule). Advisory
-// only: a flag requires an explicit acknowledgment to proceed rather than
-// blocking outright, and a failed check itself (network, Document AI
-// down) fails open instead of trapping the whole form on an unrelated
-// outage.
+// check-w9-completeness Edge Function flags as possibly incomplete.
+// Advisory only: a flag requires an explicit acknowledgment to proceed
+// rather than blocking outright, and a failed check itself (network,
+// Document AI down) fails open instead of trapping the whole form on an
+// unrelated outage.
 export const W9CompletenessCheck = ({
   file,
   onBlockingChange,

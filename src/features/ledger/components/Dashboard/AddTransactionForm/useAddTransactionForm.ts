@@ -82,11 +82,11 @@ export function useAddTransactionForm({
   } | null>(null);
   const [preGeneratedId, setPreGeneratedId] = useState<string | null>(null);
   // Set by W9CompletenessCheck/RSOAgreementCompletenessCheck while either
-  // has an unacknowledged flag -- see GitHub issue #29. Advisory, not a
-  // hard requirement everywhere: this only ever gates the Save button,
-  // never the underlying validation. Kept as one object (rather than a
-  // separate useState per check) so a blocking Save reason is always "is
-  // anything in here true", not a growing list of ORs at the call site.
+  // has an unacknowledged flag. Advisory, not a hard requirement
+  // everywhere: this only ever gates the Save button, never the
+  // underlying validation. Kept as one object (rather than a separate
+  // useState per check) so a blocking Save reason is always "is anything
+  // in here true", not a growing list of ORs at the call site.
   const [documentChecksBlocking, setDocumentChecksBlocking] = useState<
     Record<'w9' | 'rso', boolean>
   >({ w9: false, rso: false });

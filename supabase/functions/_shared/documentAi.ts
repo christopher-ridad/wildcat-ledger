@@ -1,8 +1,8 @@
 // Shared Google Document AI client for every "check this document for
-// likely-missing fields" Edge Function (see GitHub issue #29). Auth is a
-// service-account JWT-bearer exchange, since Document AI needs that --
-// unlike Vision API's plain browser-safe key (see visionApi.ts) -- which
-// is why these checks run server-side at all.
+// likely-missing fields" Edge Function. Auth is a service-account
+// JWT-bearer exchange, since Document AI needs that -- unlike Vision
+// API's plain browser-safe key (see visionApi.ts) -- which is why these
+// checks run server-side at all.
 import { createSign } from 'node:crypto';
 
 export interface Box {

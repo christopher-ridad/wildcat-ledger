@@ -1,5 +1,5 @@
 // Checks a W-9 for likely-missing required fields via Google Document AI's
-// Form Parser, per GitHub issue #29.
+// Form Parser.
 //
 // Deliberately returns only pass/fail-style flags plus a box position to
 // draw on the client -- never persists anything, and never forwards
@@ -49,7 +49,7 @@ function parseUsDate(raw: string): Date | null {
 // these are real coordinates captured from the feasibility spike -- used
 // whenever Document AI doesn't pair a field at all, which is exactly what
 // happens when that part of the form is genuinely blank (nothing for its
-// key-value heuristic to latch onto). See issue #29's spike notes.
+// key-value heuristic to latch onto).
 const FALLBACK_BOXES: Record<string, Box> = {
   name: boxFrom(0.0992, 0.9424, 0.1247, 0.1451),
   address: boxFrom(0.0968, 0.446, 0.3514, 0.3607),
