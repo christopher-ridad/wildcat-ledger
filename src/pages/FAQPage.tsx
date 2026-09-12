@@ -152,8 +152,8 @@ const SECTIONS: FaqSection[] = [
         answer: (
           <>
             <p>
-              Attach the RSO Agreement (the same Section 1/3/4 org steps and Section
-              3/staff signatures described under Payment Request above), a W-9, and a{' '}
+              Attach the RSO Agreement, filled out the same way as for a Payment Request
+              above, plus a W-9 and a{' '}
               <a
                 href="/forms/special-pay-request-form.pdf"
                 target="_blank"
