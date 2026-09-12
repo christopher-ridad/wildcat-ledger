@@ -313,7 +313,7 @@ const SECTIONS: FaqSection[] = [
         ),
       },
       {
-        question: 'What&rsquo;s a Deposit?',
+        question: 'What’s a Deposit?',
         answer: (
           <>
             <p>
