@@ -70,7 +70,11 @@ const SECTIONS: FaqSection[] = [
                 <a href="mailto:SOFOTransactions@northwestern.edu">
                   SOFOTransactions@northwestern.edu
                 </a>{' '}
-                for SOFO
+                for SOFO, or{' '}
+                <a href="mailto:Norris-Cashier@northwestern.edu">
+                  Norris-Cashier@northwestern.edu
+                </a>{' '}
+                for the Cashier&rsquo;s Office
               </li>
             </ul>
           </>
