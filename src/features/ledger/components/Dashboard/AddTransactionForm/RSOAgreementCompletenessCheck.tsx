@@ -3,13 +3,20 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../../../config/supabase';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
-import { Box, drawFlagBoxes, MAX_DOCUMENT_CHECK_FILE_BYTES } from './documentCheckCanvas';
+import {
+  Box,
+  drawFlagBoxes,
+  MAX_DOCUMENT_CHECK_FILE_BYTES,
+  MAX_DOCUMENT_CHECK_PAGES,
+} from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
 
 const GENERIC_ERROR_MESSAGE =
   "Couldn't run the automatic check — you can still submit as normal.";
 const TOO_LARGE_MESSAGE =
   'This file is larger than expected for an RSO Agreement — skipping the automatic check.';
+const TOO_MANY_PAGES_MESSAGE =
+  'This file has more pages than expected for an RSO Agreement — skipping the automatic check.';
 
 interface SectionFlag {
   section: number;
@@ -155,6 +162,14 @@ export const RSOAgreementCompletenessCheck = ({
         if (!canvas1 || !canvas2) throw new Error('No canvas to render into');
 
         const pdf = await loadPdf(file);
+        if (cancelled) return;
+        if (pdf.numPages > MAX_DOCUMENT_CHECK_PAGES) {
+          setErrorMessage(TOO_MANY_PAGES_MESSAGE);
+          setStatus('error');
+          onBlockingChange(false);
+          return;
+        }
+
         const [dims1, dims2] = await Promise.all([
           renderPage(pdf, 1, canvas1),
           renderPage(pdf, 2, canvas2),

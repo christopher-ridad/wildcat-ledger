@@ -8,10 +8,13 @@ vi.mock('../../../../../config/supabase', () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }));
 
+const pdfMock = vi.hoisted(() => ({ numPages: 1 }));
+
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: {},
   getDocument: vi.fn(() => ({
     promise: Promise.resolve({
+      numPages: pdfMock.numPages,
       getPage: vi.fn(() =>
         Promise.resolve({
           getViewport: () => ({ width: 200, height: 260 }),
@@ -27,6 +30,7 @@ const file = new File(['%PDF-1.4'], 'w9.pdf', { type: 'application/pdf' });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  pdfMock.numPages = 1;
   // jsdom doesn't implement canvas 2D rendering -- stub just enough of the
   // context surface this component actually calls.
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
@@ -155,6 +159,18 @@ describe('W9CompletenessCheck', () => {
     render(<W9CompletenessCheck file={bigFile} onBlockingChange={onBlockingChange} />);
 
     expect(await screen.findByText(/larger than expected for a W-9/)).toBeInTheDocument();
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(onBlockingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  test('skips the check and shows a page-count warning when the document has too many pages', async () => {
+    pdfMock.numPages = 5;
+    const onBlockingChange = vi.fn();
+    render(<W9CompletenessCheck file={file} onBlockingChange={onBlockingChange} />);
+
+    expect(
+      await screen.findByText(/more pages than expected for a W-9/),
+    ).toBeInTheDocument();
     expect(mockInvoke).not.toHaveBeenCalled();
     expect(onBlockingChange).toHaveBeenLastCalledWith(false);
   });

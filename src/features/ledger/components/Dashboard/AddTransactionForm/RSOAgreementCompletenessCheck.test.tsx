@@ -11,10 +11,13 @@ vi.mock('../../../../../config/supabase', () => ({
   supabase: { functions: { invoke: vi.fn() } },
 }));
 
+const pdfMock = vi.hoisted(() => ({ numPages: 2 }));
+
 vi.mock('pdfjs-dist', () => ({
   GlobalWorkerOptions: {},
   getDocument: vi.fn(() => ({
     promise: Promise.resolve({
+      numPages: pdfMock.numPages,
       getPage: vi.fn(() =>
         Promise.resolve({
           getViewport: () => ({ width: 200, height: 260 }),
@@ -90,6 +93,7 @@ function mockCanvasContext(getImageData: ReturnType<typeof makeImageDataQueue>) 
 
 beforeEach(() => {
   vi.clearAllMocks();
+  pdfMock.numPages = 2;
   mockCanvasContext(makeImageDataQueue(ALL_NO_SEQUENCE));
 });
 
@@ -278,6 +282,20 @@ describe('RSOAgreementCompletenessCheck', () => {
 
     expect(
       await screen.findByText(/larger than expected for an RSO Agreement/),
+    ).toBeInTheDocument();
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(onBlockingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  test('skips the check and shows a page-count warning when the document has too many pages', async () => {
+    pdfMock.numPages = 6;
+    const onBlockingChange = vi.fn();
+    render(
+      <RSOAgreementCompletenessCheck file={file} onBlockingChange={onBlockingChange} />,
+    );
+
+    expect(
+      await screen.findByText(/more pages than expected for an RSO Agreement/),
     ).toBeInTheDocument();
     expect(mockInvoke).not.toHaveBeenCalled();
     expect(onBlockingChange).toHaveBeenLastCalledWith(false);

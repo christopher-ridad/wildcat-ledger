@@ -3,7 +3,12 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../../../config/supabase';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
-import { Box, drawFlagBoxes, MAX_DOCUMENT_CHECK_FILE_BYTES } from './documentCheckCanvas';
+import {
+  Box,
+  drawFlagBoxes,
+  MAX_DOCUMENT_CHECK_FILE_BYTES,
+  MAX_DOCUMENT_CHECK_PAGES,
+} from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
 
 interface CompletenessFlag {
@@ -16,6 +21,8 @@ const GENERIC_ERROR_MESSAGE =
   "Couldn't run the automatic check — you can still submit as normal.";
 const TOO_LARGE_MESSAGE =
   'This file is larger than expected for a W-9 — skipping the automatic check.';
+const TOO_MANY_PAGES_MESSAGE =
+  'This file has more pages than expected for a W-9 — skipping the automatic check.';
 
 interface W9CompletenessCheckProps {
   file: File | null;
@@ -67,7 +74,17 @@ export const W9CompletenessCheck = ({
       try {
         const canvas = canvasRef.current;
         if (!canvas) throw new Error('No canvas to render into');
-        const dims = await renderPdfPage(file, canvas);
+
+        const pdf = await loadPdf(file);
+        if (cancelled) return;
+        if (pdf.numPages > MAX_DOCUMENT_CHECK_PAGES) {
+          setErrorMessage(TOO_MANY_PAGES_MESSAGE);
+          setStatus('error');
+          onBlockingChange(false);
+          return;
+        }
+
+        const dims = await renderPage(pdf, canvas);
         if (cancelled) return;
 
         const fileBase64 = await fileToBase64(file);
@@ -159,8 +176,10 @@ export const W9CompletenessCheck = ({
 // pdfjs-dist is a genuinely heavy library (a few hundred KB) that's only
 // ever needed for this one check -- dynamically imported so it lands in
 // its own chunk instead of bloating the Dashboard's main bundle for every
-// visit, regardless of whether anyone ever uploads a W-9.
-async function renderPdfPage(file: File, canvas: HTMLCanvasElement) {
+// visit, regardless of whether anyone ever uploads a W-9. Split into
+// load/render so the page count is known (and can be rejected) before
+// ever rendering anything.
+async function loadPdf(file: File) {
   const pdfjsLib = await import('pdfjs-dist');
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -168,7 +187,13 @@ async function renderPdfPage(file: File, canvas: HTMLCanvasElement) {
   ).toString();
 
   const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  return pdfjsLib.getDocument({ data: buffer }).promise;
+}
+
+async function renderPage(
+  pdf: Awaited<ReturnType<typeof loadPdf>>,
+  canvas: HTMLCanvasElement,
+) {
   const page = await pdf.getPage(1);
   const viewport = page.getViewport({ scale: 1.5 });
   canvas.width = viewport.width;
