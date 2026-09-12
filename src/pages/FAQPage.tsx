@@ -182,6 +182,54 @@ const SECTIONS: FaqSection[] = [
         ),
       },
       {
+        question: 'How does debit card reconciliation work inside the app itself?',
+        answer: (
+          <>
+            A purchase can be reconciled once it&rsquo;s &ldquo;covered&rdquo; (a receipt
+            or{' '}
+            <a href={POLICY_EXEMPTION_FORM_URL} target="_blank" rel="noopener noreferrer">
+              Policy Exemption Form
+            </a>{' '}
+            attached), doesn&rsquo;t owe SOFO a tax reimbursement, and doesn&rsquo;t have
+            a pending edit or delete request still awaiting approval. Reconciling
+            doesn&rsquo;t lock it in place. A correction afterward goes through the same
+            second-approver rule as any other transaction edit.
+          </>
+        ),
+      },
+      {
+        question: 'What’s a "reload"?',
+        answer:
+          'Adding money back onto the debit card. It’s really just a Deposit made on the Debit Card budget line, shown as "Reloaded" once it reaches Paid. It skips the Approved step since approving a reload is reloading it.',
+      },
+      {
+        question: 'What happens if there’s sales tax on a debit card receipt?',
+        answer: (
+          <>
+            <p>
+              Your org should be tax-exempt at checkout whenever the exemption form is
+              shown, so this shouldn&rsquo;t normally happen. If it does, the full amount
+              (tax included) still counts against your budget right away.
+            </p>
+            <p>
+              <strong>In WildcatLedger:</strong> the transaction gets flagged as owing
+              SOFO a reimbursement, and clearing that flag is self-attested.
+            </p>
+            <p>
+              The actual repayment happens on{' '}
+              <a
+                href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                SOFO&rsquo;s own site
+              </a>
+              , which this app doesn&rsquo;t connect to directly.
+            </p>
+          </>
+        ),
+      },
+      {
         question: 'Payment to NU Employee',
         answer: (
           <>
@@ -291,60 +339,6 @@ const SECTIONS: FaqSection[] = [
               <strong>In WildcatLedger:</strong> this timeline is entirely on SOFO&rsquo;s
               and the Cashier&rsquo;s Office&rsquo;s side. The app doesn&rsquo;t track or
               affect it.
-            </p>
-          </>
-        ),
-      },
-    ],
-  },
-  {
-    slug: 'debit-card',
-    heading: 'Debit Card',
-    items: [
-      {
-        question: 'How does debit card reconciliation work?',
-        answer: (
-          <>
-            A purchase can be reconciled once it&rsquo;s &ldquo;covered&rdquo; (a receipt
-            or{' '}
-            <a href={POLICY_EXEMPTION_FORM_URL} target="_blank" rel="noopener noreferrer">
-              Policy Exemption Form
-            </a>{' '}
-            attached), doesn&rsquo;t owe SOFO a tax reimbursement, and doesn&rsquo;t have
-            a pending edit or delete request still awaiting approval. Reconciling
-            doesn&rsquo;t lock it in place. A correction afterward goes through the same
-            second-approver rule as any other transaction edit.
-          </>
-        ),
-      },
-      {
-        question: 'What’s a "reload"?',
-        answer:
-          'Adding money back onto the debit card. It’s really just a Deposit made on the Debit Card budget line, shown as "Reloaded" once it reaches Paid. It skips the Approved step since approving a reload is reloading it.',
-      },
-      {
-        question: 'What happens if there’s sales tax on a debit card receipt?',
-        answer: (
-          <>
-            <p>
-              Your org should be tax-exempt at checkout whenever the exemption form is
-              shown, so this shouldn&rsquo;t normally happen. If it does, the full amount
-              (tax included) still counts against your budget right away.
-            </p>
-            <p>
-              <strong>In WildcatLedger:</strong> the transaction gets flagged as owing
-              SOFO a reimbursement, and clearing that flag is self-attested.
-            </p>
-            <p>
-              The actual repayment happens on{' '}
-              <a
-                href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                SOFO&rsquo;s own site
-              </a>
-              , which this app doesn&rsquo;t connect to directly.
             </p>
           </>
         ),

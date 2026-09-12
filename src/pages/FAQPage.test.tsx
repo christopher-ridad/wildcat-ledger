@@ -23,7 +23,6 @@ describe('FAQPage', () => {
     expect(
       screen.getByRole('heading', { name: 'Approvals & edits' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Debit Card' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Financial Tasks' })).toBeInTheDocument();
   });
 
@@ -60,9 +59,9 @@ describe('FAQPage', () => {
       'href',
       '#transaction-types',
     );
-    expect(within(toc).getByRole('link', { name: 'Debit Card' })).toHaveAttribute(
+    expect(within(toc).getByRole('link', { name: 'Financial Tasks' })).toHaveAttribute(
       'href',
-      '#debit-card',
+      '#financial-tasks',
     );
   });
 
@@ -70,7 +69,7 @@ describe('FAQPage', () => {
     let observerCallback: IntersectionObserverCallback = () => {};
     class TestObserver {
       observe = (target: Element) => {
-        if (target.id === 'debit-card') {
+        if (target.id === 'financial-tasks') {
           observerCallback(
             [{ isIntersecting: true, target } as IntersectionObserverEntry],
             this as unknown as IntersectionObserver,
@@ -93,7 +92,7 @@ describe('FAQPage', () => {
     });
 
     const toc = screen.getByRole('navigation', { name: /table of contents/i });
-    expect(within(toc).getByRole('link', { name: 'Debit Card' })).toHaveAttribute(
+    expect(within(toc).getByRole('link', { name: 'Financial Tasks' })).toHaveAttribute(
       'aria-current',
       'true',
     );
