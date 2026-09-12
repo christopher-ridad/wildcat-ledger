@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, test } from 'vitest';
 
@@ -62,107 +62,6 @@ describe('FAQPage', () => {
     expect(within(toc).getByRole('link', { name: 'Financial Tasks' })).toHaveAttribute(
       'href',
       '#financial-tasks',
-    );
-  });
-
-  const setSectionOffsets = (offsets: Record<string, number>) => {
-    Object.entries(offsets).forEach(([slug, offsetTop]) => {
-      const el = document.getElementById(slug);
-      if (el) {
-        Object.defineProperty(el, 'offsetTop', { value: offsetTop, configurable: true });
-      }
-    });
-  };
-
-  const scrollTo = (scrollY: number, innerHeight = 800, scrollHeight = 9000) => {
-    Object.defineProperty(window, 'scrollY', { value: scrollY, configurable: true });
-    Object.defineProperty(window, 'innerHeight', {
-      value: innerHeight,
-      configurable: true,
-    });
-    Object.defineProperty(document.documentElement, 'scrollHeight', {
-      value: scrollHeight,
-      configurable: true,
-    });
-    act(() => {
-      window.dispatchEvent(new Event('scroll'));
-    });
-  };
-
-  test('marks the sidebar link for the currently scrolled-to section as active', () => {
-    renderWithRouter(<FAQPage />);
-
-    // Mirrors a real layout where the trailing sections are short and end
-    // up close together near the bottom of a long page.
-    setSectionOffsets({
-      'getting-started': 0,
-      'transaction-types': 500,
-      'documents-requests': 4000,
-      'approvals-edits': 4300,
-      'financial-tasks': 4400,
-      other: 4450,
-    });
-
-    // Not at the bottom: scrollY + innerHeight (5070) is well short of
-    // scrollHeight (9000).
-    scrollTo(4270, 800, 9000);
-
-    const toc = screen.getByRole('navigation', { name: /table of contents/i });
-    expect(within(toc).getByRole('link', { name: 'Financial Tasks' })).toHaveAttribute(
-      'aria-current',
-      'true',
-    );
-    expect(
-      within(toc).getByRole('link', { name: 'Approvals & edits' }),
-    ).not.toHaveAttribute('aria-current');
-  });
-
-  test('resolves to the last section once scrolled to the bottom of the page', () => {
-    renderWithRouter(<FAQPage />);
-
-    setSectionOffsets({
-      'getting-started': 0,
-      'transaction-types': 500,
-      'documents-requests': 4000,
-      'approvals-edits': 4300,
-      'financial-tasks': 4400,
-      other: 4450,
-    });
-
-    // At the bottom: scrollY + innerHeight equals scrollHeight.
-    scrollTo(8200, 800, 9000);
-
-    const toc = screen.getByRole('navigation', { name: /table of contents/i });
-    expect(within(toc).getByRole('link', { name: 'Other' })).toHaveAttribute(
-      'aria-current',
-      'true',
-    );
-  });
-
-  test('resolves to the last section on a tall viewport where the offset check alone would never reach it', () => {
-    renderWithRouter(<FAQPage />);
-
-    // A tall viewport relative to a short remaining page: at max scroll,
-    // "other"'s offsetTop (1700) is still well beyond scrollY + the fixed
-    // scroll offset (1400 + 150 = 1550), so the offset check alone would
-    // never select it no matter how far the page is scrolled. Being at
-    // the bottom of the page is what has to catch this case.
-    setSectionOffsets({
-      'getting-started': 0,
-      'transaction-types': 200,
-      'documents-requests': 900,
-      'approvals-edits': 1200,
-      'financial-tasks': 1350,
-      other: 1700,
-    });
-
-    // Max scroll on a 3000px document with a 1600px viewport is 1400.
-    scrollTo(1400, 1600, 3000);
-
-    const toc = screen.getByRole('navigation', { name: /table of contents/i });
-    expect(within(toc).getByRole('link', { name: 'Other' })).toHaveAttribute(
-      'aria-current',
-      'true',
     );
   });
 

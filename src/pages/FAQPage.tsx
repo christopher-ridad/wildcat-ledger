@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import {
@@ -472,56 +471,8 @@ const SECTIONS: FaqSection[] = [
   },
 ];
 
-// How far below the top of the viewport a section's heading has to scroll
-// past before it counts as "current."
-const ACTIVE_SECTION_SCROLL_OFFSET = 150;
-
-// How close to the bottom of the page counts as "at the bottom," to absorb
-// subpixel/zoom rounding in scrollY + innerHeight vs. scrollHeight.
-const AT_BOTTOM_THRESHOLD = 4;
-
 export const FAQPage = () => {
   const navigate = useNavigate();
-  const [activeSlug, setActiveSlug] = useState<string>(SECTIONS[0].slug);
-
-  useEffect(() => {
-    const updateActiveSection = () => {
-      // Comparing offsetTop against a fixed scroll offset breaks down when
-      // the viewport is tall relative to the remaining page content: once
-      // the page hits max scroll, a short trailing section's heading can
-      // still sit well below that offset in a tall viewport, with no more
-      // room to scroll further and bring it closer to the top. There's
-      // simply no amount of scrolling that resolves it. Being at the
-      // bottom of the page is an unambiguous, viewport-height-independent
-      // signal that the last section is the one in view, so it overrides
-      // the normal offset check.
-      const atBottom =
-        window.scrollY + window.innerHeight >=
-        document.documentElement.scrollHeight - AT_BOTTOM_THRESHOLD;
-      if (atBottom) {
-        setActiveSlug(SECTIONS[SECTIONS.length - 1].slug);
-        return;
-      }
-
-      const scrollPosition = window.scrollY + ACTIVE_SECTION_SCROLL_OFFSET;
-      let current = SECTIONS[0].slug;
-      for (const section of SECTIONS) {
-        const el = document.getElementById(section.slug);
-        if (el && el.offsetTop <= scrollPosition) {
-          current = section.slug;
-        }
-      }
-      setActiveSlug(current);
-    };
-
-    updateActiveSection();
-    window.addEventListener('scroll', updateActiveSection, { passive: true });
-    window.addEventListener('resize', updateActiveSection);
-    return () => {
-      window.removeEventListener('scroll', updateActiveSection);
-      window.removeEventListener('resize', updateActiveSection);
-    };
-  }, []);
 
   return (
     <div className="wl-register-root">
@@ -532,12 +483,7 @@ export const FAQPage = () => {
             <ul>
               {SECTIONS.map((section) => (
                 <li key={section.slug}>
-                  <a
-                    href={`#${section.slug}`}
-                    aria-current={section.slug === activeSlug ? 'true' : undefined}
-                  >
-                    {section.heading}
-                  </a>
+                  <a href={`#${section.slug}`}>{section.heading}</a>
                 </li>
               ))}
             </ul>
