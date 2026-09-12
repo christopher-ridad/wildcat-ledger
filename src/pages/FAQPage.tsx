@@ -475,29 +475,40 @@ const SECTIONS: FaqSection[] = [
 // Only one section sits in this vertical band at a time while scrolling, so
 // whichever entry fires isIntersecting is the current section -- no need to
 // compare boundingClientRect positions across entries.
-const ACTIVE_SECTION_OBSERVER_OPTIONS: IntersectionObserverInit = {
-  rootMargin: '-15% 0px -70% 0px',
-};
+// How far below the top of the viewport a section's heading has to scroll
+// past before it counts as "current." A fixed offset rather than an
+// IntersectionObserver band: near the bottom of a long page, the last few
+// (short) sections can end up compressed above any fixed viewport band and
+// never individually pass through it, so they'd never get marked active no
+// matter how far you scroll. Comparing each section's static offsetTop
+// against scroll position instead has no such blind spot -- it resolves
+// correctly all the way down to the last section at max scroll.
+const ACTIVE_SECTION_SCROLL_OFFSET = 150;
 
 export const FAQPage = () => {
   const navigate = useNavigate();
   const [activeSlug, setActiveSlug] = useState<string>(SECTIONS[0].slug);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveSlug(entry.target.id);
+    const updateActiveSection = () => {
+      const scrollPosition = window.scrollY + ACTIVE_SECTION_SCROLL_OFFSET;
+      let current = SECTIONS[0].slug;
+      for (const section of SECTIONS) {
+        const el = document.getElementById(section.slug);
+        if (el && el.offsetTop <= scrollPosition) {
+          current = section.slug;
         }
-      });
-    }, ACTIVE_SECTION_OBSERVER_OPTIONS);
+      }
+      setActiveSlug(current);
+    };
 
-    SECTIONS.forEach((section) => {
-      const el = document.getElementById(section.slug);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
+    updateActiveSection();
+    window.addEventListener('scroll', updateActiveSection, { passive: true });
+    window.addEventListener('resize', updateActiveSection);
+    return () => {
+      window.removeEventListener('scroll', updateActiveSection);
+      window.removeEventListener('resize', updateActiveSection);
+    };
   }, []);
 
   return (

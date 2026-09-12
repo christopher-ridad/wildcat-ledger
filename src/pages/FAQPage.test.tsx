@@ -65,31 +65,37 @@ describe('FAQPage', () => {
     );
   });
 
-  test('marks the sidebar link for the currently visible section as active', () => {
-    let observerCallback: IntersectionObserverCallback = () => {};
-    class TestObserver {
-      observe = (target: Element) => {
-        if (target.id === 'financial-tasks') {
-          observerCallback(
-            [{ isIntersecting: true, target } as IntersectionObserverEntry],
-            this as unknown as IntersectionObserver,
-          );
-        }
-      };
-      unobserve = () => {};
-      disconnect = () => {};
-      takeRecords = () => [];
-
-      constructor(callback: IntersectionObserverCallback) {
-        observerCallback = callback;
+  const setSectionOffsets = (offsets: Record<string, number>) => {
+    Object.entries(offsets).forEach(([slug, offsetTop]) => {
+      const el = document.getElementById(slug);
+      if (el) {
+        Object.defineProperty(el, 'offsetTop', { value: offsetTop, configurable: true });
       }
-    }
-    const original = window.IntersectionObserver;
-    window.IntersectionObserver = TestObserver as unknown as typeof IntersectionObserver;
-
-    act(() => {
-      renderWithRouter(<FAQPage />);
     });
+  };
+
+  const scrollTo = (scrollY: number) => {
+    Object.defineProperty(window, 'scrollY', { value: scrollY, configurable: true });
+    act(() => {
+      window.dispatchEvent(new Event('scroll'));
+    });
+  };
+
+  test('marks the sidebar link for the currently scrolled-to section as active', () => {
+    renderWithRouter(<FAQPage />);
+
+    // Mirrors a real layout where the trailing sections are short and end
+    // up close together near the bottom of a long page.
+    setSectionOffsets({
+      'getting-started': 0,
+      'transaction-types': 500,
+      'documents-requests': 4000,
+      'approvals-edits': 4300,
+      'financial-tasks': 4400,
+      other: 4450,
+    });
+
+    scrollTo(4270);
 
     const toc = screen.getByRole('navigation', { name: /table of contents/i });
     expect(within(toc).getByRole('link', { name: 'Financial Tasks' })).toHaveAttribute(
@@ -97,10 +103,29 @@ describe('FAQPage', () => {
       'true',
     );
     expect(
-      within(toc).getByRole('link', { name: 'Getting started' }),
+      within(toc).getByRole('link', { name: 'Approvals & edits' }),
     ).not.toHaveAttribute('aria-current');
+  });
 
-    window.IntersectionObserver = original;
+  test('resolves to the last section even when trailing sections are short and compressed near the bottom', () => {
+    renderWithRouter(<FAQPage />);
+
+    setSectionOffsets({
+      'getting-started': 0,
+      'transaction-types': 500,
+      'documents-requests': 4000,
+      'approvals-edits': 4300,
+      'financial-tasks': 4400,
+      other: 4450,
+    });
+
+    scrollTo(9000);
+
+    const toc = screen.getByRole('navigation', { name: /table of contents/i });
+    expect(within(toc).getByRole('link', { name: 'Other' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
   });
 
   test('Payment Request links to the real blank RSO Agreement template', () => {
