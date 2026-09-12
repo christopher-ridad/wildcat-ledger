@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface FaqItem {
   question: string;
@@ -139,8 +139,14 @@ const SECTIONS: FaqSection[] = [
     items: [
       {
         question: 'Who can see my organization’s data?',
-        answer:
-          'Only the officers and SOFO Approvers listed on your org. Every organization’s data is walled off from every other organization’s, and nothing is ever shared outside your org’s own list. See the Privacy Policy for the full picture.',
+        answer: (
+          <>
+            Only the officers and SOFO Approvers listed on your org. Every
+            organization&rsquo;s data is walled off from every other organization&rsquo;s,
+            and nothing is ever shared outside your org&rsquo;s own list. See the{' '}
+            <Link to="/privacy">Privacy Policy</Link> for the full picture.
+          </>
+        ),
       },
       {
         question: 'Something’s wrong, or this doesn’t cover my question.',

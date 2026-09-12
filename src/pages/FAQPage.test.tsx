@@ -37,6 +37,15 @@ describe('FAQPage', () => {
     expect(link).toHaveAttribute('href', 'mailto:christopherridad@gmail.com');
   });
 
+  test('links to the actual Privacy Policy page, not just plain text', () => {
+    renderWithRouter(<FAQPage />);
+    fireEvent.click(screen.getByText('Who can see my organization’s data?'));
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute(
+      'href',
+      '/privacy',
+    );
+  });
+
   test('the back button returns to wherever the visitor came from', () => {
     render(
       <MemoryRouter initialEntries={['/dashboard', '/faq']} initialIndex={1}>
