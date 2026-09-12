@@ -33,12 +33,12 @@ const SECTIONS: FaqSection[] = [
       {
         question: 'What’s the difference between a SOFO Approver and an Officer?',
         answer:
-          'SOFO Approvers (usually your treasurer and president, since they’re the ones who actually process paperwork with SOFO) can add, edit, or delete transactions, approve pending changes, reconcile the debit card, and change SOFO settings. Officers can see everything but can’t make changes beyond what any regular member can.',
+          'SOFO Approvers are your org’s treasurer and president, since they’re the ones who actually process paperwork with SOFO. They can add, edit, or delete transactions, approve pending changes, reconcile the debit card, and change SOFO settings. Officers can see everything but can’t make any of those changes themselves.',
       },
       {
-        question: 'Can regular members do anything?',
+        question: 'Is there a general “member” access level, separate from Officer?',
         answer:
-          'They can view every transaction and budget line, and attach a completed Policy Exemption Form to a Debit Card purchase themselves. That’s the one thing a member can change directly. Everything else needs a SOFO Approver.',
+          'No. Only the people listed as an Officer or a SOFO Approver for your org can sign in and see its data at all, there’s no broader membership tier underneath that. Any Officer, approver or not, can view every transaction and budget line, and can attach a completed Policy Exemption Form to a Debit Card purchase themselves without needing a SOFO Approver to do it. That’s the one thing an Officer can change directly. Everything else needs a SOFO Approver.',
       },
     ],
   },
@@ -103,7 +103,10 @@ const SECTIONS: FaqSection[] = [
                 </a>
               </li>
             </ul>
-            <p>Pick a payment method:</p>
+            <p>
+              You&rsquo;ll also need to pick a payment method, whichever&rsquo;s more
+              convenient for your org. They include:
+            </p>
             <ul>
               <li>
                 Check sent via mail to the vendor, at the address on their paperwork
@@ -122,7 +125,10 @@ const SECTIONS: FaqSection[] = [
               Attach a receipt. If you don&rsquo;t have one, a bank statement showing the
               charge works too. Just upload it in the receipt slot when you attach it.
             </p>
-            <p>Pick a payment method:</p>
+            <p>
+              You&rsquo;ll also need to pick a payment method, whichever&rsquo;s more
+              convenient for your org. They include:
+            </p>
             <ul>
               <li>Student org rep picks up the check from Norris</li>
               <li>
@@ -226,6 +232,10 @@ const SECTIONS: FaqSection[] = [
                 Special Pay Form
               </a>
               .
+            </p>
+            <p>
+              Since they&rsquo;re an NU employee, they&rsquo;ll be paid directly by
+              Northwestern, so there&rsquo;s no payment method to pick here.
             </p>
           </>
         ),
