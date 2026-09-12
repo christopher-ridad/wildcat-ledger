@@ -5,6 +5,12 @@ export interface Box {
   normalizedVertices: { x: number; y: number }[];
 }
 
+// A real W-9 or RSO Agreement is always 1-2 pages -- this is a generous
+// upper bound meant to catch an accidental (or not) oversized upload
+// before it burns a Document AI page-priced call on something that was
+// never going to be one of these forms.
+export const MAX_DOCUMENT_CHECK_FILE_BYTES = 15 * 1024 * 1024;
+
 // Document AI's coordinates are normalized (0-1) to the page, so they
 // scale to whatever size the canvas actually rendered at.
 export function drawFlagBoxes(

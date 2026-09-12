@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { supabase } from '../../../../../config/supabase';
-import { RSOAgreementCompletenessCheck } from './RSOAgreementCompletenessCheck';
+import {
+  deriveFlags,
+  RSOAgreementCompletenessCheck,
+} from './RSOAgreementCompletenessCheck';
 
 vi.mock('../../../../../config/supabase', () => ({
   supabase: { functions: { invoke: vi.fn() } },
@@ -260,5 +263,117 @@ describe('RSOAgreementCompletenessCheck', () => {
     );
     expect(screen.queryByText('✓ Looks complete.')).not.toBeInTheDocument();
     expect(onBlockingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  test('skips the check and shows a size warning when the file is too large', async () => {
+    const bigFile = new File(['%PDF-1.4'], 'rso.pdf', { type: 'application/pdf' });
+    Object.defineProperty(bigFile, 'size', { value: 16 * 1024 * 1024 });
+    const onBlockingChange = vi.fn();
+    render(
+      <RSOAgreementCompletenessCheck
+        file={bigFile}
+        onBlockingChange={onBlockingChange}
+      />,
+    );
+
+    expect(
+      await screen.findByText(/larger than expected for an RSO Agreement/),
+    ).toBeInTheDocument();
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(onBlockingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  test('passes an abort signal to the check invocation, so a superseded check gets cancelled', async () => {
+    mockInvoke.mockResolvedValue({ data: baseResult(), error: null } as never);
+    render(<RSOAgreementCompletenessCheck file={file} onBlockingChange={vi.fn()} />);
+    await screen.findByText('✓ Looks complete.');
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'check-rso-agreement-completeness',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  test('labels each page canvas for screen readers', async () => {
+    mockInvoke.mockResolvedValue({ data: baseResult(), error: null } as never);
+    render(<RSOAgreementCompletenessCheck file={file} onBlockingChange={vi.fn()} />);
+    await screen.findByText('✓ Looks complete.');
+
+    expect(screen.getByRole('img', { name: /RSO Agreement page 1/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /RSO Agreement page 2/ })).toBeInTheDocument();
+  });
+});
+
+describe('deriveFlags', () => {
+  const allNo = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((key) => ({
+    key,
+    answer: 'no' as const,
+  }));
+
+  test('returns no flags when every row is answered and the server found no gaps', () => {
+    expect(deriveFlags(baseResult(), allNo)).toEqual([]);
+  });
+
+  test("passes through the server's section-level flags", () => {
+    const result = baseResult({
+      sectionFlags: [
+        { section: 1, page: 0, message: 'Section 1 not filled out.', box: trivialBox },
+      ],
+    });
+    expect(deriveFlags(result, allNo)).toEqual([
+      {
+        key: 'section-1',
+        message: 'Section 1 not filled out.',
+        page: 0,
+        box: trivialBox,
+      },
+    ]);
+  });
+
+  test('flags Section 4 when any row is unanswered, alongside any section flags', () => {
+    const rows = [
+      ...allNo.slice(0, 3),
+      { key: 'd', answer: 'unanswered' as const },
+      ...allNo.slice(4),
+    ];
+    const result = baseResult({
+      sectionFlags: [
+        { section: 1, page: 0, message: 'Section 1 not filled out.', box: trivialBox },
+      ],
+    });
+    const flags = deriveFlags(result, rows);
+    expect(flags.map((f) => f.key)).toEqual(['section-1', 'section-4']);
+  });
+
+  test('flags the reservation subsection when row b is Yes and it is blank', () => {
+    const rows = [{ key: 'b', answer: 'yes' as const }, ...allNo.slice(1)];
+    const result = baseResult({
+      reservationSubsection: { filled: false, page: 1, box: trivialBox },
+    });
+    expect(deriveFlags(result, rows).map((f) => f.key)).toEqual(['section-4b']);
+  });
+
+  test('does not flag the reservation subsection when it is already filled', () => {
+    const rows = [{ key: 'b', answer: 'yes' as const }, ...allNo.slice(1)];
+    const result = baseResult({
+      reservationSubsection: { filled: true, page: 1, box: trivialBox },
+    });
+    expect(deriveFlags(result, rows)).toEqual([]);
+  });
+
+  test('does not flag the reservation subsection when row b is No, regardless of its contents', () => {
+    const result = baseResult({
+      reservationSubsection: { filled: false, page: 1, box: trivialBox },
+    });
+    expect(deriveFlags(result, allNo)).toEqual([]);
+  });
+
+  test('falls back to section-level flags only when no row answers are available', () => {
+    const result = baseResult({
+      sectionFlags: [
+        { section: 3, page: 1, message: 'Section 3 not filled out.', box: trivialBox },
+      ],
+    });
+    expect(deriveFlags(result, []).map((f) => f.key)).toEqual(['section-3']);
   });
 });

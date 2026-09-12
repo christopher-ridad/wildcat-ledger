@@ -147,4 +147,36 @@ describe('W9CompletenessCheck', () => {
     expect(screen.queryByText('✓ Looks complete.')).not.toBeInTheDocument();
     expect(onBlockingChange).toHaveBeenLastCalledWith(false);
   });
+
+  test('skips the check and shows a size warning when the file is too large', async () => {
+    const bigFile = new File(['%PDF-1.4'], 'w9.pdf', { type: 'application/pdf' });
+    Object.defineProperty(bigFile, 'size', { value: 16 * 1024 * 1024 });
+    const onBlockingChange = vi.fn();
+    render(<W9CompletenessCheck file={bigFile} onBlockingChange={onBlockingChange} />);
+
+    expect(await screen.findByText(/larger than expected for a W-9/)).toBeInTheDocument();
+    expect(mockInvoke).not.toHaveBeenCalled();
+    expect(onBlockingChange).toHaveBeenLastCalledWith(false);
+  });
+
+  test('passes an abort signal to the check invocation, so a superseded check gets cancelled', async () => {
+    mockInvoke.mockResolvedValue({ data: { flags: [] }, error: null } as never);
+    render(<W9CompletenessCheck file={file} onBlockingChange={vi.fn()} />);
+    await screen.findByText('✓ Looks complete.');
+
+    expect(mockInvoke).toHaveBeenCalledWith(
+      'check-w9-completeness',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  test('labels the canvas preview for screen readers', async () => {
+    mockInvoke.mockResolvedValue({ data: { flags: [] }, error: null } as never);
+    render(<W9CompletenessCheck file={file} onBlockingChange={vi.fn()} />);
+    await screen.findByText('✓ Looks complete.');
+
+    expect(
+      screen.getByRole('img', { name: /Preview of the uploaded W-9/ }),
+    ).toBeInTheDocument();
+  });
 });

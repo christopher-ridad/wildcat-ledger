@@ -3,7 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../../../config/supabase';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
-import { Box, drawFlagBoxes } from './documentCheckCanvas';
+import { Box, drawFlagBoxes, MAX_DOCUMENT_CHECK_FILE_BYTES } from './documentCheckCanvas';
+import { DocumentCheckStatus } from './DocumentCheckStatus';
+
+const GENERIC_ERROR_MESSAGE =
+  "Couldn't run the automatic check — you can still submit as normal.";
+const TOO_LARGE_MESSAGE =
+  'This file is larger than expected for an RSO Agreement — skipping the automatic check.';
 
 interface SectionFlag {
   section: number;
@@ -50,7 +56,10 @@ interface RowAnswer {
 // Pure and DOM-free -- the only part of this check with real conditional
 // logic, kept separate from the canvas/network plumbing that surrounds
 // it in the effect below.
-function deriveFlags(result: RsoCheckResult, rowAnswers: RowAnswer[]): DisplayFlag[] {
+export function deriveFlags(
+  result: RsoCheckResult,
+  rowAnswers: RowAnswer[],
+): DisplayFlag[] {
   const sectionFlags: DisplayFlag[] = result.sectionFlags.map((f) => ({
     key: `section-${f.section}`,
     message: f.message,
@@ -116,6 +125,7 @@ export const RSOAgreementCompletenessCheck = ({
 }: RSOAgreementCompletenessCheckProps) => {
   const canvasRefs = [useRef<HTMLCanvasElement>(null), useRef<HTMLCanvasElement>(null)];
   const [status, setStatus] = useState<'idle' | 'checking' | 'done' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState(GENERIC_ERROR_MESSAGE);
   const [flags, setFlags] = useState<DisplayFlag[]>([]);
   const [acknowledged, setAcknowledged] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -124,11 +134,19 @@ export const RSOAgreementCompletenessCheck = ({
     setFlags([]);
     setAcknowledged(false);
     setStatus('idle');
+    setErrorMessage(GENERIC_ERROR_MESSAGE);
     setExpanded(false);
     onBlockingChange(false);
     if (!file) return;
 
+    if (file.size > MAX_DOCUMENT_CHECK_FILE_BYTES) {
+      setErrorMessage(TOO_LARGE_MESSAGE);
+      setStatus('error');
+      return;
+    }
+
     let cancelled = false;
+    const controller = new AbortController();
 
     const run = async () => {
       setStatus('checking');
@@ -148,6 +166,7 @@ export const RSOAgreementCompletenessCheck = ({
           'check-rso-agreement-completeness',
           {
             body: { fileBase64 },
+            signal: controller.signal,
           },
         );
         if (cancelled) return;
@@ -181,6 +200,7 @@ export const RSOAgreementCompletenessCheck = ({
         onBlockingChange(allFlags.length > 0);
       } catch {
         if (!cancelled) {
+          setErrorMessage(GENERIC_ERROR_MESSAGE);
           setStatus('error');
           onBlockingChange(false);
         }
@@ -190,6 +210,10 @@ export const RSOAgreementCompletenessCheck = ({
     run();
     return () => {
       cancelled = true;
+      // Superseded by a newer file before this finished -- abort rather
+      // than let an already-discarded check keep running (and billing)
+      // in the background.
+      controller.abort();
     };
     // onBlockingChange is the stable setState function from the parent's
     // useState -- deliberately not in the dep array, it never changes.
@@ -220,12 +244,18 @@ export const RSOAgreementCompletenessCheck = ({
           <div key={i} className={styles['wl-doc-check-canvas-wrap']}>
             <canvas
               ref={ref}
+              role="img"
+              aria-label={`Preview of RSO Agreement page ${i + 1}, with any flagged areas outlined in red`}
               className={`${styles['wl-doc-check-canvas']} ${
                 expanded ? styles['wl-doc-check-canvas--expanded'] : ''
               }`}
             />
             {status === 'checking' && (
-              <div className={styles['wl-doc-check-loading']}>
+              <div
+                className={styles['wl-doc-check-loading']}
+                role={i === 0 ? 'status' : undefined}
+                aria-live={i === 0 ? 'polite' : undefined}
+              >
                 <span className={styles['wl-doc-check-spinner']} aria-hidden="true" />
                 {i === 0 && <span>Checking for missing sections…</span>}
               </div>
@@ -233,38 +263,14 @@ export const RSOAgreementCompletenessCheck = ({
           </div>
         ))}
       </div>
-      {status !== 'checking' && (
-        <p className={styles['wl-form-hint']}>
-          {expanded
-            ? 'Click the preview to shrink it back down.'
-            : 'Click the preview to see it full size.'}
-        </p>
-      )}
-      {status === 'error' && (
-        <p className={styles['wl-form-hint']}>
-          Couldn&apos;t run the automatic check — you can still submit as normal.
-        </p>
-      )}
-      {status === 'done' && flags.length === 0 && (
-        <p className={styles['wl-form-hint']}>✓ Looks complete.</p>
-      )}
-      {status === 'done' && flags.length > 0 && (
-        <div className={styles['wl-form-no-receipt']}>
-          {flags.map((flag) => (
-            <p key={flag.key} className={styles['wl-form-no-receipt-notice']}>
-              ⚠ {flag.message}
-            </p>
-          ))}
-          <label className={styles['wl-form-checkbox']}>
-            <input
-              type="checkbox"
-              checked={acknowledged}
-              onChange={(e) => handleAcknowledge(e.target.checked)}
-            />
-            <span>I&apos;ve reviewed this and it&apos;s correct as-is</span>
-          </label>
-        </div>
-      )}
+      <DocumentCheckStatus
+        status={status}
+        expanded={expanded}
+        errorMessage={errorMessage}
+        flags={flags}
+        acknowledged={acknowledged}
+        onAcknowledge={handleAcknowledge}
+      />
     </div>
   );
 };
