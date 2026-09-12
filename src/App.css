@@ -544,8 +544,11 @@
   margin-bottom: 0;
 }
 .wl-faq-answer ul {
-  margin: 4px 0 0;
+  margin: 4px 0 10px;
   padding-left: 20px;
+}
+.wl-faq-answer ul:last-child {
+  margin-bottom: 0;
 }
 .wl-faq-answer li {
   margin-bottom: 6px;
