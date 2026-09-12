@@ -13,6 +13,7 @@
     "serve:e2e": "vite preview",
     "e2e": "playwright test",
     "test": "vitest",
+    "test:functions": "cd supabase/functions && deno test",
     "test:ui": "vitest --ui --api.host 127.0.0.1 --api.port 51204 --api.strictPort",
     "test:coverage": "vitest run --coverage",
     "lint:fix": "eslint src vite.config.ts --quiet --fix",
