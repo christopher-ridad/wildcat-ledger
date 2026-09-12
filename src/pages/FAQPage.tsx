@@ -61,8 +61,12 @@ const SECTIONS: FaqSection[] = [
               1 and Section 4 first (event details, compensation, and a handful of yes/no
               confirmations). Then the vendor, listed as &ldquo;Supplier,&rdquo; signs
               Section 3. Once that&rsquo;s signed, it goes to an Authorized Northwestern
-              Staff Representative to sign. WildcatLedger&rsquo;s upload check looks for
-              all of that before flagging the document as complete.
+              Staff Representative to sign.
+            </p>
+            <p>
+              <strong>In WildcatLedger:</strong> uploading the RSO Agreement runs an
+              automatic check that looks for all of that before flagging the document as
+              complete.
             </p>
             <p>Blank templates:</p>
             <ul>
@@ -169,9 +173,10 @@ const SECTIONS: FaqSection[] = [
               A reload can be any amount up to that limit.
             </p>
             <p>
-              WildcatLedger tracks every receipt as you go and flags anything missing, so
-              you know exactly what&rsquo;s ready by the time you reconcile. Eventually,
-              it&rsquo;ll help fill out the reconciliation form for you too.
+              <strong>In WildcatLedger:</strong> it tracks every receipt as you go and
+              flags anything missing, so you know exactly what&rsquo;s ready by the time
+              you reconcile. Eventually, it&rsquo;ll help fill out the reconciliation form
+              for you too.
             </p>
           </>
         ),
@@ -271,8 +276,24 @@ const SECTIONS: FaqSection[] = [
       },
       {
         question: 'How long does processing actually take?',
-        answer:
-          'Usually 2 to 3 weeks for SOFO or the Cashier’s Office to fully process a transaction, sometimes longer mid-quarter since both offices are handling paperwork from hundreds of Northwestern organizations at once. Submitting everything correctly the first time is the biggest lever you have over that timeline. Checking in with them periodically isn’t official policy, just a personal recommendation, but it’s a good way to make sure nothing falls through the cracks.',
+        answer: (
+          <>
+            <p>
+              Usually 2 to 3 weeks for SOFO or the Cashier&rsquo;s Office to fully process
+              a transaction, sometimes longer mid-quarter since both offices are handling
+              paperwork from hundreds of Northwestern organizations at once. Submitting
+              everything correctly the first time is the biggest lever you have over that
+              timeline. Checking in with them periodically isn&rsquo;t official policy,
+              just a personal recommendation, but it&rsquo;s a good way to make sure
+              nothing falls through the cracks.
+            </p>
+            <p>
+              <strong>In WildcatLedger:</strong> this timeline is entirely on SOFO&rsquo;s
+              and the Cashier&rsquo;s Office&rsquo;s side. The app doesn&rsquo;t track or
+              affect it.
+            </p>
+          </>
+        ),
       },
     ],
   },
@@ -305,19 +326,26 @@ const SECTIONS: FaqSection[] = [
         question: 'What happens if there’s sales tax on a debit card receipt?',
         answer: (
           <>
-            Your org should be tax-exempt at checkout whenever the exemption form is
-            shown, so this shouldn&rsquo;t normally happen. If it does, the full amount
-            (tax included) still counts against your budget right away, and the
-            transaction gets flagged as owing SOFO a reimbursement. Clearing that flag is
-            self-attested. The actual repayment happens on{' '}
-            <a
-              href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              SOFO&rsquo;s own site
-            </a>
-            , which this app doesn&rsquo;t connect to directly.
+            <p>
+              Your org should be tax-exempt at checkout whenever the exemption form is
+              shown, so this shouldn&rsquo;t normally happen. If it does, the full amount
+              (tax included) still counts against your budget right away.
+            </p>
+            <p>
+              <strong>In WildcatLedger:</strong> the transaction gets flagged as owing
+              SOFO a reimbursement, and clearing that flag is self-attested.
+            </p>
+            <p>
+              The actual repayment happens on{' '}
+              <a
+                href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                SOFO&rsquo;s own site
+              </a>
+              , which this app doesn&rsquo;t connect to directly.
+            </p>
           </>
         ),
       },
