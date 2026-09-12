@@ -14,6 +14,8 @@ const renderFields = (
       form={initialForm}
       isEditing={false}
       onChange={vi.fn()}
+      onW9CheckBlockingChange={vi.fn()}
+      onRsoCheckBlockingChange={vi.fn()}
       {...overrides}
     />,
   );

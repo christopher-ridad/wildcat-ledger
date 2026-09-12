@@ -81,6 +81,12 @@ export function useAddTransactionForm({
     id?: string;
   } | null>(null);
   const [preGeneratedId, setPreGeneratedId] = useState<string | null>(null);
+  // Set by W9CompletenessCheck/RSOAgreementCompletenessCheck while either
+  // has an unacknowledged flag -- see GitHub issue #29. Advisory, not a
+  // hard requirement everywhere: this only ever gates the Save button,
+  // never the underlying validation.
+  const [w9CheckBlocking, setW9CheckBlocking] = useState(false);
+  const [rsoCheckBlocking, setRsoCheckBlocking] = useState(false);
 
   const handleReceiptChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -339,6 +345,10 @@ export function useAddTransactionForm({
     error,
     overdraftWarning,
     pendingTransaction,
+    w9CheckBlocking,
+    setW9CheckBlocking,
+    rsoCheckBlocking,
+    setRsoCheckBlocking,
     handleReceiptChange,
     handleChange,
     handleTypeChange,
