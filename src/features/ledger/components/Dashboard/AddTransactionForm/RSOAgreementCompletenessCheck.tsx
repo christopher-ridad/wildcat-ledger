@@ -3,10 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../../../config/supabase';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
-
-interface Box {
-  normalizedVertices: { x: number; y: number }[];
-}
+import { Box, drawFlagBoxes } from './documentCheckCanvas';
 
 interface SectionFlag {
   section: number;
@@ -326,27 +323,4 @@ function readRowAnswer(
   if (yesFilled && !noFilled) return 'yes';
   if (noFilled && !yesFilled) return 'no';
   return 'unanswered';
-}
-
-// Document AI's coordinates are normalized (0-1) to the page, so they
-// scale to whatever size each page's canvas actually rendered at.
-function drawFlagBoxes(
-  canvas: HTMLCanvasElement,
-  pageFlags: DisplayFlag[],
-  dims: { width: number; height: number },
-) {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.strokeStyle = '#dc2626';
-  ctx.lineWidth = 3;
-  for (const flag of pageFlags) {
-    if (!flag.box) continue;
-    const xs = flag.box.normalizedVertices.map((v) => v.x * dims.width);
-    const ys = flag.box.normalizedVertices.map((v) => v.y * dims.height);
-    const x = Math.min(...xs);
-    const y = Math.min(...ys);
-    const w = Math.max(...xs) - x;
-    const h = Math.max(...ys) - y;
-    ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
-  }
 }

@@ -74,19 +74,20 @@ function baseResult(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-let getImageDataMock: ReturnType<typeof makeImageDataQueue>;
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  getImageDataMock = makeImageDataQueue(ALL_NO_SEQUENCE);
-  // jsdom doesn't implement canvas 2D rendering -- stub just enough of the
-  // context surface this component actually calls.
+// jsdom doesn't implement canvas 2D rendering -- stub just enough of the
+// context surface this component actually calls.
+function mockCanvasContext(getImageData: ReturnType<typeof makeImageDataQueue>) {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     strokeRect: vi.fn(),
     strokeStyle: '',
     lineWidth: 0,
-    getImageData: getImageDataMock,
+    getImageData,
   })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockCanvasContext(makeImageDataQueue(ALL_NO_SEQUENCE));
 });
 
 describe('RSOAgreementCompletenessCheck', () => {
@@ -133,28 +134,24 @@ describe('RSOAgreementCompletenessCheck', () => {
 
   test('flags Section 4 as not filled out when a row is left ambiguous', async () => {
     // Row d comes back light/light (neither circle looks filled in).
-    getImageDataMock = makeImageDataQueue([
-      'light',
-      'dark', // a -> no
-      'light',
-      'dark', // b -> no
-      'light',
-      'dark', // c -> no
-      'light',
-      'light', // d -> unanswered
-      'light',
-      'dark', // e -> no
-      'light',
-      'dark', // f -> no
-      'light',
-      'dark', // g -> no
-    ]);
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
-      strokeRect: vi.fn(),
-      strokeStyle: '',
-      lineWidth: 0,
-      getImageData: getImageDataMock,
-    })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+    mockCanvasContext(
+      makeImageDataQueue([
+        'light',
+        'dark', // a -> no
+        'light',
+        'dark', // b -> no
+        'light',
+        'dark', // c -> no
+        'light',
+        'light', // d -> unanswered
+        'light',
+        'dark', // e -> no
+        'light',
+        'dark', // f -> no
+        'light',
+        'dark', // g -> no
+      ]),
+    );
 
     mockInvoke.mockResolvedValue({ data: baseResult(), error: null } as never);
     const onBlockingChange = vi.fn();
@@ -167,28 +164,24 @@ describe('RSOAgreementCompletenessCheck', () => {
   });
 
   test('flags the reservation subsection when row b is Yes but it is blank', async () => {
-    getImageDataMock = makeImageDataQueue([
-      'light',
-      'dark', // a -> no
-      'dark',
-      'light', // b -> yes
-      'light',
-      'dark', // c -> no
-      'light',
-      'dark', // d -> no
-      'light',
-      'dark', // e -> no
-      'light',
-      'dark', // f -> no
-      'light',
-      'dark', // g -> no
-    ]);
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
-      strokeRect: vi.fn(),
-      strokeStyle: '',
-      lineWidth: 0,
-      getImageData: getImageDataMock,
-    })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+    mockCanvasContext(
+      makeImageDataQueue([
+        'light',
+        'dark', // a -> no
+        'dark',
+        'light', // b -> yes
+        'light',
+        'dark', // c -> no
+        'light',
+        'dark', // d -> no
+        'light',
+        'dark', // e -> no
+        'light',
+        'dark', // f -> no
+        'light',
+        'dark', // g -> no
+      ]),
+    );
 
     mockInvoke.mockResolvedValue({
       data: baseResult({

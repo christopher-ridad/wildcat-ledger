@@ -40,6 +40,34 @@ export function extractText(fullText: string, textAnchor?: FieldSide['textAnchor
     .join('');
 }
 
+// Builds a rectangular Box from its min/max edges, in the same
+// clockwise-from-top-left vertex order Document AI itself uses -- every
+// hand-captured fallback position (a form's fixed printed layout) is one
+// of these rather than a hand-typed 4-vertex literal, which is easy to
+// get subtly wrong by eye.
+export function boxFrom(xMin: number, xMax: number, yMin: number, yMax: number): Box {
+  return {
+    normalizedVertices: [
+      { x: xMin, y: yMin },
+      { x: xMax, y: yMin },
+      { x: xMax, y: yMax },
+      { x: xMin, y: yMax },
+    ],
+  };
+}
+
+// Every "is this near a known position" or "where on the page is this"
+// check ends up averaging a box's normalizedVertices into a single
+// center point -- this is that computation, written once.
+export function centerOf(box?: Box): { x: number; y: number } | null {
+  const vertices = box?.normalizedVertices;
+  if (!vertices?.length) return null;
+  return {
+    x: vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length,
+    y: vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length,
+  };
+}
+
 const base64url = (input: ArrayBuffer | string) => {
   const bytes =
     typeof input === 'string' ? new TextEncoder().encode(input) : new Uint8Array(input);
@@ -129,3 +157,38 @@ export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Every "check this document" Edge Function shares the same scaffold --
+// OPTIONS handling, loading config, pulling the uploaded file out of the
+// request body, and the success/error JSON response shape -- so each one
+// only needs to supply the part that's actually specific to it: turning
+// Document AI's parsed pages into that check's own result shape.
+export function serveDocumentCheck(
+  buildResult: (text: string, pages: DocumentAiPage[]) => unknown,
+) {
+  Deno.serve(async (req) => {
+    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+    try {
+      const config = loadDocumentAiConfig();
+      const { fileBase64 } = await req.json();
+      if (!fileBase64) throw new Error('No file provided.');
+
+      const { text, pages } = await processDocument(
+        config,
+        fileBase64,
+        'application/pdf',
+      );
+      const result = buildResult(text, pages);
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({ error: (error as Error).message }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  });
+}

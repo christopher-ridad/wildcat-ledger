@@ -31,12 +31,12 @@
 // generalizes and needed no page-specific redesign to reuse).
 import {
   type Box,
-  corsHeaders,
+  boxFrom,
+  centerOf,
   DocumentAiPage,
   extractText,
   FormField,
-  loadDocumentAiConfig,
-  processDocument,
+  serveDocumentCheck,
   Token,
 } from '../_shared/documentAi.ts';
 
@@ -53,17 +53,6 @@ interface RowRegion {
   page: number;
   yesBox: Box;
   noBox: Box;
-}
-
-function boxFrom(xMin: number, xMax: number, yMin: number, yMax: number): Box {
-  return {
-    normalizedVertices: [
-      { x: xMin, y: yMin },
-      { x: xMax, y: yMin },
-      { x: xMax, y: yMax },
-      { x: xMin, y: yMax },
-    ],
-  };
 }
 
 // Each section's overall printed region on the form, used only as the box
@@ -116,9 +105,7 @@ const SECTION_5_FIELDS: FieldSpec[] = [
 ];
 
 function fieldNameY(field: FormField): number | null {
-  const vertices = field.fieldName?.boundingPoly?.normalizedVertices;
-  if (!vertices?.length) return null;
-  return vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length;
+  return centerOf(field.fieldName?.boundingPoly)?.y ?? null;
 }
 
 function isFieldFilled(
@@ -301,27 +288,9 @@ function checkRsoAgreement(
   };
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+serveDocumentCheck((text, pages) => {
+  const page1 = (pages[0] ?? {}) as DocumentAiPage;
+  const page2 = (pages[1] ?? {}) as DocumentAiPage;
 
-  try {
-    const config = loadDocumentAiConfig();
-    const { fileBase64 } = await req.json();
-    if (!fileBase64) throw new Error('No file provided.');
-
-    const { text, pages } = await processDocument(config, fileBase64, 'application/pdf');
-    const page1 = (pages[0] ?? {}) as DocumentAiPage;
-    const page2 = (pages[1] ?? {}) as DocumentAiPage;
-
-    const result = checkRsoAgreement(text, page1, page2);
-
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  return checkRsoAgreement(text, page1, page2);
 });

@@ -16,12 +16,12 @@
 // file, blank template included. See checkTaxClassificationChecked below.
 import {
   type Box,
-  corsHeaders,
+  boxFrom,
+  centerOf,
   DocumentAiPage,
   extractText,
   FormField,
-  loadDocumentAiConfig,
-  processDocument,
+  serveDocumentCheck,
   Token,
   VisualElement,
 } from '../_shared/documentAi.ts';
@@ -51,62 +51,13 @@ function parseUsDate(raw: string): Date | null {
 // happens when that part of the form is genuinely blank (nothing for its
 // key-value heuristic to latch onto). See issue #29's spike notes.
 const FALLBACK_BOXES: Record<string, Box> = {
-  name: {
-    normalizedVertices: [
-      { x: 0.0992, y: 0.1247 },
-      { x: 0.9424, y: 0.1247 },
-      { x: 0.9424, y: 0.1451 },
-      { x: 0.0992, y: 0.1451 },
-    ],
-  },
-  address: {
-    normalizedVertices: [
-      { x: 0.0968, y: 0.3514 },
-      { x: 0.446, y: 0.3514 },
-      { x: 0.446, y: 0.3607 },
-      { x: 0.0968, y: 0.3607 },
-    ],
-  },
-  cityStateZip: {
-    normalizedVertices: [
-      { x: 0.0998, y: 0.3807 },
-      { x: 0.2463, y: 0.3807 },
-      { x: 0.2463, y: 0.391 },
-      { x: 0.0998, y: 0.391 },
-    ],
-  },
-  signature: {
-    normalizedVertices: [
-      { x: 0.123, y: 0.7344 },
-      { x: 0.1911, y: 0.7344 },
-      { x: 0.1911, y: 0.7553 },
-      { x: 0.123, y: 0.7553 },
-    ],
-  },
-  date: {
-    normalizedVertices: [
-      { x: 0.63, y: 0.7456 },
-      { x: 0.6557, y: 0.7456 },
-      { x: 0.6557, y: 0.7531 },
-      { x: 0.63, y: 0.7531 },
-    ],
-  },
-  tin: {
-    normalizedVertices: [
-      { x: 0.68, y: 0.464 },
-      { x: 0.96, y: 0.464 },
-      { x: 0.96, y: 0.562 },
-      { x: 0.68, y: 0.562 },
-    ],
-  },
-  taxClassification: {
-    normalizedVertices: [
-      { x: 0.095, y: 0.222 },
-      { x: 0.72, y: 0.222 },
-      { x: 0.72, y: 0.305 },
-      { x: 0.095, y: 0.305 },
-    ],
-  },
+  name: boxFrom(0.0992, 0.9424, 0.1247, 0.1451),
+  address: boxFrom(0.0968, 0.446, 0.3514, 0.3607),
+  cityStateZip: boxFrom(0.0998, 0.2463, 0.3807, 0.391),
+  signature: boxFrom(0.123, 0.1911, 0.7344, 0.7553),
+  date: boxFrom(0.63, 0.6557, 0.7456, 0.7531),
+  tin: boxFrom(0.68, 0.96, 0.464, 0.562),
+  taxClassification: boxFrom(0.095, 0.72, 0.222, 0.305),
 };
 
 // Line 3a's seven checkbox centers, captured from the spike -- confirmed
@@ -139,11 +90,14 @@ function tokenCenterIn(
   token: Token,
   region: { yMin: number; yMax: number; xMin: number; xMax: number },
 ) {
-  const vertices = token.layout?.boundingPoly?.normalizedVertices;
-  if (!vertices?.length) return false;
-  const cx = vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length;
-  const cy = vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length;
-  return cx >= region.xMin && cx <= region.xMax && cy >= region.yMin && cy <= region.yMax;
+  const center = centerOf(token.layout?.boundingPoly);
+  if (!center) return false;
+  return (
+    center.x >= region.xMin &&
+    center.x <= region.xMax &&
+    center.y >= region.yMin &&
+    center.y <= region.yMax
+  );
 }
 
 function checkTinPresent(tokens: Token[]): Flag[] {
@@ -159,15 +113,6 @@ function checkTinPresent(tokens: Token[]): Flag[] {
   ];
 }
 
-function visualElementCenter(el: VisualElement): { x: number; y: number } | null {
-  const vertices = el.layout?.boundingPoly?.normalizedVertices;
-  if (!vertices?.length) return null;
-  return {
-    x: vertices.reduce((sum, v) => sum + v.x, 0) / vertices.length,
-    y: vertices.reduce((sum, v) => sum + v.y, 0) / vertices.length,
-  };
-}
-
 // Checks whether any of line 3a's seven tax-classification checkboxes is
 // marked, by matching Document AI's raw checkbox detections against each
 // box's known position on the form -- see the header comment for why this
@@ -177,7 +122,7 @@ function checkTaxClassificationChecked(visualElements: VisualElement[]): Flag[] 
 
   const anyChecked = TAX_CLASSIFICATION_CHECKBOXES.some((pos) =>
     checkboxes.some((el) => {
-      const center = visualElementCenter(el);
+      const center = centerOf(el.layout?.boundingPoly);
       if (!center) return false;
       const close =
         Math.abs(center.x - pos.x) < CHECKBOX_MATCH_TOLERANCE &&
@@ -314,29 +259,11 @@ function checkW9(
   ];
 }
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+serveDocumentCheck((text, pages) => {
+  const page = (pages[0] ?? {}) as DocumentAiPage;
+  const formFields: FormField[] = page.formFields ?? [];
+  const tokens: Token[] = page.tokens ?? [];
+  const visualElements: VisualElement[] = page.visualElements ?? [];
 
-  try {
-    const config = loadDocumentAiConfig();
-    const { fileBase64 } = await req.json();
-    if (!fileBase64) throw new Error('No file provided.');
-
-    const { text, pages } = await processDocument(config, fileBase64, 'application/pdf');
-    const page = (pages[0] ?? {}) as DocumentAiPage;
-    const formFields: FormField[] = page.formFields ?? [];
-    const tokens: Token[] = page.tokens ?? [];
-    const visualElements: VisualElement[] = page.visualElements ?? [];
-
-    const flags = checkW9(text, formFields, tokens, visualElements);
-
-    return new Response(JSON.stringify({ flags }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: (error as Error).message }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
+  return { flags: checkW9(text, formFields, tokens, visualElements) };
 });
