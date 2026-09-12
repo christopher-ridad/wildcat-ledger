@@ -1,8 +1,11 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, test } from 'vitest';
 
 import { renderWithRouter } from '../test/mocks';
 import { FAQPage } from './FAQPage';
+
+const LocationDisplay = () => <div data-testid="location">{useLocation().pathname}</div>;
 
 describe('FAQPage', () => {
   test('renders the heading and every section', () => {
@@ -32,5 +35,21 @@ describe('FAQPage', () => {
     renderWithRouter(<FAQPage />);
     const link = screen.getByRole('link', { name: /christopherridad@gmail\.com/i });
     expect(link).toHaveAttribute('href', 'mailto:christopherridad@gmail.com');
+  });
+
+  test('the back button returns to wherever the visitor came from', () => {
+    render(
+      <MemoryRouter initialEntries={['/dashboard', '/faq']} initialIndex={1}>
+        <LocationDisplay />
+        <Routes>
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/dashboard" element={<div>Dashboard</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('location')).toHaveTextContent('/faq');
+
+    fireEvent.click(screen.getByRole('button', { name: /back/i }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/dashboard');
   });
 });

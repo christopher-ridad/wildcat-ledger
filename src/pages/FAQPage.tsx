@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface FaqItem {
   question: string;
@@ -155,25 +156,32 @@ const SECTIONS: FaqSection[] = [
   },
 ];
 
-export const FAQPage = () => (
-  <div className="wl-register-root">
-    <div className="wl-register-card wl-faq-card">
-      <h1 className="wl-register-title">Frequently Asked Questions</h1>
-      <p className="wl-register-subtitle">
-        How WildcatLedger actually works, in plain terms.
-      </p>
+export const FAQPage = () => {
+  const navigate = useNavigate();
 
-      {SECTIONS.map((section) => (
-        <div key={section.heading} className="wl-faq-section">
-          <h2>{section.heading}</h2>
-          {section.items.map((item) => (
-            <details key={item.question} className="wl-faq-item">
-              <summary className="wl-faq-question">{item.question}</summary>
-              <div className="wl-faq-answer">{item.answer}</div>
-            </details>
-          ))}
-        </div>
-      ))}
+  return (
+    <div className="wl-register-root">
+      <div className="wl-register-card wl-faq-card">
+        <button type="button" className="wl-btn-back" onClick={() => navigate(-1)}>
+          ← Back
+        </button>
+        <h1 className="wl-register-title">Frequently Asked Questions</h1>
+        <p className="wl-register-subtitle">
+          How WildcatLedger actually works, in plain terms.
+        </p>
+
+        {SECTIONS.map((section) => (
+          <div key={section.heading} className="wl-faq-section">
+            <h2>{section.heading}</h2>
+            {section.items.map((item) => (
+              <details key={item.question} className="wl-faq-item">
+                <summary className="wl-faq-question">{item.question}</summary>
+                <div className="wl-faq-answer">{item.answer}</div>
+              </details>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
