@@ -7,7 +7,7 @@ import {
   Box,
   drawFlagBoxes,
   MAX_DOCUMENT_CHECK_FILE_BYTES,
-  MAX_DOCUMENT_CHECK_PAGES,
+  MAX_W9_PAGES,
 } from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
 
@@ -77,7 +77,7 @@ export const W9CompletenessCheck = ({
 
         const pdf = await loadPdf(file);
         if (cancelled) return;
-        if (pdf.numPages > MAX_DOCUMENT_CHECK_PAGES) {
+        if (pdf.numPages > MAX_W9_PAGES) {
           setErrorMessage(TOO_MANY_PAGES_MESSAGE);
           setStatus('error');
           onBlockingChange(false);

@@ -46,7 +46,9 @@ export const DocumentCheckStatus = ({
             ⚠ {flag.message}
           </p>
         ))}
-        <label className={styles['wl-form-checkbox']}>
+        <label
+          className={`${styles['wl-form-checkbox']} ${styles['wl-doc-check-acknowledge']}`}
+        >
           <input
             type="checkbox"
             checked={acknowledged}
