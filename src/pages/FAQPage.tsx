@@ -178,45 +178,29 @@ const SECTIONS: FaqSection[] = [
               you reconcile. Eventually, it&rsquo;ll help fill out the reconciliation form
               for you too.
             </p>
-          </>
-        ),
-      },
-      {
-        question: 'How does debit card reconciliation work inside the app itself?',
-        answer: (
-          <>
-            A purchase can be reconciled once it&rsquo;s &ldquo;covered&rdquo; (a receipt
-            or{' '}
-            <a href={POLICY_EXEMPTION_FORM_URL} target="_blank" rel="noopener noreferrer">
-              Policy Exemption Form
-            </a>{' '}
-            attached), doesn&rsquo;t owe SOFO a tax reimbursement, and doesn&rsquo;t have
-            a pending edit or delete request still awaiting approval. Reconciling
-            doesn&rsquo;t lock it in place. A correction afterward goes through the same
-            second-approver rule as any other transaction edit.
-          </>
-        ),
-      },
-      {
-        question: 'What’s a "reload"?',
-        answer:
-          'Adding money back onto the debit card. It’s really just a Deposit made on the Debit Card budget line, shown as "Reloaded" once it reaches Paid. It skips the Approved step since approving a reload is reloading it.',
-      },
-      {
-        question: 'What happens if there’s sales tax on a debit card receipt?',
-        answer: (
-          <>
             <p>
-              Your org should be tax-exempt at checkout whenever the exemption form is
-              shown, so this shouldn&rsquo;t normally happen. If it does, the full amount
-              (tax included) still counts against your budget right away.
+              <strong>In WildcatLedger:</strong> a purchase can only be reconciled once
+              it&rsquo;s &ldquo;covered&rdquo; (a receipt or Policy Exemption Form
+              attached), doesn&rsquo;t owe SOFO a tax reimbursement, and doesn&rsquo;t
+              have a pending edit or delete request still awaiting approval. Reconciling
+              doesn&rsquo;t lock it in place. A correction afterward goes through the same
+              second-approver rule as any other transaction edit.
             </p>
             <p>
-              <strong>In WildcatLedger:</strong> the transaction gets flagged as owing
-              SOFO a reimbursement, and clearing that flag is self-attested.
+              <strong>In WildcatLedger:</strong> a reload is recorded as a Deposit on the
+              Debit Card budget line, shown as &ldquo;Reloaded&rdquo; once it reaches
+              Paid. It skips the Approved step since approving a reload is reloading it.
             </p>
             <p>
-              The actual repayment happens on{' '}
+              If there&rsquo;s sales tax on a receipt: your org should be tax-exempt at
+              checkout whenever the exemption form is shown, so this shouldn&rsquo;t
+              normally happen. If it does, the full amount (tax included) still counts
+              against your budget right away.
+            </p>
+            <p>
+              <strong>In WildcatLedger:</strong> that transaction gets flagged as owing
+              SOFO a reimbursement, and clearing that flag is self-attested. The actual
+              repayment happens on{' '}
               <a
                 href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
                 target="_blank"
