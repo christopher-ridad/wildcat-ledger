@@ -51,10 +51,9 @@ const SECTIONS: FaqSection[] = [
         answer: (
           <>
             <p>
-              Every transaction type except Debit Card asks you to pick which line is
-              funding it: ASG, Operating, or Gifts. A Debit Card purchase or reload always
-              draws from the Debit Card line itself instead, since that&rsquo;s a separate
-              pool of money the card draws down directly.
+              Every transaction type asks you to pick which line is funding it: ASG,
+              Operating, or Gifts. A debit-card reload counts here too, since it still has
+              to be funded from one of those lines.
             </p>
             <ul>
               <li>
