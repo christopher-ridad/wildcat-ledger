@@ -472,18 +472,13 @@ const SECTIONS: FaqSection[] = [
   },
 ];
 
-// Only one section sits in this vertical band at a time while scrolling, so
-// whichever entry fires isIntersecting is the current section -- no need to
-// compare boundingClientRect positions across entries.
 // How far below the top of the viewport a section's heading has to scroll
-// past before it counts as "current." A fixed offset rather than an
-// IntersectionObserver band: near the bottom of a long page, the last few
-// (short) sections can end up compressed above any fixed viewport band and
-// never individually pass through it, so they'd never get marked active no
-// matter how far you scroll. Comparing each section's static offsetTop
-// against scroll position instead has no such blind spot -- it resolves
-// correctly all the way down to the last section at max scroll.
+// past before it counts as "current."
 const ACTIVE_SECTION_SCROLL_OFFSET = 150;
+
+// How close to the bottom of the page counts as "at the bottom," to absorb
+// subpixel/zoom rounding in scrollY + innerHeight vs. scrollHeight.
+const AT_BOTTOM_THRESHOLD = 4;
 
 export const FAQPage = () => {
   const navigate = useNavigate();
@@ -491,6 +486,23 @@ export const FAQPage = () => {
 
   useEffect(() => {
     const updateActiveSection = () => {
+      // Comparing offsetTop against a fixed scroll offset breaks down when
+      // the viewport is tall relative to the remaining page content: once
+      // the page hits max scroll, a short trailing section's heading can
+      // still sit well below that offset in a tall viewport, with no more
+      // room to scroll further and bring it closer to the top. There's
+      // simply no amount of scrolling that resolves it. Being at the
+      // bottom of the page is an unambiguous, viewport-height-independent
+      // signal that the last section is the one in view, so it overrides
+      // the normal offset check.
+      const atBottom =
+        window.scrollY + window.innerHeight >=
+        document.documentElement.scrollHeight - AT_BOTTOM_THRESHOLD;
+      if (atBottom) {
+        setActiveSlug(SECTIONS[SECTIONS.length - 1].slug);
+        return;
+      }
+
       const scrollPosition = window.scrollY + ACTIVE_SECTION_SCROLL_OFFSET;
       let current = SECTIONS[0].slug;
       for (const section of SECTIONS) {
