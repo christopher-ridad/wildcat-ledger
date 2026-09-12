@@ -163,28 +163,26 @@ const SECTIONS: FaqSection[] = [
                 rel="noopener noreferrer"
               >
                 Debit Card Reconciliation Form
-              </a>
-              . Submit every receipt for the purchases you&rsquo;re reconciling up to that
-              point. You can reload the card with more money at the same time.
-            </p>
-            <p>
-              Each org has a set debit card limit, decided when your org first applied for
-              the card. It can change, but only by talking to the Cashier&rsquo;s Office.
-              A reload can be any amount up to that limit.
+              </a>{' '}
+              and submit every receipt for the purchases you&rsquo;re reconciling up to
+              that point.
             </p>
             <p>
               <strong>In WildcatLedger:</strong> it tracks every receipt as you go and
               flags anything missing, so you know exactly what&rsquo;s ready by the time
-              you reconcile. Eventually, it&rsquo;ll help fill out the reconciliation form
-              for you too.
+              you reconcile (eventually, it&rsquo;ll help fill out the form itself too). A
+              purchase can only be reconciled here once it&rsquo;s &ldquo;covered&rdquo;
+              (a receipt or Policy Exemption Form attached), doesn&rsquo;t owe SOFO a tax
+              reimbursement, and doesn&rsquo;t have a pending edit or delete request still
+              awaiting approval. Reconciling doesn&rsquo;t lock it in place, a correction
+              afterward goes through the same second-approver rule as any other
+              transaction edit.
             </p>
             <p>
-              <strong>In WildcatLedger:</strong> a purchase can only be reconciled once
-              it&rsquo;s &ldquo;covered&rdquo; (a receipt or Policy Exemption Form
-              attached), doesn&rsquo;t owe SOFO a tax reimbursement, and doesn&rsquo;t
-              have a pending edit or delete request still awaiting approval. Reconciling
-              doesn&rsquo;t lock it in place. A correction afterward goes through the same
-              second-approver rule as any other transaction edit.
+              You can reload the card with more money at the same time. Each org has a set
+              debit card limit, decided when your org first applied for the card. It can
+              change, but only by talking to the Cashier&rsquo;s Office. A reload can be
+              any amount up to that limit.
             </p>
             <p>
               <strong>In WildcatLedger:</strong> a reload is recorded as a Deposit on the
@@ -192,7 +190,7 @@ const SECTIONS: FaqSection[] = [
               Paid. It skips the Approved step since approving a reload is reloading it.
             </p>
             <p>
-              If there&rsquo;s sales tax on a receipt: your org should be tax-exempt at
+              If there&rsquo;s sales tax on a receipt, your org should be tax-exempt at
               checkout whenever the exemption form is shown, so this shouldn&rsquo;t
               normally happen. If it does, the full amount (tax included) still counts
               against your budget right away.
