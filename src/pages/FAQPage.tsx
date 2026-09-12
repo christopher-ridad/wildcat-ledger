@@ -1,12 +1,18 @@
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import {
+  POLICY_EXEMPTION_FORM_URL,
+  SOFO_SALES_TAX_REIMBURSEMENT_URL,
+} from '../features/ledger/utils/constants';
+
 interface FaqItem {
   question: string;
   answer: ReactNode;
 }
 
 interface FaqSection {
+  slug: string;
   heading: string;
   items: FaqItem[];
 }
@@ -15,6 +21,7 @@ interface FaqSection {
 // rule changes there, it should change here too.
 const SECTIONS: FaqSection[] = [
   {
+    slug: 'getting-started',
     heading: 'Getting started',
     items: [
       {
@@ -35,33 +42,146 @@ const SECTIONS: FaqSection[] = [
     ],
   },
   {
-    heading: 'Transactions & documents',
+    slug: 'transaction-types',
+    heading: 'Transaction types',
     items: [
       {
-        question: 'What documents does each transaction type need?',
+        question: 'Payment Request',
         answer: (
-          <ul>
-            <li>
-              <strong>Debit Card:</strong> a receipt, or a Policy Exemption Form instead
-            </li>
-            <li>
-              <strong>Non-Officer Reimbursement:</strong> a receipt
-            </li>
-            <li>
-              <strong>Payment Request:</strong> RSO Agreement and W-9, plus a Contracted
-              Services Form and Conflict of Interest Form if you&rsquo;re paying an
-              individual person rather than a company
-            </li>
-            <li>
-              <strong>Payment to NU Employee:</strong> RSO Agreement, W-9, and Special Pay
-              Form
-            </li>
-            <li>
-              <strong>Deposit:</strong> nothing
-            </li>
-          </ul>
+          <>
+            <p>
+              Attach the RSO Agreement (the contract between your org and the vendor) and
+              a W-9. If you&rsquo;re paying an individual person rather than a company,
+              you&rsquo;ll also need a Contracted Services Form and a Conflict of Interest
+              Form.
+            </p>
+            <p>
+              Filling out the RSO Agreement happens in stages. Your org fills out Section
+              1 and Section 4 first (event details, compensation, and a handful of yes/no
+              confirmations). Then the vendor, listed as &ldquo;Supplier,&rdquo; signs
+              Section 3. Once that&rsquo;s signed, it goes to an Authorized Northwestern
+              Staff Representative to sign. WildcatLedger&rsquo;s upload check looks for
+              all of that before flagging the document as complete.
+            </p>
+            <p>Blank templates:</p>
+            <ul>
+              <li>
+                <a
+                  href="/forms/rso-agreement.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  RSO Agreement
+                </a>
+              </li>
+              <li>
+                <a href="/forms/w9.pdf" target="_blank" rel="noopener noreferrer">
+                  W-9
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/forms/contracted-services.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Contracted Services Form
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/forms/conflict-of-interest.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Conflict of Interest Form
+                </a>
+              </li>
+            </ul>
+          </>
         ),
       },
+      {
+        question: 'Non-Officer Reimbursement',
+        answer:
+          'Attach a receipt. If you don’t have one, a bank statement showing the charge works too. Just upload it in the receipt slot when you attach it.',
+      },
+      {
+        question: 'Debit Card',
+        answer: (
+          <>
+            <p>
+              Attach a receipt. If the receipt is missing, a{' '}
+              <a
+                href={POLICY_EXEMPTION_FORM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Policy Exemption Form
+              </a>{' '}
+              takes its place instead.
+            </p>
+            <p>
+              Reconciliation itself happens inside WildcatLedger, through the
+              &ldquo;Reconcile Debit Card&rdquo; button in the sidebar, rather than as a
+              separate document you upload.
+            </p>
+          </>
+        ),
+      },
+      {
+        question: 'Payment to NU Employee',
+        answer: (
+          <>
+            <p>
+              Attach the RSO Agreement (the same Section 1/3/4 org steps and Section
+              3/staff signatures described under Payment Request above), a W-9, and a{' '}
+              <a
+                href="/forms/special-pay-request-form.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Special Pay Form
+              </a>
+              .
+            </p>
+          </>
+        ),
+      },
+      {
+        question: 'What about other SOFO transaction types?',
+        answer: (
+          <>
+            <p>
+              WildcatLedger currently only supports the four types above. SOFO also
+              handles a few others that aren&rsquo;t in the app yet:
+            </p>
+            <ul>
+              <li>
+                <strong>Corporate Card purchases:</strong> attach a contract, invoice, and
+                payment link as needed
+              </li>
+              <li>
+                <strong>iBuyNU:</strong> attach a screenshot of the Amazon cart
+              </li>
+              <li>
+                <strong>Transfer to another group or department:</strong> include the
+                other group&rsquo;s name and Project ID in the expense description
+              </li>
+              <li>
+                <strong>Request to correct a prior transaction</strong>
+              </li>
+            </ul>
+            <p>Log those directly with SOFO for now.</p>
+          </>
+        ),
+      },
+    ],
+  },
+  {
+    slug: 'documents-requests',
+    heading: 'Documents & requests',
+    items: [
       {
         question: 'What if I don’t have a document yet?',
         answer:
@@ -80,6 +200,7 @@ const SECTIONS: FaqSection[] = [
     ],
   },
   {
+    slug: 'approvals-edits',
     heading: 'Approvals & edits',
     items: [
       {
@@ -105,12 +226,24 @@ const SECTIONS: FaqSection[] = [
     ],
   },
   {
+    slug: 'debit-card',
     heading: 'Debit Card',
     items: [
       {
         question: 'How does debit card reconciliation work?',
-        answer:
-          'A purchase can be reconciled once it’s "covered" (a receipt or Policy Exemption Form attached), doesn’t owe SOFO a tax reimbursement, and doesn’t have a pending edit or delete request still awaiting approval. Reconciling doesn’t lock it in place. A correction afterward goes through the same second-approver rule as any other transaction edit.',
+        answer: (
+          <>
+            A purchase can be reconciled once it&rsquo;s &ldquo;covered&rdquo; (a receipt
+            or{' '}
+            <a href={POLICY_EXEMPTION_FORM_URL} target="_blank" rel="noopener noreferrer">
+              Policy Exemption Form
+            </a>{' '}
+            attached), doesn&rsquo;t owe SOFO a tax reimbursement, and doesn&rsquo;t have
+            a pending edit or delete request still awaiting approval. Reconciling
+            doesn&rsquo;t lock it in place. A correction afterward goes through the same
+            second-approver rule as any other transaction edit.
+          </>
+        ),
       },
       {
         question: 'What’s a "reload"?',
@@ -119,12 +252,28 @@ const SECTIONS: FaqSection[] = [
       },
       {
         question: 'What happens if there’s sales tax on a debit card receipt?',
-        answer:
-          'Your org should be tax-exempt at checkout whenever the exemption form is shown, so this shouldn’t normally happen. If it does, the full amount (tax included) still counts against your budget right away, and the transaction gets flagged as owing SOFO a reimbursement. Clearing that flag is self-attested. The actual repayment happens on SOFO’s own site, which this app doesn’t connect to directly.',
+        answer: (
+          <>
+            Your org should be tax-exempt at checkout whenever the exemption form is
+            shown, so this shouldn&rsquo;t normally happen. If it does, the full amount
+            (tax included) still counts against your budget right away, and the
+            transaction gets flagged as owing SOFO a reimbursement. Clearing that flag is
+            self-attested. The actual repayment happens on{' '}
+            <a
+              href={SOFO_SALES_TAX_REIMBURSEMENT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              SOFO&rsquo;s own site
+            </a>
+            , which this app doesn&rsquo;t connect to directly.
+          </>
+        ),
       },
     ],
   },
   {
+    slug: 'financial-tasks',
     heading: 'Financial Tasks',
     items: [
       {
@@ -135,6 +284,7 @@ const SECTIONS: FaqSection[] = [
     ],
   },
   {
+    slug: 'other',
     heading: 'Other',
     items: [
       {
@@ -176,8 +326,19 @@ export const FAQPage = () => {
           How WildcatLedger actually works, in plain terms.
         </p>
 
+        <nav className="wl-faq-toc" aria-label="Table of contents">
+          <p className="wl-faq-toc-label">On this page</p>
+          <ul>
+            {SECTIONS.map((section) => (
+              <li key={section.slug}>
+                <a href={`#${section.slug}`}>{section.heading}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
         {SECTIONS.map((section) => (
-          <div key={section.heading} className="wl-faq-section">
+          <div key={section.slug} id={section.slug} className="wl-faq-section">
             <h2>{section.heading}</h2>
             {section.items.map((item) => (
               <details key={item.question} className="wl-faq-item">
