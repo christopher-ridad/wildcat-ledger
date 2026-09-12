@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import {
@@ -555,6 +555,22 @@ const SECTIONS: FaqSection[] = [
 export const FAQPage = () => {
   const navigate = useNavigate();
 
+  // A plain hash link pushes a new browser history entry on every click, so
+  // pressing Back after jumping to a section just un-jumps the scroll
+  // position instead of leaving the page entirely. Scroll to the section
+  // manually instead, and use replaceState (not the default pushState) to
+  // keep the URL hash in sync for shareable links without adding a stop to
+  // history. Middle-click, Ctrl/Cmd-click, and Shift-click are left alone
+  // so opening the link in a new tab still works normally.
+  const handleTocClick = (event: MouseEvent<HTMLAnchorElement>, slug: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) {
+      return;
+    }
+    event.preventDefault();
+    document.getElementById(slug)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.history.replaceState(null, '', `#${slug}`);
+  };
+
   return (
     <div className="wl-register-root">
       <div className="wl-faq-shell">
@@ -564,7 +580,12 @@ export const FAQPage = () => {
             <ul>
               {SECTIONS.map((section) => (
                 <li key={section.slug}>
-                  <a href={`#${section.slug}`}>{section.heading}</a>
+                  <a
+                    href={`#${section.slug}`}
+                    onClick={(event) => handleTocClick(event, section.slug)}
+                  >
+                    {section.heading}
+                  </a>
                 </li>
               ))}
             </ul>

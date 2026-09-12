@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { renderWithRouter } from '../test/mocks';
 import { FAQPage } from './FAQPage';
@@ -98,6 +98,28 @@ describe('FAQPage', () => {
       'href',
       'https://www.northwestern.edu/financial-operations/policies-procedures/forms/policy_exception.pdf',
     );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  test('clicking a table-of-contents link scrolls to the section instead of pushing a new history entry', () => {
+    renderWithRouter(<FAQPage />);
+    const scrollIntoViewSpy = vi.spyOn(Element.prototype, 'scrollIntoView');
+    const pushStateSpy = vi.spyOn(window.history, 'pushState');
+    const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
+
+    const toc = screen.getByRole('navigation', { name: /table of contents/i });
+    fireEvent.click(within(toc).getByRole('link', { name: 'Transaction types' }));
+
+    // A plain hash link's default navigation pushes a history entry, which
+    // is exactly what made "Back" un-jump a section instead of leaving the
+    // page. Scrolling manually and using replaceState avoids that.
+    expect(scrollIntoViewSpy).toHaveBeenCalled();
+    expect(replaceStateSpy).toHaveBeenCalledWith(null, '', '#transaction-types');
+    expect(pushStateSpy).not.toHaveBeenCalled();
   });
 
   test('the back button returns to wherever the visitor came from', () => {
