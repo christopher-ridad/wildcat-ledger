@@ -111,9 +111,16 @@
   position: absolute;
   inset: 0;
   display: flex;
+  /* Column, not row: the RSO check's two side-by-side pages are each
+     only ~170px wide in the compact view, so a spinner next to
+     "Checking for missing sections…" wrapped the text to two lines
+     squeezed beside a small icon, reading as skewed left even though
+     the box itself was centered. Stacking reads centered at any width. */
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  text-align: center;
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
