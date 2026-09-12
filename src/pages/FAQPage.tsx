@@ -338,12 +338,34 @@ const SECTIONS: FaqSection[] = [
       {
         question: 'Why can’t I approve my own change?',
         answer:
-          'So a second, independent person always looks at anything that moves money before it sticks. The same rule applies to deletions.',
+          'So a second, independent person always looks at anything that moves money before it sticks. That accountability is the whole point, no one person can move or erase your org’s money unilaterally. The same rule applies to deletions.',
       },
       {
         question: 'What do Pending, Approved, and Paid mean?',
-        answer:
-          '"Pending" means you’ve already submitted the SOFO Microsoft Form and are logging it here. The ledger doesn’t have a separate "still gathering paperwork" state. "Approved" means SOFO has signed off. "Paid" means the money has actually gone out. A transaction can’t move to Approved or Paid while it’s still missing a required document.',
+        answer: (
+          <>
+            <p>
+              &ldquo;Pending&rdquo; means you&rsquo;ve already submitted the SOFO
+              Microsoft Form and are logging it here. The ledger doesn&rsquo;t have a
+              separate &ldquo;still gathering paperwork&rdquo; state.
+            </p>
+            <p>
+              &ldquo;Approved&rdquo; means SOFO has signed off. SOFO goes through multiple
+              internal approval stages on their end for each transaction, so this
+              collapses all of that into one status: everyone there has signed off.
+            </p>
+            <p>
+              &ldquo;Paid&rdquo; means the money has actually gone out. From here,
+              it&rsquo;s on your org to confirm the vendor actually received it, since
+              there&rsquo;s no automatic confirmation built into this that they did.
+            </p>
+            <p>
+              A transaction can&rsquo;t move to Approved while it&rsquo;s still missing a
+              required document, so in practice it never even gets the chance to reach
+              Paid in that state either.
+            </p>
+          </>
+        ),
       },
       {
         question: 'When does a transaction actually affect my budget balance?',
