@@ -23,9 +23,8 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     error,
     overdraftWarning,
     pendingTransaction,
-    w9CheckBlocking,
+    documentCheckBlocking,
     setW9CheckBlocking,
-    rsoCheckBlocking,
     setRsoCheckBlocking,
     handleReceiptChange,
     handleChange,
@@ -225,7 +224,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
         <button
           type="submit"
           className="wl-btn-primary"
-          disabled={submitting || w9CheckBlocking || rsoCheckBlocking}
+          disabled={submitting || documentCheckBlocking}
         >
           {submitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Transaction'}
         </button>

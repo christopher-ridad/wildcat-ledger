@@ -40,6 +40,53 @@ interface DisplayFlag {
   box: Box | null;
 }
 
+interface RowAnswer {
+  key: string;
+  answer: 'yes' | 'no' | 'unanswered';
+}
+
+// Turns the server's section-level flags plus this component's own
+// pixel-read Section 4 answers into one combined, page-tagged flag list.
+// Pure and DOM-free -- the only part of this check with real conditional
+// logic, kept separate from the canvas/network plumbing that surrounds
+// it in the effect below.
+function deriveFlags(result: RsoCheckResult, rowAnswers: RowAnswer[]): DisplayFlag[] {
+  const sectionFlags: DisplayFlag[] = result.sectionFlags.map((f) => ({
+    key: `section-${f.section}`,
+    message: f.message,
+    page: f.page,
+    box: f.box,
+  }));
+
+  if (rowAnswers.some((r) => r.answer === 'unanswered')) {
+    return [
+      ...sectionFlags,
+      {
+        key: 'section-4',
+        message: 'Section 4 not filled out.',
+        page: result.section4Box.page,
+        box: result.section4Box.box,
+      },
+    ];
+  }
+
+  const rowB = rowAnswers.find((r) => r.key === 'b');
+  if (rowB?.answer === 'yes' && !result.reservationSubsection.filled) {
+    return [
+      ...sectionFlags,
+      {
+        key: 'section-4b',
+        message:
+          'Section 4 needs the reservation details (space reserved and event contact) filled out since you selected Yes for reserved space.',
+        page: result.reservationSubsection.page,
+        box: result.reservationSubsection.box,
+      },
+    ];
+  }
+
+  return sectionFlags;
+}
+
 interface RSOAgreementCompletenessCheckProps {
   file: File | null;
   // Passed the stable setState function directly by the parent, same
@@ -110,44 +157,14 @@ export const RSOAgreementCompletenessCheck = ({
         const dimsByPage = [dims1, dims2];
         const ctx2 = canvas2.getContext('2d');
 
-        const rowAnswers = ctx2
+        const rowAnswers: RowAnswer[] = ctx2
           ? result.section4Rows.map((row) => ({
               key: row.key,
               answer: readRowAnswer(ctx2, row, dimsByPage[row.page]),
             }))
           : [];
 
-        const derivedFlags: DisplayFlag[] = [];
-        const anyUnanswered = rowAnswers.some((r) => r.answer === 'unanswered');
-        if (anyUnanswered) {
-          derivedFlags.push({
-            key: 'section-4',
-            message: 'Section 4 not filled out.',
-            page: result.section4Box.page,
-            box: result.section4Box.box,
-          });
-        } else {
-          const rowB = rowAnswers.find((r) => r.key === 'b');
-          if (rowB?.answer === 'yes' && !result.reservationSubsection.filled) {
-            derivedFlags.push({
-              key: 'section-4b',
-              message:
-                'Section 4 needs the reservation details (space reserved and event contact) filled out since you selected Yes for reserved space.',
-              page: result.reservationSubsection.page,
-              box: result.reservationSubsection.box,
-            });
-          }
-        }
-
-        const allFlags: DisplayFlag[] = [
-          ...result.sectionFlags.map((f) => ({
-            key: `section-${f.section}`,
-            message: f.message,
-            page: f.page,
-            box: f.box,
-          })),
-          ...derivedFlags,
-        ];
+        const allFlags = deriveFlags(result, rowAnswers);
 
         setFlags(allFlags);
         drawFlagBoxes(

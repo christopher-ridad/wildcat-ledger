@@ -1,5 +1,5 @@
 import type { ChangeEvent, FormEvent } from 'react';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { getErrorMessage } from '../../../../../utils/errors';
 import { useLedger } from '../../../hooks/useLedger';
@@ -84,9 +84,23 @@ export function useAddTransactionForm({
   // Set by W9CompletenessCheck/RSOAgreementCompletenessCheck while either
   // has an unacknowledged flag -- see GitHub issue #29. Advisory, not a
   // hard requirement everywhere: this only ever gates the Save button,
-  // never the underlying validation.
-  const [w9CheckBlocking, setW9CheckBlocking] = useState(false);
-  const [rsoCheckBlocking, setRsoCheckBlocking] = useState(false);
+  // never the underlying validation. Kept as one object (rather than a
+  // separate useState per check) so a blocking Save reason is always "is
+  // anything in here true", not a growing list of ORs at the call site.
+  const [documentChecksBlocking, setDocumentChecksBlocking] = useState<
+    Record<'w9' | 'rso', boolean>
+  >({ w9: false, rso: false });
+  const documentCheckBlocking = Object.values(documentChecksBlocking).some(Boolean);
+  const setW9CheckBlocking = useCallback(
+    (blocking: boolean) =>
+      setDocumentChecksBlocking((prev) => ({ ...prev, w9: blocking })),
+    [],
+  );
+  const setRsoCheckBlocking = useCallback(
+    (blocking: boolean) =>
+      setDocumentChecksBlocking((prev) => ({ ...prev, rso: blocking })),
+    [],
+  );
 
   const handleReceiptChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -345,9 +359,8 @@ export function useAddTransactionForm({
     error,
     overdraftWarning,
     pendingTransaction,
-    w9CheckBlocking,
+    documentCheckBlocking,
     setW9CheckBlocking,
-    rsoCheckBlocking,
     setRsoCheckBlocking,
     handleReceiptChange,
     handleChange,
