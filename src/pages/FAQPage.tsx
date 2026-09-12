@@ -47,22 +47,32 @@ const SECTIONS: FaqSection[] = [
     heading: 'Transaction types',
     items: [
       {
-        question: 'Where do I submit the SOFO Microsoft Form?',
+        question: 'How do I actually submit a transaction to SOFO?',
         answer: (
           <>
-            <p>
-              Submit it through{' '}
-              <a
-                href="https://forms.office.com/Pages/ResponsePage.aspx?id=YdN2fXeCCEekd2ToNmzRvPTAeBa6n3hLtPXRTAWTmwxUQUZHMU45WUpIV1BEV0xNWFZSRjdOUllMVyQlQCN0PWcu"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                this Microsoft Form
-              </a>
-              . You&rsquo;ll need to be signed in with your Northwestern email to access
-              it.
-            </p>
-            <p>You can also submit it in person at Norris.</p>
+            <p>You have a few options:</p>
+            <ul>
+              <li>
+                The{' '}
+                <a
+                  href="https://forms.office.com/Pages/ResponsePage.aspx?id=YdN2fXeCCEekd2ToNmzRvPTAeBa6n3hLtPXRTAWTmwxUQUZHMU45WUpIV1BEV0xNWFZSRjdOUllMVyQlQCN0PWcu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  SOFO Microsoft Form
+                </a>{' '}
+                online (you&rsquo;ll need to be signed in with your Northwestern email to
+                access it)
+              </li>
+              <li>In person at the SOFO or Cashier&rsquo;s Office</li>
+              <li>
+                By email, at{' '}
+                <a href="mailto:SOFOTransactions@northwestern.edu">
+                  SOFOTransactions@northwestern.edu
+                </a>{' '}
+                for SOFO
+              </li>
+            </ul>
           </>
         ),
       },
