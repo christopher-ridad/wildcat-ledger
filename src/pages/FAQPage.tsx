@@ -47,10 +47,13 @@ const SECTIONS: FaqSection[] = [
     heading: 'Transaction types',
     items: [
       {
-        question: 'How do I actually submit a transaction to SOFO?',
+        question: 'How do I actually submit a transaction?',
         answer: (
           <>
-            <p>You have a few options:</p>
+            <p>
+              Depending on the transaction, that&rsquo;s SOFO or the Cashier&rsquo;s
+              Office. You have a few options:
+            </p>
             <ul>
               <li>
                 The{' '}
@@ -77,6 +80,11 @@ const SECTIONS: FaqSection[] = [
                 for the Cashier&rsquo;s Office
               </li>
             </ul>
+            <p>
+              This doesn&rsquo;t apply to Debit Card purchases. There&rsquo;s nothing to
+              submit ahead of time there, you just make the purchase and log it here
+              afterward.
+            </p>
           </>
         ),
       },
