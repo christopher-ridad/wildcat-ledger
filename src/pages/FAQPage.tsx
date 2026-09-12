@@ -123,9 +123,26 @@ const SECTIONS: FaqSection[] = [
               takes its place instead.
             </p>
             <p>
-              Reconciliation itself happens inside WildcatLedger, through the
-              &ldquo;Reconcile Debit Card&rdquo; button in the sidebar, rather than as a
-              separate document you upload.
+              Once your org is ready to reconcile, you&rsquo;ll need to fill out the{' '}
+              <a
+                href="https://www.northwestern.edu/norris/documents/debitcardreconciliationver-dec2015.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Debit Card Reconciliation Form
+              </a>
+              . Submit every receipt for the purchases you&rsquo;re reconciling up to that
+              point. You can reload the card with more money at the same time.
+            </p>
+            <p>
+              Each org has a set debit card limit, decided when your org first applied for
+              the card. It can change, but only by talking to the Cashier&rsquo;s Office.
+              A reload can be any amount up to that limit.
+            </p>
+            <p>
+              WildcatLedger tracks every receipt as you go and flags anything missing, so
+              you know exactly what&rsquo;s ready by the time you reconcile. Eventually,
+              it&rsquo;ll help fill out the reconciliation form for you too.
             </p>
           </>
         ),
@@ -173,7 +190,6 @@ const SECTIONS: FaqSection[] = [
                 <strong>Request to correct a prior transaction</strong>
               </li>
             </ul>
-            <p>Log those directly with SOFO for now.</p>
           </>
         ),
       },
