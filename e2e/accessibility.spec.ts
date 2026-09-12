@@ -46,6 +46,31 @@ test('the Add Transaction modal has no WCAG 2.0/2.1 A/AA violations', async ({
   expect(results.violations).toEqual([]);
 });
 
+test('the Add Transaction modal for a Payment Request has no WCAG 2.0/2.1 A/AA violations', async ({
+  page,
+}) => {
+  // The default type scanned above (Debit Card) never renders the RSO
+  // Agreement / W-9 upload fields or their completeness-check components
+  // (W9CompletenessCheck, RSOAgreementCompletenessCheck) -- this covers
+  // that layout. It doesn't upload a file: the checks themselves call a
+  // real, billed Document AI API this suite has no credentials for in CI,
+  // so their own "checking"/"flagged" states aren't covered here -- see
+  // each component's own unit tests for their aria-live/aria-label wiring.
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: '+ Add Transaction' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel(/Transaction Type/).selectOption('Payment Request');
+  await expect(dialog.locator('input[name="contractFile"]')).toBeVisible();
+  await expect(dialog.locator('input[name="w9File"]')).toBeVisible();
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .include('[role="dialog"]')
+    .analyze();
+
+  expect(results.violations).toEqual([]);
+});
+
 test('the audit log page has no WCAG 2.0/2.1 A/AA violations', async ({ page }) => {
   await page.goto('/audit-log');
   await expect(page.getByText('← Back to Dashboard')).toBeVisible();

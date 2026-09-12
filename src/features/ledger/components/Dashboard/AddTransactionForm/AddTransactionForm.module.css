@@ -77,6 +77,66 @@
   margin: 2px 0 6px;
 }
 
+.wl-doc-check {
+  margin-top: 8px;
+}
+
+.wl-doc-check-canvas-wrap {
+  position: relative;
+  cursor: zoom-in;
+}
+
+.wl-doc-check-canvas {
+  max-width: 100%;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: block;
+}
+
+.wl-doc-check-canvas--expanded {
+  max-height: none;
+}
+
+.wl-doc-check-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.wl-doc-check-spinner {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: wl-doc-check-spin 0.7s linear infinite;
+}
+
+@keyframes wl-doc-check-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.wl-doc-check-pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .wl-link-button {
   background: none;
   border: none;

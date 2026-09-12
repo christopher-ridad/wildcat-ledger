@@ -17,6 +17,8 @@ CLAUDE.md
 .env.local
 .env.*.local
 .claude/
+.agents/
+skills-lock.json
 backups/
 .vercel
 .env*
