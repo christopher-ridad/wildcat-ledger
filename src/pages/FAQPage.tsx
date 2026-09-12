@@ -308,7 +308,7 @@ const SECTIONS: FaqSection[] = [
         ),
       },
       {
-        question: 'What’s a Deposit?',
+        question: 'Deposit',
         answer: (
           <>
             <p>
@@ -318,12 +318,7 @@ const SECTIONS: FaqSection[] = [
               a donation. There&rsquo;s no SOFO paperwork to submit for one of these, so a
               Deposit doesn&rsquo;t need a document attached.
             </p>
-            <p>
-              It can be funded from ASG, Operating, or Gifts, whichever the money actually
-              came from (see above). Unlike an outgoing payment, it hits your budget
-              balance right away, since that money already moved the moment it came in. A
-              debit-card reload is a special case of this, see Debit Card above.
-            </p>
+            <p>It can be funded to ASG, Operating, or Gifts.</p>
           </>
         ),
       },
