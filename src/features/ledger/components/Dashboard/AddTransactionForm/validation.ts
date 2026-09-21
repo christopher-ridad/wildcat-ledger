@@ -4,8 +4,7 @@ import { FormState, FundingOption, SupportedType } from './types';
 
 export const AMOUNT_REGEX = /^\d+(\.\d{1,2})?$/;
 
-export const ZELLE_REGEX =
-  /^([^\s@]+@[^\s@]+\.[^\s@]+|\+?1?\s*[-.]?\s*\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})$/;
+export const ZELLE_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const deriveBudgetLine = (
   type: SupportedType,
@@ -52,10 +51,10 @@ export const validateTransactionForm = (
 
   if (form.type === 'Non-Officer Reimbursement') {
     if (!form.zelleInfo.trim()) {
-      return 'Zelle information (email or phone number) is required.';
+      return 'Zelle email is required.';
     }
     if (!ZELLE_REGEX.test(form.zelleInfo.trim())) {
-      return 'Enter a valid Zelle email address or US phone number.';
+      return 'Enter a valid Zelle email address.';
     }
   }
 
