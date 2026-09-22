@@ -57,10 +57,10 @@ describe('AMOUNT_REGEX', () => {
 describe('ZELLE_REGEX', () => {
   test.each([
     ['person@example.com', true],
-    ['3125551234', true],
-    ['(312) 555-1234', true],
-    ['+1 312-555-1234', true],
-    ['not-an-email-or-phone', false],
+    ['3125551234', false],
+    ['(312) 555-1234', false],
+    ['+1 312-555-1234', false],
+    ['not-an-email', false],
     ['12345', false],
   ])('%s -> %s', (input, expected) => {
     expect(ZELLE_REGEX.test(input)).toBe(expected);
@@ -387,7 +387,7 @@ describe('validateTransactionForm', () => {
         reimbursedMemberName: 'Jane Doe',
       };
       expect(validateTransactionForm(form, false, undefined)).toMatch(
-        /Zelle information/,
+        /Zelle email is required/,
       );
     });
 

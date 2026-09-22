@@ -61,16 +61,16 @@ export const ReimbursementFields = ({
 
     <div className="wl-form-group">
       <label className="wl-form-label" htmlFor="zelleInfo">
-        Zelle Email or Phone Number <span className={styles['wl-form-required']}>*</span>
+        Zelle Email <span className={styles['wl-form-required']}>*</span>
       </label>
       <input
         id="zelleInfo"
         name="zelleInfo"
-        type="text"
+        type="email"
         className="wl-form-input"
         value={form.zelleInfo}
         onChange={onChange}
-        placeholder="e.g. vendor@email.com or (555) 123-4567"
+        placeholder="e.g. member@email.com"
       />
     </div>
   </>

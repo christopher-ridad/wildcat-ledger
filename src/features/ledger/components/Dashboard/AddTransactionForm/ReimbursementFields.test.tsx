@@ -59,7 +59,7 @@ describe('ReimbursementFields', () => {
   test('typing Zelle info calls onChange', () => {
     const onChange = vi.fn();
     renderFields({ onChange });
-    fireEvent.change(screen.getByLabelText(/Zelle Email or Phone Number/), {
+    fireEvent.change(screen.getByLabelText(/Zelle Email/), {
       target: { value: 'person@example.com' },
     });
     expect(onChange).toHaveBeenCalled();

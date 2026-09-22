@@ -170,7 +170,7 @@ describe('AddTransactionForm', () => {
     fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
       target: { value: 'Jane Doe' },
     });
-    fireEvent.change(screen.getByLabelText(/Zelle Email or Phone Number/), {
+    fireEvent.change(screen.getByLabelText(/Zelle Email/), {
       target: { value: 'jane@example.com' },
     });
     const file = new File(['x'], 'receipt.png', { type: 'image/png' });
@@ -199,7 +199,7 @@ describe('AddTransactionForm', () => {
     fireEvent.change(screen.getByLabelText(/Name of Member Being Reimbursed/), {
       target: { value: 'Jane Doe' },
     });
-    fireEvent.change(screen.getByLabelText(/Zelle Email or Phone Number/), {
+    fireEvent.change(screen.getByLabelText(/Zelle Email/), {
       target: { value: 'jane@example.com' },
     });
     fireEvent.click(screen.getByRole('checkbox', { name: "I don't have a receipt yet" }));

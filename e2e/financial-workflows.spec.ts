@@ -54,7 +54,7 @@ const addReimbursement = async (page: Page, title: string, amount: string) => {
   await dialog.getByLabel(/^Title/).fill(title);
   await dialog.getByLabel(/^Amount/).fill(amount);
   await dialog.getByLabel(/Name of Member Being Reimbursed/).fill('E2E Test Member');
-  await dialog.getByLabel(/Zelle Email or Phone Number/).fill('e2e-member@example.com');
+  await dialog.getByLabel(/Zelle Email/).fill('e2e-member@example.com');
   await dialog.getByText("I don't have a receipt yet").click();
   await dialog.getByRole('button', { name: 'Add Transaction', exact: true }).click();
   await expect(dialog).toBeHidden();
