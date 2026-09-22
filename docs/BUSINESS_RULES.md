@@ -38,13 +38,13 @@ There are five kinds of transactions, and each one has its own required paperwor
 | Non-Officer Reimbursement | A receipt                                                                                                                                        |
 | Payment Request           | RSO Agreement and W-9, plus a Contracted Services Form and Conflict of Interest Form if the vendor is an individual person rather than a company |
 | Payment to NU Employee    | RSO Agreement, W-9, and Special Pay Form                                                                                                         |
-| Deposit                   | none                                                                                                                                             |
+| Journal                   | none                                                                                                                                             |
 
 A transaction can always be saved before its paperwork is in hand. Just check "I don't have this
 yet" on the form. It gets flagged as missing that document, and can't be moved to Approved or Paid
 until the file actually shows up (see [Payment status lifecycle](#payment-status-lifecycle)).
 
-A Deposit can be funded from any of ASG, Operating, or Gifts, same as an outgoing transaction.
+A Journal can be funded from any of ASG, Operating, or Gifts, same as an outgoing transaction.
 Incoming ASG money (a supplemental grant or Senate appeal, say) needs somewhere to go too.
 
 **Technical implementation:** this matrix is defined once, in `getRequiredDocuments()` in
@@ -57,7 +57,8 @@ hand.
 Request," "Debit card purchase" became "Debit Card," and "Reimbursement" became "Non-Officer
 Reimbursement." "Payment to NU Employee" is a newer type, split out of what used to all be one
 "Payment Request" bucket. Old Payment Request transactions that were actually paid to a Northwestern
-employee were **not** retroactively reclassified into the new type. They were left as-is.
+employee were **not** retroactively reclassified into the new type. They were left as-is. "Deposit"
+was later renamed to "Journal," matching SOFO's own term for it.
 
 ## Dual-approval workflow
 
@@ -112,10 +113,11 @@ either.
 **When money actually counts against the budget is delayed for some types.** A Payment Request,
 Reimbursement, NU-Employee payment, or debit-card reload doesn't affect the budget line's balance
 until it reaches Paid, because the money hasn't actually gone out yet while it's still Pending or
-Approved. A Debit Card _purchase_ and a regular (non-reload) Deposit work differently: they hit the
-balance right away, since that money already moved the moment the purchase or deposit happened.
+Approved. A Debit Card _purchase_ and a regular (non-reload) Journal work differently: they hit the
+balance right away, since that money already moved the moment the purchase or journal entry
+happened.
 
-**A debit-card reload is really just a special Deposit,** one made specifically on the Debit Card
+**A debit-card reload is really just a special Journal,** one made specifically on the Debit Card
 budget line. It goes through the same Pending → Paid stages as everything else above, but skips the
 Approved step entirely. Approving a reload _is_ reloading it, so there's no separate "now pay it
 out" step after that. It only ever goes Pending → Paid, and is shown to users as "Reloaded."
@@ -135,7 +137,7 @@ matters in practice. See [Architecture notes](#for-developers-a-few-architectura
 
 ## Debit Card reconciliation
 
-A Debit Card _purchase_ (not a reload; reloads are Deposits, and follow the payment-status flow
+A Debit Card _purchase_ (not a reload; reloads are Journals, and follow the payment-status flow
 above instead) is considered "covered" once it has either a receipt or an attached Policy Exemption
 Form. The two are interchangeable. A purchase can't be reconciled if:
 

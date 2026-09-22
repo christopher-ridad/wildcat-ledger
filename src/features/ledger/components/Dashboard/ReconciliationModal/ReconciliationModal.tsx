@@ -34,12 +34,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   } = useLedger();
 
   // Unreconciled debit card *purchases* needing a receipt before they can be
-  // reconciled. Reload deposits also live on the Debit Card budget line but
+  // reconciled. Reload journals also live on the Debit Card budget line but
   // don't need reconciliation — they're tracked via their own payment
   // status instead (see TransactionRow).
   const unreconciledTxns: Transaction[] = (activeOrganization?.transactions ?? []).filter(
     (t) =>
-      t.budgetLine === 'Debit Card' && t.type !== 'Deposit' && t.reconciledAt == null,
+      t.budgetLine === 'Debit Card' && t.type !== 'Journal' && t.reconciledAt == null,
   );
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -193,7 +193,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
           date: new Date().toISOString().slice(0, 10),
           amount,
           direction: 'Inflow',
-          type: 'Deposit',
+          type: 'Journal',
           budgetLine: 'Debit Card',
           notes: `Requested after reconciling ${reconSummary.transactionCount} ${pluralize(reconSummary.transactionCount, 'transaction')} (${formatCurrency(reconSummary.totalAmount)} total).`,
         },
@@ -502,7 +502,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
             ) : (
               <>
                 <p className={styles['wl-recon-reload-hint']}>
-                  Creates a Deposit transaction on the Debit Card line, which counts
+                  Creates a Journal transaction on the Debit Card line, which counts
                   toward the balance once approved and paid.
                 </p>
                 <div className={styles['wl-recon-reload-row']}>

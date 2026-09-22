@@ -9,7 +9,7 @@ export const SUPPORTED_TYPES = [
   'Payment Request',
   'Non-Officer Reimbursement',
   'Payment to NU Employee',
-  'Deposit',
+  'Journal',
 ] as const satisfies readonly TransactionType[];
 
 export type SupportedType = (typeof SUPPORTED_TYPES)[number];

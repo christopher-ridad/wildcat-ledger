@@ -694,7 +694,7 @@ describe('ReconciliationModal', () => {
     expect(screen.getByLabelText('Amount')).toHaveValue('');
   });
 
-  test('submitting a reload amount creates a Deposit transaction on the Debit Card line', async () => {
+  test('submitting a reload amount creates a Journal transaction on the Debit Card line', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     const generateTransactionId = vi.fn(() => 'reload-id');
@@ -727,7 +727,7 @@ describe('ReconciliationModal', () => {
         expect.objectContaining({
           amount: 200,
           direction: 'Inflow',
-          type: 'Deposit',
+          type: 'Journal',
           budgetLine: 'Debit Card',
         }),
         'reload-id',
@@ -762,13 +762,13 @@ describe('ReconciliationModal', () => {
     expect(await screen.findByText('Reload rejected')).toBeInTheDocument();
   });
 
-  test('reload deposits do not show up in the unreconciled transactions list', () => {
+  test('reload journals do not show up in the unreconciled transactions list', () => {
     const org = buildMockOrganization({
       transactions: [
         buildMockTransaction({
           id: 't1',
           budgetLine: 'Debit Card',
-          type: 'Deposit',
+          type: 'Journal',
           direction: 'Inflow',
           amount: 200,
         }),

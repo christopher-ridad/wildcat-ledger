@@ -153,7 +153,7 @@ export const getRequiredDocuments = (
         : [CONTRACT, W9];
     case 'Payment to NU Employee':
       return [CONTRACT, W9, SPECIAL_PAY_FORM];
-    case 'Deposit':
+    case 'Journal':
       return [];
     default:
       return [];

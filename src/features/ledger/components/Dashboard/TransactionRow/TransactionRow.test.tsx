@@ -162,7 +162,7 @@ describe('TransactionRow', () => {
     test('hides the view-documents button when nothing is required or attached', () => {
       renderRow({
         canEdit: true,
-        t: buildMockTransaction({ type: 'Deposit', budgetLine: 'Operating' }),
+        t: buildMockTransaction({ type: 'Journal', budgetLine: 'Operating' }),
       });
       expect(screen.queryByLabelText('View missing documents')).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/View \d+ attached file/)).not.toBeInTheDocument();
@@ -295,16 +295,16 @@ describe('TransactionRow', () => {
 
     test('shows an empty dash for a transaction outside the Debit Card budget line with no payment status', () => {
       renderRow({
-        t: buildMockTransaction({ type: 'Deposit', budgetLine: 'Operating' }),
+        t: buildMockTransaction({ type: 'Journal', budgetLine: 'Operating' }),
       });
       expect(screen.getByText('—')).toBeInTheDocument();
     });
 
-    test('a Deposit (reload) on the Debit Card line shows payment status, not a reconciliation badge', () => {
+    test('a Journal (reload) on the Debit Card line shows payment status, not a reconciliation badge', () => {
       renderRow({
         canEdit: false,
         t: buildMockTransaction({
-          type: 'Deposit',
+          type: 'Journal',
           budgetLine: 'Debit Card',
           paymentStatus: 'Approved',
         }),
@@ -362,11 +362,11 @@ describe('TransactionRow', () => {
       expect(screen.getByLabelText('Payment status')).toHaveValue('Paid');
     });
 
-    test('shows an editable select for a Debit Card reload deposit, with no Approved option', () => {
+    test('shows an editable select for a Debit Card reload journal entry, with no Approved option', () => {
       renderRow({
         canEdit: true,
         t: buildMockTransaction({
-          type: 'Deposit',
+          type: 'Journal',
           budgetLine: 'Debit Card',
           paymentStatus: 'Pending',
         }),
@@ -377,11 +377,11 @@ describe('TransactionRow', () => {
       expect(screen.getByText('Reloaded')).toBeInTheDocument();
     });
 
-    test('labels a Paid reload deposit as "Reloaded" rather than "Paid"', () => {
+    test('labels a Paid reload journal entry as "Reloaded" rather than "Paid"', () => {
       renderRow({
         canEdit: false,
         t: buildMockTransaction({
-          type: 'Deposit',
+          type: 'Journal',
           budgetLine: 'Debit Card',
           paymentStatus: 'Paid',
         }),

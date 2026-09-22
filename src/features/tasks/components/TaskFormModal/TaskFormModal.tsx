@@ -13,11 +13,11 @@ import {
 import { todayDateString } from '../../utils/today';
 import styles from './TaskFormModal.module.css';
 
-// Deposits are a Debit Card reload, not something an org ever needs a
+// Journals are a Debit Card reload, not something an org ever needs a
 // to-do reminder to submit paperwork for -- exclude it here without
 // touching SUPPORTED_TYPES itself, which AddTransactionForm still needs
 // the full list from.
-const TASK_PAYMENT_TYPES = SUPPORTED_TYPES.filter((type) => type !== 'Deposit');
+const TASK_PAYMENT_TYPES = SUPPORTED_TYPES.filter((type) => type !== 'Journal');
 
 // Outside the academic year (before Fall starts or after Spring ends, see
 // isDateInSupportedQuarter) a task's due date would silently never show up

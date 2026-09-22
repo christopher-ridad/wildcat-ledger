@@ -15,7 +15,7 @@ export const deriveBudgetLine = (
 };
 
 export const deriveDirection = (type: SupportedType): 'Inflow' | 'Outflow' =>
-  type === 'Deposit' ? 'Inflow' : 'Outflow';
+  type === 'Journal' ? 'Inflow' : 'Outflow';
 
 // Returns an error message if the form isn't ready to submit, or null if it
 // is. Document requirements mirror documentRequirements.ts -- see
