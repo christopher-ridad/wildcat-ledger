@@ -5,21 +5,22 @@ export type Funding = 'ASG' | 'Operating' | 'Gifts';
 // Renamed from the original 'Reimbursement' / 'Debit card purchase' /
 // 'Direct payment' -- the stored value IS the display string everywhere
 // (no separate label map), so existing rows need a data migration (see
-// migration 0013) alongside this rename.
+// migration 0013) alongside this rename. 'Deposit' was later renamed to
+// 'Journal' the same way (see migration 0034) -- SOFO's own term for it.
 export type TransactionType =
   | 'Non-Officer Reimbursement'
   | 'Debit Card'
   | 'Payment Request'
   | 'Payment to NU Employee'
-  | 'Deposit';
+  | 'Journal';
 
 type TransactionDirection = 'Inflow' | 'Outflow';
 
 // Payment Request / Non-Officer Reimbursement / Payment to NU Employee, plus
-// Deposits onto the Debit Card line (reloads) — tracks real-world
+// Journals onto the Debit Card line (reloads) — tracks real-world
 // fulfillment, distinct from PendingChange (which governs edits/deletes to
 // the record itself). Debit Card purchases use reconciledAt instead; other
-// Deposits don't need a status.
+// Journals don't need a status.
 export type PaymentStatus = 'Pending' | 'Approved' | 'Paid';
 
 export interface Transaction {
@@ -102,7 +103,7 @@ export type AuditAction =
   | 'tax_reimbursed'
   // Written by the now-unused request_reload_with_audit RPC (superseded by
   // 0009_reload_as_transaction.sql, which folded reloads into ordinary
-  // Deposit transactions instead) -- kept here purely so historical
+  // Journal transactions instead) -- kept here purely so historical
   // audit_log rows from before that migration still render correctly.
   | 'reload_request';
 

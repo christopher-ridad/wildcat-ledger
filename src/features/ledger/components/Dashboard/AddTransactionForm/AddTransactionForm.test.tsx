@@ -75,7 +75,7 @@ describe('AddTransactionForm', () => {
     ).toBeChecked();
 
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
-      target: { value: 'Deposit' },
+      target: { value: 'Journal' },
     });
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
       target: { value: 'Debit Card' },

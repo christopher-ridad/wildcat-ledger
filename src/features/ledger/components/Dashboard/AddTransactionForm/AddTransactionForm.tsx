@@ -38,10 +38,10 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     form.type === 'Payment Request' ||
     form.type === 'Non-Officer Reimbursement' ||
     form.type === 'Payment to NU Employee' ||
-    form.type === 'Deposit';
+    form.type === 'Journal';
 
   // ASG grants and appeals can land throughout the year, not just as the
-  // base Spring Funding allocation, so a Deposit can legitimately record
+  // base Spring Funding allocation, so a Journal can legitimately record
   // incoming ASG money same as any other type -- see
   // docs/BUSINESS_RULES.md#transaction-types--their-documents.
   const fundingOptions: { value: FundingOption; label: string }[] = [

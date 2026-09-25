@@ -182,7 +182,7 @@ describe('TaskRow', () => {
   test('omits payment type text when not set', () => {
     renderRow({ task: buildMockFinancialTask({ paymentType: undefined }) });
     expect(
-      screen.queryByText(/Payment Request|Debit Card|Deposit/),
+      screen.queryByText(/Payment Request|Debit Card|Journal/),
     ).not.toBeInTheDocument();
   });
 
