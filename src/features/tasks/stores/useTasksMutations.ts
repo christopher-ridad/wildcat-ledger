@@ -27,9 +27,14 @@ export function useTasksMutations(
     taskId: string,
     paymentType: TransactionType | undefined,
     isIndividualVendor: boolean,
+    isExistingVendor: boolean,
   ) => {
     if (!activeOrganizationId) return;
-    const desired = requirementSeedsForPaymentType(paymentType, isIndividualVendor);
+    const desired = requirementSeedsForPaymentType(
+      paymentType,
+      isIndividualVendor,
+      isExistingVendor,
+    );
     const desiredKeys = new Set(desired.map((d) => d.key));
 
     const { data: existing, error: readError } = await supabase
@@ -71,6 +76,7 @@ export function useTasksMutations(
     assigneeEmails?: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
+    isExistingVendor?: boolean;
   }) => {
     if (userRole !== 'sofoApprover' || !activeOrganizationId) return;
     const { data, error } = await supabase
@@ -83,6 +89,7 @@ export function useTasksMutations(
         assignee_emails: task.assigneeEmails ?? [],
         payment_type: task.paymentType ?? null,
         is_individual_vendor: task.isIndividualVendor ?? false,
+        is_existing_vendor: task.isExistingVendor ?? false,
       })
       .select('id')
       .single();
@@ -91,6 +98,7 @@ export function useTasksMutations(
       data.id,
       task.paymentType,
       task.isIndividualVendor ?? false,
+      task.isExistingVendor ?? false,
     );
   };
 
@@ -103,6 +111,7 @@ export function useTasksMutations(
       assigneeEmails?: string[];
       paymentType?: TransactionType;
       isIndividualVendor?: boolean;
+      isExistingVendor?: boolean;
     },
   ) => {
     if (userRole !== 'sofoApprover') return;
@@ -115,6 +124,7 @@ export function useTasksMutations(
         assignee_emails: task.assigneeEmails ?? [],
         payment_type: task.paymentType ?? null,
         is_individual_vendor: task.isIndividualVendor ?? false,
+        is_existing_vendor: task.isExistingVendor ?? false,
       })
       .eq('id', id);
     if (error) throw error;
@@ -122,6 +132,7 @@ export function useTasksMutations(
       id,
       task.paymentType,
       task.isIndividualVendor ?? false,
+      task.isExistingVendor ?? false,
     );
   };
 

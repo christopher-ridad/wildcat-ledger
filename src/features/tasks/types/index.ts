@@ -19,9 +19,10 @@ export interface FinancialTask {
   // utils/financialTaskRequirements.ts). Optional: not every to-do is a
   // payment.
   paymentType?: TransactionType;
-  // Only meaningful when paymentType === 'Payment Request', same as on
+  // Both only meaningful when paymentType === 'Payment Request', same as on
   // Transaction.
   isIndividualVendor?: boolean;
+  isExistingVendor?: boolean;
 }
 
 // One auto-generated document-requirement checklist item on a
@@ -49,6 +50,7 @@ export interface TasksContextValue {
     assigneeEmails?: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
+    isExistingVendor?: boolean;
   }) => Promise<void>;
   updateFinancialTask: (
     id: string,
@@ -59,6 +61,7 @@ export interface TasksContextValue {
       assigneeEmails?: string[];
       paymentType?: TransactionType;
       isIndividualVendor?: boolean;
+      isExistingVendor?: boolean;
     },
   ) => Promise<void>;
   deleteFinancialTask: (id: string) => Promise<void>;

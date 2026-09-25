@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import {
+  EXISTING_VENDOR_LIST_URL,
   POLICY_EXEMPTION_FORM_URL,
   SOFO_SALES_TAX_REIMBURSEMENT_URL,
 } from '../features/ledger/utils/constants';
@@ -141,6 +142,19 @@ const SECTIONS: FaqSection[] = [
               a W-9. If you&rsquo;re paying an individual person rather than a company,
               you&rsquo;ll also need a Contracted Services Form and a Conflict of Interest
               Form.
+            </p>
+            <p>
+              If the vendor is on SOFO&rsquo;s{' '}
+              <a
+                href={EXISTING_VENDOR_LIST_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Existing Vendor List
+              </a>
+              , SOFO already has their paperwork on file, so you only need the RSO
+              Agreement. On the SOFO Transaction Request Form, give the vendor number
+              listed next to them instead of a W-9.
             </p>
             <p>
               Filling out the RSO Agreement happens in stages. Your org fills out Section

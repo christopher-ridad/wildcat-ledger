@@ -100,6 +100,7 @@ describe('addFinancialTask', () => {
       assignee_emails: ['officer@u.northwestern.edu'],
       payment_type: null,
       is_individual_vendor: false,
+      is_existing_vendor: false,
     });
   });
 
@@ -160,6 +161,7 @@ describe('updateFinancialTask', () => {
       assignee_emails: [],
       payment_type: null,
       is_individual_vendor: false,
+      is_existing_vendor: false,
     });
     expect(eq).toHaveBeenCalledWith('id', 'task-1');
   });

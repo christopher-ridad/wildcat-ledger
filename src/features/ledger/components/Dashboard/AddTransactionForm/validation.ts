@@ -38,6 +38,14 @@ export const validateTransactionForm = (
     return 'Name of the member being reimbursed is required.';
   }
 
+  if (
+    form.type === 'Payment Request' &&
+    form.isExistingVendor &&
+    !form.existingVendorNumber.trim()
+  ) {
+    return 'Enter the vendor number from the Existing Vendor List.';
+  }
+
   for (const doc of getRequiredDocuments(form)) {
     const hasExistingFile =
       isEditing && (!doc.checkExistingFileOnEdit || !!existingTransaction?.[doc.field]);

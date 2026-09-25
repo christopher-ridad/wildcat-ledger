@@ -16,9 +16,14 @@ export interface RequirementSeed {
 export const requirementSeedsForPaymentType = (
   paymentType: TransactionType | undefined,
   isIndividualVendor: boolean,
+  isExistingVendor: boolean,
 ): RequirementSeed[] =>
   paymentType
-    ? getRequiredDocuments({ type: paymentType, isIndividualVendor }).map((doc) => ({
+    ? getRequiredDocuments({
+        type: paymentType,
+        isIndividualVendor,
+        isExistingVendor,
+      }).map((doc) => ({
         key: doc.key,
         label: doc.label,
       }))

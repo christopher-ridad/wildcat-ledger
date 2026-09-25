@@ -86,6 +86,30 @@ describe('DirectPaymentFields', () => {
     ).toBeInTheDocument();
   });
 
+  test('does not ask for a vendor number unless the vendor is existing', () => {
+    renderFields();
+    expect(screen.queryByLabelText(/Vendor Number/)).not.toBeInTheDocument();
+  });
+
+  test('links to the Existing Vendor List', () => {
+    renderFields();
+    expect(screen.getByRole('link', { name: 'Existing Vendor List' })).toHaveAttribute(
+      'href',
+      'https://tinyurl.com/ExistingVendorList',
+    );
+  });
+
+  test('existing vendors get a vendor number field and only the contract upload', () => {
+    renderFields({
+      form: { ...initialForm, isExistingVendor: true, isIndividualVendor: true },
+    });
+    expect(screen.getByLabelText(/Vendor Number/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/W-9/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Is this an individual vendor?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Contracted Services Form')).not.toBeInTheDocument();
+    expect(screen.getAllByText("I don't have this yet")).toHaveLength(1);
+  });
+
   test('toggling the individual-vendor checkbox calls onChange', () => {
     const onChange = vi.fn();
     renderFields({ onChange });

@@ -25,6 +25,8 @@ const baseForm: FormState = {
   w9File: null,
   w9AcknowledgedMissing: false,
   isIndividualVendor: false,
+  isExistingVendor: false,
+  existingVendorNumber: '',
   contractedServicesFile: null,
   contractedServicesAcknowledgedMissing: false,
   conflictOfInterestFile: null,
@@ -220,6 +222,42 @@ describe('validateTransactionForm', () => {
       };
       expect(validateTransactionForm(form, false, undefined)).toMatch(
         /Contracted Services Form/,
+      );
+    });
+
+    test('existing vendors only need the contract, not a W-9', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment Request' as const,
+        contractFile,
+        w9File: null,
+        isExistingVendor: true,
+        existingVendorNumber: '12345',
+      };
+      expect(validateTransactionForm(form, false, undefined)).toBeNull();
+    });
+
+    test('existing vendors still require the contract', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment Request' as const,
+        contractFile: null,
+        isExistingVendor: true,
+        existingVendorNumber: '12345',
+      };
+      expect(validateTransactionForm(form, false, undefined)).toMatch(/RSO Agreement/);
+    });
+
+    test('existing vendors require a vendor number', () => {
+      const form = {
+        ...baseForm,
+        type: 'Payment Request' as const,
+        contractFile,
+        isExistingVendor: true,
+        existingVendorNumber: '  ',
+      };
+      expect(validateTransactionForm(form, false, undefined)).toBe(
+        'Enter the vendor number from the Existing Vendor List.',
       );
     });
 

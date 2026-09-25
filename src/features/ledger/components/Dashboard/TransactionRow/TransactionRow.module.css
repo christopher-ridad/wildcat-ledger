@@ -371,6 +371,11 @@ tbody tr:last-child .wl-td {
   color: var(--color-text-muted);
 }
 
+.wl-td-type-detail {
+  display: block;
+  font-size: 0.75rem;
+}
+
 .wl-budget-chip {
   background: #f3f0f8;
   color: var(--color-primary);

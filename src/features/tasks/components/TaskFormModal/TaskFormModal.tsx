@@ -5,6 +5,7 @@ import { Modal } from '../../../ledger/components/Dashboard/Modal';
 import { useAsyncAction } from '../../../ledger/hooks/useAsyncAction';
 import { useResetOnOpen } from '../../../ledger/hooks/useResetOnOpen';
 import { TransactionType } from '../../../ledger/types';
+import { EXISTING_VENDOR_LIST_URL } from '../../../ledger/utils/constants';
 import { FinancialTask } from '../../types';
 import {
   academicYearStartOf,
@@ -39,6 +40,7 @@ interface TaskFormModalProps {
     assigneeEmails: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
+    isExistingVendor?: boolean;
   }) => Promise<void>;
 }
 
@@ -56,6 +58,7 @@ export const TaskFormModal = ({
   const [assigneeEmails, setAssigneeEmails] = useState<string[]>([]);
   const [paymentType, setPaymentType] = useState<TransactionType | ''>('');
   const [isIndividualVendor, setIsIndividualVendor] = useState(false);
+  const [isExistingVendor, setIsExistingVendor] = useState(false);
   const saveAction = useAsyncAction();
 
   useResetOnOpen(isOpen, () => {
@@ -65,6 +68,7 @@ export const TaskFormModal = ({
     setAssigneeEmails(task?.assigneeEmails ?? []);
     setPaymentType(task?.paymentType ?? '');
     setIsIndividualVendor(task?.isIndividualVendor ?? false);
+    setIsExistingVendor(task?.isExistingVendor ?? false);
     saveAction.setError(null);
   }, [task]);
 
@@ -109,7 +113,11 @@ export const TaskFormModal = ({
         assigneeEmails,
         paymentType: paymentType || undefined,
         isIndividualVendor:
-          paymentType === 'Payment Request' ? isIndividualVendor : undefined,
+          paymentType === 'Payment Request' && !isExistingVendor
+            ? isIndividualVendor
+            : undefined,
+        isExistingVendor:
+          paymentType === 'Payment Request' ? isExistingVendor : undefined,
       });
       onClose();
     }, 'Failed to save. Try again.');
@@ -188,6 +196,23 @@ export const TaskFormModal = ({
           </select>
 
           {paymentType === 'Payment Request' && (
+            <label className={styles['wl-form-checkbox']}>
+              <input
+                type="checkbox"
+                checked={isExistingVendor}
+                onChange={(e) => setIsExistingVendor(e.target.checked)}
+              />
+              <span>
+                Is this vendor on SOFO&apos;s{' '}
+                <a href={EXISTING_VENDOR_LIST_URL} target="_blank" rel="noreferrer">
+                  Existing Vendor List
+                </a>
+                ?
+              </span>
+            </label>
+          )}
+
+          {paymentType === 'Payment Request' && !isExistingVendor && (
             <label className={styles['wl-form-checkbox']}>
               <input
                 type="checkbox"

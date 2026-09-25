@@ -133,6 +133,7 @@ export type Database = {
           description: string | null;
           due_date: string;
           id: string;
+          is_existing_vendor: boolean;
           is_individual_vendor: boolean;
           org_id: string;
           payment_type: string | null;
@@ -146,6 +147,7 @@ export type Database = {
           description?: string | null;
           due_date: string;
           id?: string;
+          is_existing_vendor?: boolean;
           is_individual_vendor?: boolean;
           org_id: string;
           payment_type?: string | null;
@@ -159,6 +161,7 @@ export type Database = {
           description?: string | null;
           due_date?: string;
           id?: string;
+          is_existing_vendor?: boolean;
           is_individual_vendor?: boolean;
           org_id?: string;
           payment_type?: string | null;
@@ -336,8 +339,10 @@ export type Database = {
           date: string | null;
           direction: string;
           exemption_form_url: string | null;
+          existing_vendor_number: string | null;
           funding: string | null;
           id: string;
+          is_existing_vendor: boolean | null;
           is_individual_vendor: boolean | null;
           is_northwestern_employee: boolean | null;
           no_receipt_acknowledged: boolean | null;
@@ -371,8 +376,10 @@ export type Database = {
           date?: string | null;
           direction: string;
           exemption_form_url?: string | null;
+          existing_vendor_number?: string | null;
           funding?: string | null;
           id?: string;
+          is_existing_vendor?: boolean | null;
           is_individual_vendor?: boolean | null;
           is_northwestern_employee?: boolean | null;
           no_receipt_acknowledged?: boolean | null;
@@ -406,8 +413,10 @@ export type Database = {
           date?: string | null;
           direction?: string;
           exemption_form_url?: string | null;
+          existing_vendor_number?: string | null;
           funding?: string | null;
           id?: string;
+          is_existing_vendor?: boolean | null;
           is_individual_vendor?: boolean | null;
           is_northwestern_employee?: boolean | null;
           no_receipt_acknowledged?: boolean | null;
@@ -466,8 +475,10 @@ export type Database = {
           date: string | null;
           direction: string;
           exemption_form_url: string | null;
+          existing_vendor_number: string | null;
           funding: string | null;
           id: string;
+          is_existing_vendor: boolean | null;
           is_individual_vendor: boolean | null;
           is_northwestern_employee: boolean | null;
           no_receipt_acknowledged: boolean | null;

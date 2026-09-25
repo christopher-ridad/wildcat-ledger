@@ -32,17 +32,29 @@ onward — so this holds even if the interface were bypassed entirely.
 
 There are five kinds of transactions, and each one has its own required paperwork:
 
-| Type                      | Documents required                                                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Debit Card                | A receipt, or a completed Policy Exemption Form instead (see [Tax exemption](#tax-exemption--sofo-reimbursement))                                |
-| Non-Officer Reimbursement | A receipt                                                                                                                                        |
-| Payment Request           | RSO Agreement and W-9, plus a Contracted Services Form and Conflict of Interest Form if the vendor is an individual person rather than a company |
-| Payment to NU Employee    | RSO Agreement, W-9, and Special Pay Form                                                                                                         |
-| Journal                   | none                                                                                                                                             |
+| Type                      | Documents required                                                                                                                                                                                                                |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Debit Card                | A receipt, or a completed Policy Exemption Form instead (see [Tax exemption](#tax-exemption--sofo-reimbursement))                                                                                                                 |
+| Non-Officer Reimbursement | A receipt                                                                                                                                                                                                                         |
+| Payment Request           | RSO Agreement and W-9, plus a Contracted Services Form and Conflict of Interest Form if the vendor is an individual person rather than a company. Only the RSO Agreement if the vendor is an [existing vendor](#existing-vendors) |
+| Payment to NU Employee    | RSO Agreement, W-9, and Special Pay Form                                                                                                                                                                                          |
+| Journal                   | none                                                                                                                                                                                                                              |
 
 A transaction can always be saved before its paperwork is in hand. Just check "I don't have this
 yet" on the form. It gets flagged as missing that document, and can't be moved to Approved or Paid
 until the file actually shows up (see [Payment status lifecycle](#payment-status-lifecycle)).
+
+### Existing vendors
+
+SOFO keeps an [Existing Vendor List](https://tinyurl.com/ExistingVendorList) of vendors it already
+has paperwork on file for. If a Payment Request's vendor is on that list, SOFO doesn't need their
+W-9 again (or, for an individual, their Contracted Services and Conflict of Interest Forms), so
+only the RSO Agreement is required. On the SOFO Transaction Request Form, the org just gives the
+vendor number listed for them.
+
+The app can't read the list itself: it's a PDF behind Northwestern sign-in. So the officer checks
+it, ticks "Is this vendor on SOFO's Existing Vendor List?", and enters the vendor number, which is
+then shown under the transaction's type in the list.
 
 A Journal can be funded from any of ASG, Operating, or Gifts, same as an outgoing transaction.
 Incoming ASG money (a supplemental grant or Senate appeal, say) needs somewhere to go too.

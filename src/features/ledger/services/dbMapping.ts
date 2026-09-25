@@ -31,6 +31,8 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
   reimbursedMemberName: row.reimbursed_member_name ?? undefined,
   paymentStatus: (row.payment_status as Transaction['paymentStatus']) ?? undefined,
   isIndividualVendor: row.is_individual_vendor ?? undefined,
+  isExistingVendor: row.is_existing_vendor ?? undefined,
+  existingVendorNumber: row.existing_vendor_number ?? undefined,
   isNorthwesternEmployee: row.is_northwestern_employee ?? undefined,
   receiptFileUrl: row.receipt_file_url ?? undefined,
   contractFileUrl: row.contract_file_url ?? undefined,
