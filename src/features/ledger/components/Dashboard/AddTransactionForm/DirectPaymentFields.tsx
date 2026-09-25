@@ -5,11 +5,16 @@ import { DocumentFieldGroupProps, DocumentUploadField } from './DocumentUploadFi
 import { RSOAgreementCompletenessCheck } from './RSOAgreementCompletenessCheck';
 import { W9CompletenessCheck } from './W9CompletenessCheck';
 
+interface DirectPaymentFieldsProps extends DocumentFieldGroupProps {
+  onExistingVendorChange: (isExistingVendor: boolean) => void;
+}
+
 export const DirectPaymentFields = ({
   onW9CheckBlockingChange,
   onRsoCheckBlockingChange,
+  onExistingVendorChange,
   ...fieldProps
-}: DocumentFieldGroupProps) => {
+}: DirectPaymentFieldsProps) => {
   const { form, onChange } = fieldProps;
   return (
     <>
@@ -19,7 +24,7 @@ export const DirectPaymentFields = ({
             type="checkbox"
             name="isExistingVendor"
             checked={form.isExistingVendor}
-            onChange={onChange}
+            onChange={(e) => onExistingVendorChange(e.target.checked)}
           />
           <span>Is this vendor on SOFO&apos;s Existing Vendor List?</span>
         </label>

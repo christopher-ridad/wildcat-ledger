@@ -17,6 +17,7 @@ const renderFields = (
       onW9CheckBlockingChange={vi.fn()}
       onRsoCheckBlockingChange={vi.fn()}
       onNotStoredChange={vi.fn()}
+      onExistingVendorChange={vi.fn()}
       {...overrides}
     />,
   );

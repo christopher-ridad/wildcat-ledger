@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
 import { getRequiredDocuments } from '../../ledger/utils/documentRequirements';
-import { requirementSeedsForPaymentType } from './financialTaskRequirements';
+import { requirementSeedsForTask } from './financialTaskRequirements';
 
-describe('requirementSeedsForPaymentType', () => {
+describe('requirementSeedsForTask', () => {
   test('returns an empty list when no payment type is given', () => {
-    expect(requirementSeedsForPaymentType(undefined, false, false)).toEqual([]);
+    expect(requirementSeedsForTask({})).toEqual([]);
   });
 
   test('matches getRequiredDocuments for each payment type', () => {
@@ -24,7 +24,11 @@ describe('requirementSeedsForPaymentType', () => {
     ];
 
     for (const { type, individual, existing } of types) {
-      const seeds = requirementSeedsForPaymentType(type, individual, existing);
+      const seeds = requirementSeedsForTask({
+        paymentType: type,
+        isIndividualVendor: individual,
+        isExistingVendor: existing,
+      });
       const expected = getRequiredDocuments({
         type,
         isIndividualVendor: individual,
@@ -38,8 +42,11 @@ describe('requirementSeedsForPaymentType', () => {
   });
 
   test('Payment Request differs based on isIndividualVendor', () => {
-    const notIndividual = requirementSeedsForPaymentType('Payment Request', false, false);
-    const individual = requirementSeedsForPaymentType('Payment Request', true, false);
+    const notIndividual = requirementSeedsForTask({ paymentType: 'Payment Request' });
+    const individual = requirementSeedsForTask({
+      paymentType: 'Payment Request',
+      isIndividualVendor: true,
+    });
     expect(notIndividual.map((s) => s.key)).toEqual(['contract', 'w9']);
     expect(individual.map((s) => s.key)).toEqual([
       'contract',
@@ -50,11 +57,15 @@ describe('requirementSeedsForPaymentType', () => {
   });
 
   test('an existing-vendor Payment Request only needs the contract', () => {
-    const seeds = requirementSeedsForPaymentType('Payment Request', true, true);
+    const seeds = requirementSeedsForTask({
+      paymentType: 'Payment Request',
+      isIndividualVendor: true,
+      isExistingVendor: true,
+    });
     expect(seeds.map((s) => s.key)).toEqual(['contract']);
   });
 
   test('Journal has no requirements', () => {
-    expect(requirementSeedsForPaymentType('Journal', false, false)).toEqual([]);
+    expect(requirementSeedsForTask({ paymentType: 'Journal' })).toEqual([]);
   });
 });

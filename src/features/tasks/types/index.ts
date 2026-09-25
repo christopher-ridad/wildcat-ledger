@@ -27,7 +27,7 @@ export interface FinancialTask {
 
 // One auto-generated document-requirement checklist item on a
 // payment-type-having FinancialTask (see
-// utils/financialTaskRequirements.ts's requirementSeedsForPaymentType, which
+// utils/financialTaskRequirements.ts's requirementSeedsForTask, which
 // derives these from the same getRequiredDocuments() transactions already
 // use). label is a snapshot taken at generation time, not a live lookup --
 // see migration 0031.
@@ -41,29 +41,21 @@ export interface FinancialTaskRequirement {
   createdAt: string;
 }
 
+// What a SOFO Approver fills in when creating or editing a financial task.
+export type FinancialTaskInput = Pick<
+  FinancialTask,
+  | 'title'
+  | 'description'
+  | 'dueDate'
+  | 'paymentType'
+  | 'isIndividualVendor'
+  | 'isExistingVendor'
+> & { assigneeEmails?: string[] };
+
 export interface TasksContextValue {
   financialTasks: FinancialTask[];
-  addFinancialTask: (task: {
-    title: string;
-    description?: string;
-    dueDate: string;
-    assigneeEmails?: string[];
-    paymentType?: TransactionType;
-    isIndividualVendor?: boolean;
-    isExistingVendor?: boolean;
-  }) => Promise<void>;
-  updateFinancialTask: (
-    id: string,
-    task: {
-      title: string;
-      description?: string;
-      dueDate: string;
-      assigneeEmails?: string[];
-      paymentType?: TransactionType;
-      isIndividualVendor?: boolean;
-      isExistingVendor?: boolean;
-    },
-  ) => Promise<void>;
+  addFinancialTask: (task: FinancialTaskInput) => Promise<void>;
+  updateFinancialTask: (id: string, task: FinancialTaskInput) => Promise<void>;
   deleteFinancialTask: (id: string) => Promise<void>;
   toggleFinancialTaskComplete: (id: string, completed: boolean) => Promise<void>;
   financialTaskRequirements: FinancialTaskRequirement[];

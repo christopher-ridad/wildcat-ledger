@@ -7,9 +7,10 @@
 import { Database } from '../../../config/database.types';
 import { TransactionType } from '../../ledger/types';
 import { DocumentTypeKey } from '../../ledger/utils/documentRequirements';
-import { FinancialTask, FinancialTaskRequirement } from '../types';
+import { FinancialTask, FinancialTaskInput, FinancialTaskRequirement } from '../types';
 
 type FinancialTaskRow = Database['public']['Tables']['financial_tasks']['Row'];
+type FinancialTaskUpdate = Database['public']['Tables']['financial_tasks']['Update'];
 type FinancialTaskRequirementRow =
   Database['public']['Tables']['financial_task_requirements']['Row'];
 
@@ -26,6 +27,18 @@ export const rowToFinancialTask = (row: FinancialTaskRow): FinancialTask => ({
   isIndividualVendor: row.is_individual_vendor,
   isExistingVendor: row.is_existing_vendor,
 });
+
+// The columns a SOFO Approver's input sets, for both insert and update.
+export const toFinancialTaskColumns = (task: FinancialTaskInput) =>
+  ({
+    title: task.title,
+    description: task.description ?? null,
+    due_date: task.dueDate,
+    assignee_emails: task.assigneeEmails ?? [],
+    payment_type: task.paymentType ?? null,
+    is_individual_vendor: task.isIndividualVendor ?? false,
+    is_existing_vendor: task.isExistingVendor ?? false,
+  }) satisfies FinancialTaskUpdate;
 
 export const rowToFinancialTaskRequirement = (
   row: FinancialTaskRequirementRow,

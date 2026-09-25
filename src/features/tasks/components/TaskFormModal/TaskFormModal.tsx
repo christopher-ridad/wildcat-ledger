@@ -6,7 +6,7 @@ import { useAsyncAction } from '../../../ledger/hooks/useAsyncAction';
 import { useResetOnOpen } from '../../../ledger/hooks/useResetOnOpen';
 import { TransactionType } from '../../../ledger/types';
 import { EXISTING_VENDOR_LIST_URL } from '../../../ledger/utils/constants';
-import { FinancialTask } from '../../types';
+import { FinancialTask, FinancialTaskInput } from '../../types';
 import {
   academicYearStartOf,
   isDateInSupportedQuarter,
@@ -33,15 +33,7 @@ interface TaskFormModalProps {
   task?: FinancialTask;
   rosterEmails: string[];
   peopleNames: Record<string, string>;
-  onSave: (task: {
-    title: string;
-    description?: string;
-    dueDate: string;
-    assigneeEmails: string[];
-    paymentType?: TransactionType;
-    isIndividualVendor?: boolean;
-    isExistingVendor?: boolean;
-  }) => Promise<void>;
+  onSave: (task: FinancialTaskInput) => Promise<void>;
 }
 
 export const TaskFormModal = ({

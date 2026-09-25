@@ -27,6 +27,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     setW9CheckBlocking,
     setRsoCheckBlocking,
     setDocumentNotStored,
+    handleExistingVendorChange,
     handleReceiptChange,
     handleChange,
     handleTypeChange,
@@ -161,6 +162,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
             onW9CheckBlockingChange={setW9CheckBlocking}
             onRsoCheckBlockingChange={setRsoCheckBlocking}
             onNotStoredChange={setDocumentNotStored}
+            onExistingVendorChange={handleExistingVendorChange}
           />
         )}
 

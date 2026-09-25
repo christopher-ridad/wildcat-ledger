@@ -321,7 +321,7 @@ describe('AddTransactionForm', () => {
     expect(transaction.w9FileUrl).toBeUndefined();
   });
 
-  test('warns before an outflow that would overdraw the budget line, and lets the user cancel', () => {
+  test('warns before an outflow that would overdraw the budget line, and lets the user cancel', async () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({
       addTransaction,
@@ -336,7 +336,7 @@ describe('AddTransactionForm', () => {
     fireEvent.click(screen.getByText("I don't have a receipt"));
     fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       /exceeds the current Debit Card balance/,
     );
     expect(addTransaction).not.toHaveBeenCalled();
@@ -359,7 +359,7 @@ describe('AddTransactionForm', () => {
     fillCommonFields('Pizza', '12.50');
     fireEvent.click(screen.getByText("I don't have a receipt"));
     fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
-    fireEvent.click(screen.getByText('Proceed anyway'));
+    fireEvent.click(await screen.findByText('Proceed anyway'));
 
     await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
   });

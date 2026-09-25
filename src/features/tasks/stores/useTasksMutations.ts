@@ -1,6 +1,8 @@
 import { supabase } from '../../../config/supabase';
-import { TransactionType, UserRole } from '../../ledger/types';
-import { requirementSeedsForPaymentType } from '../utils/financialTaskRequirements';
+import { UserRole } from '../../ledger/types';
+import { toFinancialTaskColumns } from '../services/dbMapping';
+import { FinancialTaskInput } from '../types';
+import { requirementSeedsForTask } from '../utils/financialTaskRequirements';
 
 // This feature's write actions (financial task CRUD, completion toggling,
 // requirement-checklist toggling), split out of the ledger feature's
@@ -22,19 +24,13 @@ export function useTasksMutations(
   // trail, no RPC-wrapping for its own CRUD either). Deliberately does not
   // re-derive "what documents does type X need" in SQL -- that logic lives
   // in exactly one place, getRequiredDocuments(), called via
-  // requirementSeedsForPaymentType().
+  // requirementSeedsForTask().
   const syncFinancialTaskRequirements = async (
     taskId: string,
-    paymentType: TransactionType | undefined,
-    isIndividualVendor: boolean,
-    isExistingVendor: boolean,
+    task: FinancialTaskInput,
   ) => {
     if (!activeOrganizationId) return;
-    const desired = requirementSeedsForPaymentType(
-      paymentType,
-      isIndividualVendor,
-      isExistingVendor,
-    );
+    const desired = requirementSeedsForTask(task);
     const desiredKeys = new Set(desired.map((d) => d.key));
 
     const { data: existing, error: readError } = await supabase
@@ -69,71 +65,25 @@ export function useTasksMutations(
     }
   };
 
-  const addFinancialTask = async (task: {
-    title: string;
-    description?: string;
-    dueDate: string;
-    assigneeEmails?: string[];
-    paymentType?: TransactionType;
-    isIndividualVendor?: boolean;
-    isExistingVendor?: boolean;
-  }) => {
+  const addFinancialTask = async (task: FinancialTaskInput) => {
     if (userRole !== 'sofoApprover' || !activeOrganizationId) return;
     const { data, error } = await supabase
       .from('financial_tasks')
-      .insert({
-        org_id: activeOrganizationId,
-        title: task.title,
-        description: task.description ?? null,
-        due_date: task.dueDate,
-        assignee_emails: task.assigneeEmails ?? [],
-        payment_type: task.paymentType ?? null,
-        is_individual_vendor: task.isIndividualVendor ?? false,
-        is_existing_vendor: task.isExistingVendor ?? false,
-      })
+      .insert({ org_id: activeOrganizationId, ...toFinancialTaskColumns(task) })
       .select('id')
       .single();
     if (error) throw error;
-    await syncFinancialTaskRequirements(
-      data.id,
-      task.paymentType,
-      task.isIndividualVendor ?? false,
-      task.isExistingVendor ?? false,
-    );
+    await syncFinancialTaskRequirements(data.id, task);
   };
 
-  const updateFinancialTask = async (
-    id: string,
-    task: {
-      title: string;
-      description?: string;
-      dueDate: string;
-      assigneeEmails?: string[];
-      paymentType?: TransactionType;
-      isIndividualVendor?: boolean;
-      isExistingVendor?: boolean;
-    },
-  ) => {
+  const updateFinancialTask = async (id: string, task: FinancialTaskInput) => {
     if (userRole !== 'sofoApprover') return;
     const { error } = await supabase
       .from('financial_tasks')
-      .update({
-        title: task.title,
-        description: task.description ?? null,
-        due_date: task.dueDate,
-        assignee_emails: task.assigneeEmails ?? [],
-        payment_type: task.paymentType ?? null,
-        is_individual_vendor: task.isIndividualVendor ?? false,
-        is_existing_vendor: task.isExistingVendor ?? false,
-      })
+      .update(toFinancialTaskColumns(task))
       .eq('id', id);
     if (error) throw error;
-    await syncFinancialTaskRequirements(
-      id,
-      task.paymentType,
-      task.isIndividualVendor ?? false,
-      task.isExistingVendor ?? false,
-    );
+    await syncFinancialTaskRequirements(id, task);
   };
 
   const deleteFinancialTask = async (id: string) => {
