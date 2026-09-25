@@ -1,9 +1,10 @@
-import { fireEvent, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { parseBudgetAllocation } from '../features/ledger/services/parseBudgetAllocation';
-import { buildMockOrganization, renderWithRouter } from '../test/mocks';
+import { buildMockOrganization, MockAuthProvider, renderWithRouter } from '../test/mocks';
 import { CreateOrganization } from './CreateOrganization';
 
 vi.mock('../features/ledger/hooks/useLedger');
@@ -24,6 +25,13 @@ describe('CreateOrganization', () => {
   beforeEach(() => {
     navigateMock.mockClear();
     vi.clearAllMocks();
+  });
+
+  // Belt-and-suspenders for the fake-timers test below -- if it ever fails
+  // partway through, this still restores real timers so the failure doesn't
+  // cascade into every test that runs after it in this file.
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   test('redirects to /organizations when there is no active organization', () => {
@@ -115,8 +123,98 @@ describe('CreateOrganization', () => {
     expect(asgInput).toHaveValue('123.45');
   });
 
-  test('submitting saves the allocations and navigates to /dashboard', async () => {
+  test('submitting saves the allocations, then navigates to /dashboard once the ledger confirms isBudgetLinesSet', async () => {
     const initializeBudgetAllocations = vi.fn().mockResolvedValue(undefined);
+    mockParseBudgetAllocation.mockResolvedValue({ ASG: 100, Operating: 200, Gifts: 50 });
+    const org = buildMockOrganization({ isBudgetLinesSet: false });
+    mockUseLedger.mockReturnValue({
+      activeOrganization: org,
+      initializeBudgetAllocations,
+      loading: false,
+    } as never);
+    const { container, rerender } = renderPage();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'budget.png', { type: 'image/png' })] },
+    });
+    await screen.findByText('Save & Continue');
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save & Continue'));
+    });
+
+    expect(initializeBudgetAllocations).toHaveBeenCalledWith({
+      ASG: 100,
+      Operating: 200,
+      Gifts: 50,
+      'Debit Card': 0,
+    });
+
+    // The save resolving is not, by itself, enough to navigate -- it only
+    // confirms the database write, not that this client's own ledger state
+    // (Realtime-sourced in the real app) has caught up. Regression test for
+    // the bug where the Dashboard would mount on the stale, pre-save
+    // organization (every budget line reading $0) because the app navigated
+    // right after the save promise resolved instead of waiting for this.
+    expect(navigateMock).not.toHaveBeenCalledWith('/dashboard', { replace: true });
+
+    // Simulate the ledger's own state catching up, the way a real Realtime
+    // update would.
+    mockUseLedger.mockReturnValue({
+      activeOrganization: { ...org, isBudgetLinesSet: true },
+      initializeBudgetAllocations,
+      loading: false,
+    } as never);
+    rerender(
+      <MemoryRouter>
+        <MockAuthProvider>
+          <CreateOrganization />
+        </MockAuthProvider>
+      </MemoryRouter>,
+    );
+
+    expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
+  });
+
+  test('shows a fallback message if the ledger never confirms the save', async () => {
+    // Fake timers so this doesn't actually wait out the real 10s fallback
+    // delay. Deliberately not using screen.findByText/waitFor below --
+    // their polling relies on real timers and hangs once those are faked --
+    // every state update is instead flushed explicitly via act() and
+    // asserted on synchronously.
+    vi.useFakeTimers();
+    const initializeBudgetAllocations = vi.fn().mockResolvedValue(undefined);
+    mockParseBudgetAllocation.mockResolvedValue({ ASG: 100, Operating: 200, Gifts: 50 });
+    mockUseLedger.mockReturnValue({
+      activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
+      initializeBudgetAllocations,
+      loading: false,
+    } as never);
+    const { container } = renderPage();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, {
+        target: { files: [new File(['x'], 'budget.png', { type: 'image/png' })] },
+      });
+    });
+    expect(screen.getByText('Save & Continue')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save & Continue'));
+    });
+    expect(initializeBudgetAllocations).toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(screen.getByText(/taking longer than expected/)).toBeInTheDocument();
+    expect(screen.getByText('Save & Continue')).not.toBeDisabled();
+  });
+
+  test('shows the underlying error message when saving fails', async () => {
+    const initializeBudgetAllocations = vi.fn().mockRejectedValue(new Error('boom'));
     mockParseBudgetAllocation.mockResolvedValue({ ASG: 100, Operating: 200, Gifts: 50 });
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
@@ -128,22 +226,15 @@ describe('CreateOrganization', () => {
       target: { files: [new File(['x'], 'budget.png', { type: 'image/png' })] },
     });
     await screen.findByText('Save & Continue');
-
     fireEvent.click(screen.getByText('Save & Continue'));
 
-    await vi.waitFor(() =>
-      expect(initializeBudgetAllocations).toHaveBeenCalledWith({
-        ASG: 100,
-        Operating: 200,
-        Gifts: 50,
-        'Debit Card': 0,
-      }),
-    );
-    expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
+    expect(await screen.findByText('boom')).toBeInTheDocument();
   });
 
-  test('shows an error message when saving fails', async () => {
-    const initializeBudgetAllocations = vi.fn().mockRejectedValue(new Error('boom'));
+  test('falls back to a generic message when the error has nothing usable', async () => {
+    const initializeBudgetAllocations = vi
+      .fn()
+      .mockRejectedValue('not an Error instance');
     mockParseBudgetAllocation.mockResolvedValue({ ASG: 100, Operating: 200, Gifts: 50 });
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
