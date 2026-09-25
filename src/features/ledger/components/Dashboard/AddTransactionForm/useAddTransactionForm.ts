@@ -9,6 +9,7 @@ import { Transaction } from '../../../types';
 import {
   DOCUMENT_REQUIREMENTS_BY_KEY,
   DocumentRequirement,
+  getRequiredDocuments,
 } from '../../../utils/documentRequirements';
 import {
   AddTransactionFormProps,
@@ -184,39 +185,24 @@ export function useAddTransactionForm({
   // Switching between storing a copy and not clears any picked file, so a
   // file chosen only to run the completeness check can't end up uploaded.
   const setDocumentNotStored = (doc: DocumentRequirement, notStored: boolean) => {
-    if (!doc.formNotStoredField) return;
-    setForm((prev) => ({
-      ...prev,
-      [doc.formField]: null,
-      [doc.formNotStoredField as string]: notStored,
-    }));
+    const field = doc.notStoredField;
+    if (!field) return;
+    setForm((prev) => ({ ...prev, [doc.formField]: null, [field]: notStored }));
     setError(null);
   };
 
+  // Everything type-specific resets; only the fields every type shares carry
+  // over.
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as FormState['type'];
     setForm((prev) => ({
-      ...prev,
+      ...initialForm,
       type: newType,
-      receiptFile: null,
-      noReceiptAcknowledged: false,
-      taxExemptFormSubmitted: false,
-      taxAmount: '',
-      contractFile: null,
-      contractNotStored: false,
-      w9File: null,
-      w9NotStored: false,
-      isIndividualVendor: false,
-      isExistingVendor: false,
-      existingVendorNumber: '',
-      contractedServicesFile: null,
-      contractedServicesNotStored: false,
-      conflictOfInterestFile: null,
-      conflictOfInterestNotStored: false,
-      specialPayFormFile: null,
-      specialPayFormNotStored: false,
-      zelleInfo: '',
-      reimbursedMemberName: '',
+      title: prev.title,
+      date: prev.date,
+      amount: prev.amount,
+      funding: prev.funding,
+      notes: prev.notes,
     }));
     setError(null);
     setOcrError(null);
@@ -294,27 +280,27 @@ export function useAddTransactionForm({
         ? await uploadFile(form.receiptFile, 'receipt', txnId)
         : existingTransaction?.receiptFileUrl;
 
-      const uploadedFileUrls: Record<string, string | undefined> = {};
+      // Each document's stored path, plus -- only for documents this
+      // transaction actually requires -- whether it was marked not stored.
+      const requiredDocKeys = new Set(getRequiredDocuments(form).map((doc) => doc.key));
+      const documentFields: Record<string, string | boolean | undefined> = {};
       for (const doc of Object.values(DOCUMENT_REQUIREMENTS_BY_KEY)) {
         if (doc.key === 'receipt') continue;
+        const notStored = !!doc.notStoredField && form[doc.notStoredField];
         // A file picked for a document marked not stored was only there for
         // the completeness check -- never upload it.
-        const notStored = !!doc.formNotStoredField && !!form[doc.formNotStoredField];
         const file = notStored ? null : (form[doc.formField] as File | null);
-        uploadedFileUrls[doc.field] = file
+        documentFields[doc.field] = file
           ? await uploadFile(file, doc.key, txnId)
           : (existingTransaction?.[doc.field] as string | undefined);
+        if (doc.notStoredField) {
+          documentFields[doc.notStoredField] = requiredDocKeys.has(doc.key)
+            ? notStored
+            : undefined;
+        }
       }
-      const {
-        contractFileUrl,
-        w9FileUrl,
-        contractedServicesFileUrl,
-        conflictOfInterestFileUrl,
-        specialPayFormUrl,
-      } = uploadedFileUrls;
 
-      const isNewVendorPaymentRequest =
-        form.type === 'Payment Request' && !form.isExistingVendor;
+      const isPaymentRequest = form.type === 'Payment Request';
       const newTransaction: Omit<Transaction, 'id'> = {
         title: form.title.trim(),
         date: form.date || todayISO(),
@@ -330,13 +316,13 @@ export function useAddTransactionForm({
           form.type === 'Non-Officer Reimbursement'
             ? form.reimbursedMemberName.trim()
             : undefined,
-        isIndividualVendor: isNewVendorPaymentRequest
-          ? form.isIndividualVendor
-          : undefined,
-        isExistingVendor:
-          form.type === 'Payment Request' ? form.isExistingVendor : undefined,
+        isIndividualVendor:
+          isPaymentRequest && !form.isExistingVendor
+            ? form.isIndividualVendor
+            : undefined,
+        isExistingVendor: isPaymentRequest ? form.isExistingVendor : undefined,
         existingVendorNumber:
-          form.type === 'Payment Request' && form.isExistingVendor
+          isPaymentRequest && form.isExistingVendor
             ? form.existingVendorNumber.trim()
             : undefined,
         noReceiptAcknowledged:
@@ -349,32 +335,8 @@ export function useAddTransactionForm({
           form.type === 'Debit Card' && !form.taxExemptFormSubmitted && form.taxAmount
             ? parseFloat(form.taxAmount)
             : undefined,
-        contractNotStored:
-          form.type === 'Payment Request' || form.type === 'Payment to NU Employee'
-            ? form.contractNotStored
-            : undefined,
-        w9NotStored:
-          isNewVendorPaymentRequest || form.type === 'Payment to NU Employee'
-            ? form.w9NotStored
-            : undefined,
-        contractedServicesNotStored:
-          isNewVendorPaymentRequest && form.isIndividualVendor
-            ? form.contractedServicesNotStored
-            : undefined,
-        conflictOfInterestNotStored:
-          isNewVendorPaymentRequest && form.isIndividualVendor
-            ? form.conflictOfInterestNotStored
-            : undefined,
-        specialPayFormNotStored:
-          form.type === 'Payment to NU Employee'
-            ? form.specialPayFormNotStored
-            : undefined,
         receiptFileUrl,
-        contractFileUrl,
-        w9FileUrl,
-        contractedServicesFileUrl,
-        conflictOfInterestFileUrl,
-        specialPayFormUrl,
+        ...documentFields,
       };
 
       if (direction === 'Outflow') {

@@ -46,14 +46,13 @@ describe('DocumentUploadField', () => {
   test('when not stored, keeps a check-only file input for documents with a completeness check', () => {
     renderField({
       form: { ...initialForm, w9NotStored: true },
-      hasCompletenessCheck: true,
     });
     expect(screen.getByLabelText('W-9')).toBeInTheDocument();
     expect(screen.getByText(/It won't be saved/)).toBeInTheDocument();
   });
 
   test('has no check-only hint while the document is being stored', () => {
-    renderField({ hasCompletenessCheck: true });
+    renderField();
     expect(screen.queryByText(/It won't be saved/)).not.toBeInTheDocument();
   });
 

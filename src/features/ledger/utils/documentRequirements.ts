@@ -41,9 +41,12 @@ export interface DocumentRequirement {
   formField: keyof FormState;
   // Set on documents an org may choose not to keep a copy of in
   // WildcatLedger. Marking one not stored counts as having it -- see
-  // docs/BUSINESS_RULES.md#documents-kept-outside-wildcatledger.
-  notStoredField?: keyof Transaction;
-  formNotStoredField?: keyof FormState;
+  // docs/BUSINESS_RULES.md#documents-kept-outside-wildcatledger. Named the
+  // same on Transaction and FormState.
+  notStoredField?: keyof Transaction & keyof FormState;
+  // Uploads run through a Document AI completeness check (W9/RSO
+  // CompletenessCheck), which is still useful on a file that won't be stored.
+  hasCompletenessCheck?: boolean;
   // Receipts only: they must be attached, or explicitly acknowledged
   // missing, before the transaction can be saved (an already-uploaded one
   // counts when editing). Every other document can be added after saving
@@ -81,8 +84,8 @@ const CONTRACT: DocumentRequirement = {
   templatePath: '/forms/rso-agreement.pdf',
   requestBehavior: 'prepareFirst',
   formField: 'contractFile',
+  hasCompletenessCheck: true,
   notStoredField: 'contractNotStored',
-  formNotStoredField: 'contractNotStored',
 };
 const W9: DocumentRequirement = {
   key: 'w9',
@@ -91,8 +94,8 @@ const W9: DocumentRequirement = {
   templatePath: '/forms/w9.pdf',
   requestBehavior: 'simple',
   formField: 'w9File',
+  hasCompletenessCheck: true,
   notStoredField: 'w9NotStored',
-  formNotStoredField: 'w9NotStored',
 };
 const CONTRACTED_SERVICES: DocumentRequirement = {
   key: 'contractedServices',
@@ -102,7 +105,6 @@ const CONTRACTED_SERVICES: DocumentRequirement = {
   requestBehavior: 'prepareFirst',
   formField: 'contractedServicesFile',
   notStoredField: 'contractedServicesNotStored',
-  formNotStoredField: 'contractedServicesNotStored',
 };
 const CONFLICT_OF_INTEREST: DocumentRequirement = {
   key: 'conflictOfInterest',
@@ -112,7 +114,6 @@ const CONFLICT_OF_INTEREST: DocumentRequirement = {
   requestBehavior: 'none',
   formField: 'conflictOfInterestFile',
   notStoredField: 'conflictOfInterestNotStored',
-  formNotStoredField: 'conflictOfInterestNotStored',
 };
 const SPECIAL_PAY_FORM: DocumentRequirement = {
   key: 'specialPayForm',
@@ -122,15 +123,13 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
   requestBehavior: 'simple',
   formField: 'specialPayFormFile',
   notStoredField: 'specialPayFormNotStored',
-  formNotStoredField: 'specialPayFormNotStored',
 };
 
 // The documents a transaction needs, based on its type (and, for Payment
 // Request, whether the vendor is already on SOFO's Existing Vendor List or
-// is an individual). Mirrors the requirements enforced in validation.ts
-// (form-time) and the Approved/Paid gate in update_payment_status_with_audit
-// (server-side) -- keep all three in sync. See
-// docs/BUSINESS_RULES.md#existing-vendors.
+// is an individual). Mirrors the Approved/Paid gate in
+// update_payment_status_with_audit (server-side) -- keep the two in sync.
+// See docs/BUSINESS_RULES.md#existing-vendors.
 export const getRequiredDocuments = (
   t: Pick<Transaction, 'type' | 'isIndividualVendor' | 'isExistingVendor'>,
 ): DocumentRequirement[] => {

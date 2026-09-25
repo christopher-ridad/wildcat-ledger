@@ -6,16 +6,25 @@ import styles from './AddTransactionForm.module.css';
 import { ExistingFileLink } from './ExistingFileLink';
 import { FormState } from './types';
 
-interface DocumentUploadFieldProps {
-  doc: DocumentRequirement;
+// Everything a DocumentUploadField needs except which document it's for --
+// the part every field group passes to each of its documents unchanged.
+export interface SharedDocumentFieldProps {
   form: FormState;
   isEditing: boolean;
   existingTransaction?: Transaction;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onNotStoredChange: (doc: DocumentRequirement, notStored: boolean) => void;
-  // W-9 and RSO Agreement run a completeness check on the picked file, which
-  // is still useful when no copy is being stored.
-  hasCompletenessCheck?: boolean;
+}
+
+// Props for a group of document fields that also hosts the W-9/RSO
+// completeness checks (DirectPaymentFields, NUEmployeePaymentFields).
+export interface DocumentFieldGroupProps extends SharedDocumentFieldProps {
+  onW9CheckBlockingChange: (blocking: boolean) => void;
+  onRsoCheckBlockingChange: (blocking: boolean) => void;
+}
+
+interface DocumentUploadFieldProps extends SharedDocumentFieldProps {
+  doc: DocumentRequirement;
 }
 
 // A file input + existing-file link for one DocumentRequirement, with the
@@ -29,13 +38,12 @@ export const DocumentUploadField = ({
   existingTransaction,
   onChange,
   onNotStoredChange,
-  hasCompletenessCheck = false,
 }: DocumentUploadFieldProps) => {
-  const notStored = !!doc.formNotStoredField && !!form[doc.formNotStoredField];
+  const notStored = !!doc.notStoredField && !!form[doc.notStoredField];
   const existingUrl = existingTransaction?.[doc.field] as string | undefined;
   // Nothing ever deletes an uploaded file from storage, so offering "don't
   // store" on a document that's already stored would only hide the link.
-  const canSkipStoring = !!doc.formNotStoredField && !existingUrl;
+  const canSkipStoring = !!doc.notStoredField && !existingUrl;
 
   return (
     <div className="wl-form-group">
@@ -73,7 +81,7 @@ export const DocumentUploadField = ({
           <label className={styles['wl-form-checkbox']}>
             <input
               type="checkbox"
-              name={doc.formNotStoredField}
+              name={doc.notStoredField}
               checked={notStored}
               onChange={(e) => onNotStoredChange(doc, e.target.checked)}
             />
@@ -82,7 +90,7 @@ export const DocumentUploadField = ({
         )}
         {notStored && (
           <p className={styles['wl-form-hint']}>
-            {hasCompletenessCheck
+            {doc.hasCompletenessCheck
               ? "Pick the file to check it for missing fields. It won't be saved."
               : "A file picked here won't be saved."}
           </p>

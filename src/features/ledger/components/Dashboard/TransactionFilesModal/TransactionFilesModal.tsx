@@ -218,7 +218,7 @@ export const TransactionFilesModal = ({
       )}
 
       {notStoredDocs.length > 0 && (
-        <div className={styles['wl-missing-docs-section']}>
+        <div className={styles['wl-not-stored-section']}>
           <h3 className={styles['wl-files-section-title']}>
             Not stored in WildcatLedger
           </h3>
