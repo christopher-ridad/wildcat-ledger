@@ -37,12 +37,20 @@ export function useLedgerMutations(
 
   // Same shape as callOrgRpc, for the mutations that patch the active
   // organization row directly instead of going through an RPC.
+  //
+  // .select().single() (rather than a bare .update()) is deliberate: a plain
+  // PATCH with no representation requested returns a 204 with no error even
+  // when the "managers can update their org" RLS policy matches zero rows,
+  // so a permission mismatch would otherwise silently no-op instead of
+  // failing. Selecting the row back turns that into a real, visible error.
   const updateActiveOrganization = async (patch: Record<string, unknown>) => {
     if (!activeOrganizationId) return;
     const { error } = await supabase
       .from('organizations')
       .update(patch)
-      .eq('id', activeOrganizationId);
+      .eq('id', activeOrganizationId)
+      .select()
+      .single();
     if (error) throw error;
   };
 

@@ -22,13 +22,25 @@ const mockDocumentPath = vi.mocked(documentPath);
 const mockUploadDocument = vi.mocked(uploadDocument);
 
 // Sets up the supabase.from(table).update(patch).eq(col, val) chain used by
-// updateActiveOrganization/uploadExemptionForm, and returns the `update`/`eq`
-// spies so callers can assert on what was actually sent.
+// updateActiveOrganization/uploadExemptionForm, and returns the
+// `update`/`eq`/`select`/`single` spies so callers can assert on what was
+// actually sent. eq()'s return value is both directly awaitable (the shape
+// uploadExemptionForm uses) and chainable via .select().single() (the shape
+// updateActiveOrganization uses, so a zero-row RLS mismatch surfaces as a
+// real error instead of silently no-op'ing -- see useLedgerMutations.ts).
 const mockUpdateEq = (result: { error: unknown } = { error: null }) => {
-  const eq = vi.fn().mockResolvedValue(result);
+  const single = vi.fn().mockResolvedValue(result);
+  const select = vi.fn(() => ({ single }));
+  const eq = vi.fn(() => {
+    const chain = Promise.resolve(result) as Promise<typeof result> & {
+      select: typeof select;
+    };
+    chain.select = select;
+    return chain;
+  });
   const update = vi.fn(() => ({ eq }));
   mockFrom.mockReturnValue({ update } as never);
-  return { update, eq };
+  return { update, eq, select, single };
 };
 
 beforeEach(() => {

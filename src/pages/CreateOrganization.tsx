@@ -26,6 +26,9 @@ export const CreateOrganization = () => {
   const [isPdf, setIsPdf] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Set once a save has gone through, so the effect below knows a stalled
+  // isBudgetLinesSet is worth warning about instead of just "not there yet".
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -37,6 +40,28 @@ export const CreateOrganization = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [loading, activeOrganization, navigate]);
+
+  // The save itself only confirms the database write; activeOrganization
+  // (and the redirect above) only updates once Realtime delivers that
+  // change back to this client. Normally near-instant, but if it stalls --
+  // a slow reconnect, a dropped websocket -- the effect above never fires
+  // and this button would otherwise sit on "Saving…" forever with no
+  // explanation. This is also why handleSubmit doesn't navigate directly:
+  // doing so would race ahead of that Realtime update and land on the
+  // Dashboard while it's still reading the pre-save org (all budget lines
+  // at $0).
+  useEffect(() => {
+    if (!awaitingConfirmation) return;
+    const timeout = window.setTimeout(() => {
+      setError(
+        "This is taking longer than expected. Your budget was saved, but the page hasn't " +
+          'picked it up yet -- try refreshing.',
+      );
+      setAwaitingConfirmation(false);
+      setSubmitting(false);
+    }, 10_000);
+    return () => window.clearTimeout(timeout);
+  }, [awaitingConfirmation]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,9 +103,16 @@ export const CreateOrganization = () => {
     setSubmitting(true);
     try {
       await initializeBudgetAllocations(allocations);
-      navigate('/dashboard', { replace: true });
-    } catch {
-      setError('Failed to save budget allocations. Please try again.');
+      // Deliberately not navigating here -- see the effects above. The
+      // resolved promise only confirms the write landed in the database,
+      // not that this client's own organizations state (Realtime-sourced)
+      // has caught up yet, and navigating on that assumption is what used
+      // to send the Dashboard to a stale, all-zero version of the org.
+      setAwaitingConfirmation(true);
+    } catch (err) {
+      setError(
+        getErrorMessage(err, 'Failed to save budget allocations. Please try again.'),
+      );
       setSubmitting(false);
     }
   };
