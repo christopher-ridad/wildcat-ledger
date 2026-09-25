@@ -31,26 +31,27 @@ export interface DocumentRequirement {
   // An alternate field that also satisfies this requirement -- see
   // docs/BUSINESS_RULES.md#debit-card-reconciliation.
   alternateField?: keyof Transaction;
-  acknowledgedMissingField?: keyof Transaction;
   label: string;
   templatePath?: string;
   requestBehavior: DocumentRequestBehavior;
-  // The form-time equivalents of `field`/`acknowledgedMissingField` -- named
-  // differently on FormState than on Transaction (e.g. `contractFileUrl` vs
-  // `contractFile`), so this bridges the two rather than being derivable by
-  // a simple string transform. Used by validation.ts.
+  // The form-time equivalent of `field` -- named differently on FormState
+  // than on Transaction (e.g. `contractFileUrl` vs `contractFile`), so this
+  // bridges the two rather than being derivable by a simple string
+  // transform.
   formField: keyof FormState;
-  formAcknowledgedMissingField?: keyof FormState;
-  // Whether, when editing, an already-uploaded file on the transaction
-  // being edited satisfies this requirement (true), or editing bypasses the
-  // check entirely regardless of whether the file was ever uploaded
-  // (false). Only the receipt requirement checks the existing file --
-  // matches validateTransactionForm's pre-existing behavior.
-  checkExistingFileOnEdit: boolean;
-  // The exact validation-error message shown when this document is missing
-  // and not acknowledged. Not derived from `label` because the receipt
-  // message's wording differs from every other requirement's.
-  missingMessage: string;
+  // Set on documents an org may choose not to keep a copy of in
+  // WildcatLedger. Marking one not stored counts as having it -- see
+  // docs/BUSINESS_RULES.md#documents-kept-outside-wildcatledger.
+  notStoredField?: keyof Transaction;
+  formNotStoredField?: keyof FormState;
+  // Receipts only: they must be attached, or explicitly acknowledged
+  // missing, before the transaction can be saved (an already-uploaded one
+  // counts when editing). Every other document can be added after saving
+  // and is just flagged missing until then.
+  saveRequirement?: {
+    formAcknowledgedMissingField: keyof FormState;
+    missingMessage: string;
+  };
 }
 
 const RECEIPT: DocumentRequirement = {
@@ -59,9 +60,10 @@ const RECEIPT: DocumentRequirement = {
   label: 'Receipt',
   requestBehavior: 'simple',
   formField: 'receiptFile',
-  formAcknowledgedMissingField: 'noReceiptAcknowledged',
-  checkExistingFileOnEdit: true,
-  missingMessage: 'Upload a receipt or check "I don\'t have a receipt".',
+  saveRequirement: {
+    formAcknowledgedMissingField: 'noReceiptAcknowledged',
+    missingMessage: 'Upload a receipt or check "I don\'t have a receipt".',
+  },
 };
 
 // Exemption forms are Debit-Card-specific (tax-exemption at the point of
@@ -75,64 +77,52 @@ const DEBIT_CARD_RECEIPT: DocumentRequirement = {
 const CONTRACT: DocumentRequirement = {
   key: 'contract',
   field: 'contractFileUrl',
-  acknowledgedMissingField: 'contractAcknowledgedMissing',
   label: 'RSO Agreement',
   templatePath: '/forms/rso-agreement.pdf',
   requestBehavior: 'prepareFirst',
   formField: 'contractFile',
-  formAcknowledgedMissingField: 'contractAcknowledgedMissing',
-  checkExistingFileOnEdit: false,
-  missingMessage: 'Upload the RSO Agreement or check "I don\'t have this yet".',
+  notStoredField: 'contractNotStored',
+  formNotStoredField: 'contractNotStored',
 };
 const W9: DocumentRequirement = {
   key: 'w9',
   field: 'w9FileUrl',
-  acknowledgedMissingField: 'w9AcknowledgedMissing',
   label: 'W-9',
   templatePath: '/forms/w9.pdf',
   requestBehavior: 'simple',
   formField: 'w9File',
-  formAcknowledgedMissingField: 'w9AcknowledgedMissing',
-  checkExistingFileOnEdit: false,
-  missingMessage: 'Upload the W-9 or check "I don\'t have this yet".',
+  notStoredField: 'w9NotStored',
+  formNotStoredField: 'w9NotStored',
 };
 const CONTRACTED_SERVICES: DocumentRequirement = {
   key: 'contractedServices',
   field: 'contractedServicesFileUrl',
-  acknowledgedMissingField: 'contractedServicesAcknowledgedMissing',
   label: 'Contracted Services Form',
   templatePath: '/forms/contracted-services.pdf',
   requestBehavior: 'prepareFirst',
   formField: 'contractedServicesFile',
-  formAcknowledgedMissingField: 'contractedServicesAcknowledgedMissing',
-  checkExistingFileOnEdit: false,
-  missingMessage:
-    'Upload the Contracted Services Form or check "I don\'t have this yet".',
+  notStoredField: 'contractedServicesNotStored',
+  formNotStoredField: 'contractedServicesNotStored',
 };
 const CONFLICT_OF_INTEREST: DocumentRequirement = {
   key: 'conflictOfInterest',
   field: 'conflictOfInterestFileUrl',
-  acknowledgedMissingField: 'conflictOfInterestAcknowledgedMissing',
   label: 'Conflict of Interest Form',
   templatePath: '/forms/conflict-of-interest.pdf',
   requestBehavior: 'none',
   formField: 'conflictOfInterestFile',
-  formAcknowledgedMissingField: 'conflictOfInterestAcknowledgedMissing',
-  checkExistingFileOnEdit: false,
-  missingMessage:
-    'Upload the Conflict of Interest Form or check "I don\'t have this yet".',
+  notStoredField: 'conflictOfInterestNotStored',
+  formNotStoredField: 'conflictOfInterestNotStored',
 };
 const SPECIAL_PAY_FORM: DocumentRequirement = {
   key: 'specialPayForm',
   field: 'specialPayFormUrl',
-  acknowledgedMissingField: 'specialPayFormAcknowledgedMissing',
   label: 'Special Pay Form',
   templatePath: '/forms/special-pay-request-form.pdf',
   requestBehavior: 'simple',
   formField: 'specialPayFormFile',
-  formAcknowledgedMissingField: 'specialPayFormAcknowledgedMissing',
-  checkExistingFileOnEdit: false,
-  missingMessage: 'Upload the Special Pay Form or check "I don\'t have this yet".',
+  notStoredField: 'specialPayFormNotStored',
+  formNotStoredField: 'specialPayFormNotStored',
 };
 
 // The documents a transaction needs, based on its type (and, for Payment
@@ -163,10 +153,20 @@ export const getRequiredDocuments = (
   }
 };
 
+const isNotStored = (t: Transaction, doc: DocumentRequirement) =>
+  !!doc.notStoredField && !!t[doc.notStoredField];
+
 export const getMissingDocuments = (t: Transaction): DocumentRequirement[] =>
   getRequiredDocuments(t).filter(
-    (doc) => !t[doc.field] && !(doc.alternateField && t[doc.alternateField]),
+    (doc) =>
+      !t[doc.field] &&
+      !(doc.alternateField && t[doc.alternateField]) &&
+      !isNotStored(t, doc),
   );
+
+// Required documents the org chose not to keep a copy of in WildcatLedger.
+export const getNotStoredDocuments = (t: Transaction): DocumentRequirement[] =>
+  getRequiredDocuments(t).filter((doc) => !t[doc.field] && isNotStored(t, doc));
 
 // Keyed lookup used by UploadDocumentPage.tsx, which only knows a document's
 // key (from the emailed link's query param) and needs its field/label/prefix.

@@ -7,6 +7,7 @@ import { Transaction } from '../../../types';
 import {
   DocumentRequirement,
   getMissingDocuments,
+  getNotStoredDocuments,
 } from '../../../utils/documentRequirements';
 import { Modal } from '../Modal';
 import styles from './TransactionFilesModal.module.css';
@@ -106,6 +107,7 @@ export const TransactionFilesModal = ({
   const { activeOrganizationId, requestTransactionDocument } = useLedger();
   const files = getTransactionFiles(transaction);
   const missingDocs = getMissingDocuments(transaction);
+  const notStoredDocs = getNotStoredDocuments(transaction);
   const [justRequested, setJustRequested] = useState<Set<string>>(new Set());
   const [requesting, setRequesting] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
@@ -215,11 +217,23 @@ export const TransactionFilesModal = ({
         </div>
       )}
 
+      {notStoredDocs.length > 0 && (
+        <div className={styles['wl-missing-docs-section']}>
+          <h3 className={styles['wl-files-section-title']}>
+            Not stored in WildcatLedger
+          </h3>
+          <p className={styles['wl-not-stored-note']}>
+            {notStoredDocs.map((doc) => doc.label).join(', ')}: no copy kept here. Given
+            to SOFO directly.
+          </p>
+        </div>
+      )}
+
       {files.length === 0 ? (
         <p className={styles['wl-files-empty']}>No files attached to this transaction.</p>
       ) : (
         <>
-          {missingDocs.length > 0 && (
+          {(missingDocs.length > 0 || notStoredDocs.length > 0) && (
             <h3 className={styles['wl-files-section-title']}>Attached</h3>
           )}
           <div className={styles['wl-files-grid']}>

@@ -2,7 +2,10 @@ import type { ChangeEvent } from 'react';
 
 import { Transaction } from '../../../types';
 import { EXISTING_VENDOR_LIST_URL } from '../../../utils/constants';
-import { DOCUMENT_REQUIREMENTS_BY_KEY } from '../../../utils/documentRequirements';
+import {
+  DOCUMENT_REQUIREMENTS_BY_KEY,
+  DocumentRequirement,
+} from '../../../utils/documentRequirements';
 import styles from './AddTransactionForm.module.css';
 import { DocumentUploadField } from './DocumentUploadField';
 import { RSOAgreementCompletenessCheck } from './RSOAgreementCompletenessCheck';
@@ -16,6 +19,7 @@ interface DirectPaymentFieldsProps {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onW9CheckBlockingChange: (blocking: boolean) => void;
   onRsoCheckBlockingChange: (blocking: boolean) => void;
+  onNotStoredChange: (doc: DocumentRequirement, notStored: boolean) => void;
 }
 
 export const DirectPaymentFields = ({
@@ -25,6 +29,7 @@ export const DirectPaymentFields = ({
   onChange,
   onW9CheckBlockingChange,
   onRsoCheckBlockingChange,
+  onNotStoredChange,
 }: DirectPaymentFieldsProps) => (
   <>
     <div>
@@ -69,10 +74,12 @@ export const DirectPaymentFields = ({
 
     <DocumentUploadField
       doc={DOCUMENT_REQUIREMENTS_BY_KEY.contract}
+      hasCompletenessCheck
       form={form}
       isEditing={isEditing}
       existingTransaction={existingTransaction}
       onChange={onChange}
+      onNotStoredChange={onNotStoredChange}
     />
     <RSOAgreementCompletenessCheck
       file={form.contractFile}
@@ -82,10 +89,12 @@ export const DirectPaymentFields = ({
       <>
         <DocumentUploadField
           doc={DOCUMENT_REQUIREMENTS_BY_KEY.w9}
+          hasCompletenessCheck
           form={form}
           isEditing={isEditing}
           existingTransaction={existingTransaction}
           onChange={onChange}
+          onNotStoredChange={onNotStoredChange}
         />
         <W9CompletenessCheck
           file={form.w9File}
@@ -112,6 +121,7 @@ export const DirectPaymentFields = ({
           isEditing={isEditing}
           existingTransaction={existingTransaction}
           onChange={onChange}
+          onNotStoredChange={onNotStoredChange}
         />
         <DocumentUploadField
           doc={DOCUMENT_REQUIREMENTS_BY_KEY.conflictOfInterest}
@@ -119,6 +129,7 @@ export const DirectPaymentFields = ({
           isEditing={isEditing}
           existingTransaction={existingTransaction}
           onChange={onChange}
+          onNotStoredChange={onNotStoredChange}
         />
       </>
     )}

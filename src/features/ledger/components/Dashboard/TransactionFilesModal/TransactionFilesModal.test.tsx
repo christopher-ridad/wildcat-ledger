@@ -62,6 +62,21 @@ describe('TransactionFilesModal', () => {
     ).toBeInTheDocument();
   });
 
+  test('lists documents not stored in WildcatLedger instead of flagging them missing', () => {
+    renderModal(
+      buildMockTransaction({
+        type: 'Payment Request',
+        contractFileUrl: undefined,
+        contractNotStored: true,
+        w9FileUrl: undefined,
+        w9NotStored: true,
+      }),
+    );
+    expect(screen.getByText('Not stored in WildcatLedger')).toBeInTheDocument();
+    expect(screen.getByText(/RSO Agreement, W-9: no copy kept here/)).toBeInTheDocument();
+    expect(screen.queryByText('Missing')).not.toBeInTheDocument();
+  });
+
   test('shows the transaction title in the header', () => {
     renderModal(buildMockTransaction({ title: 'Pizza for meeting' }));
     expect(screen.getByText('Documents: Pizza for meeting')).toBeInTheDocument();

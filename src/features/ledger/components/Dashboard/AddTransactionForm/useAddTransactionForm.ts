@@ -6,7 +6,10 @@ import { useLedger } from '../../../hooks/useLedger';
 import { parseReceipt } from '../../../services/parseReceipt';
 import { documentPath, uploadDocument } from '../../../services/storage';
 import { Transaction } from '../../../types';
-import { DOCUMENT_REQUIREMENTS_BY_KEY } from '../../../utils/documentRequirements';
+import {
+  DOCUMENT_REQUIREMENTS_BY_KEY,
+  DocumentRequirement,
+} from '../../../utils/documentRequirements';
 import {
   AddTransactionFormProps,
   FormState,
@@ -33,20 +36,18 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
     taxExemptFormSubmitted: t.taxExemptFormSubmitted ?? false,
     taxAmount: t.taxAmount != null ? String(t.taxAmount) : '',
     contractFile: null,
-    contractAcknowledgedMissing: t.contractAcknowledgedMissing ?? false,
+    contractNotStored: t.contractNotStored ?? false,
     w9File: null,
-    w9AcknowledgedMissing: t.w9AcknowledgedMissing ?? false,
+    w9NotStored: t.w9NotStored ?? false,
     isIndividualVendor: t.isIndividualVendor ?? false,
     isExistingVendor: t.isExistingVendor ?? false,
     existingVendorNumber: t.existingVendorNumber ?? '',
     contractedServicesFile: null,
-    contractedServicesAcknowledgedMissing:
-      t.contractedServicesAcknowledgedMissing ?? false,
+    contractedServicesNotStored: t.contractedServicesNotStored ?? false,
     conflictOfInterestFile: null,
-    conflictOfInterestAcknowledgedMissing:
-      t.conflictOfInterestAcknowledgedMissing ?? false,
+    conflictOfInterestNotStored: t.conflictOfInterestNotStored ?? false,
     specialPayFormFile: null,
-    specialPayFormAcknowledgedMissing: t.specialPayFormAcknowledgedMissing ?? false,
+    specialPayFormNotStored: t.specialPayFormNotStored ?? false,
     zelleInfo: t.zelleInfo ?? '',
     reimbursedMemberName: t.reimbursedMemberName ?? '',
     notes: t.notes ?? '',
@@ -57,12 +58,12 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
 // so ticking "existing vendor" drops anything entered for them.
 const NEW_VENDOR_ONLY_FIELDS_CLEARED: Partial<FormState> = {
   w9File: null,
-  w9AcknowledgedMissing: false,
+  w9NotStored: false,
   isIndividualVendor: false,
   contractedServicesFile: null,
-  contractedServicesAcknowledgedMissing: false,
+  contractedServicesNotStored: false,
   conflictOfInterestFile: null,
-  conflictOfInterestAcknowledgedMissing: false,
+  conflictOfInterestNotStored: false,
 };
 
 // Form state, OCR-triggered receipt scanning, document uploads, and
@@ -180,6 +181,18 @@ export function useAddTransactionForm({
     setError(null);
   };
 
+  // Switching between storing a copy and not clears any picked file, so a
+  // file chosen only to run the completeness check can't end up uploaded.
+  const setDocumentNotStored = (doc: DocumentRequirement, notStored: boolean) => {
+    if (!doc.formNotStoredField) return;
+    setForm((prev) => ({
+      ...prev,
+      [doc.formField]: null,
+      [doc.formNotStoredField as string]: notStored,
+    }));
+    setError(null);
+  };
+
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as FormState['type'];
     setForm((prev) => ({
@@ -190,18 +203,18 @@ export function useAddTransactionForm({
       taxExemptFormSubmitted: false,
       taxAmount: '',
       contractFile: null,
-      contractAcknowledgedMissing: false,
+      contractNotStored: false,
       w9File: null,
-      w9AcknowledgedMissing: false,
+      w9NotStored: false,
       isIndividualVendor: false,
       isExistingVendor: false,
       existingVendorNumber: '',
       contractedServicesFile: null,
-      contractedServicesAcknowledgedMissing: false,
+      contractedServicesNotStored: false,
       conflictOfInterestFile: null,
-      conflictOfInterestAcknowledgedMissing: false,
+      conflictOfInterestNotStored: false,
       specialPayFormFile: null,
-      specialPayFormAcknowledgedMissing: false,
+      specialPayFormNotStored: false,
       zelleInfo: '',
       reimbursedMemberName: '',
     }));
@@ -284,7 +297,10 @@ export function useAddTransactionForm({
       const uploadedFileUrls: Record<string, string | undefined> = {};
       for (const doc of Object.values(DOCUMENT_REQUIREMENTS_BY_KEY)) {
         if (doc.key === 'receipt') continue;
-        const file = form[doc.formField] as File | null;
+        // A file picked for a document marked not stored was only there for
+        // the completeness check -- never upload it.
+        const notStored = !!doc.formNotStoredField && !!form[doc.formNotStoredField];
+        const file = notStored ? null : (form[doc.formField] as File | null);
         uploadedFileUrls[doc.field] = file
           ? await uploadFile(file, doc.key, txnId)
           : (existingTransaction?.[doc.field] as string | undefined);
@@ -333,25 +349,25 @@ export function useAddTransactionForm({
           form.type === 'Debit Card' && !form.taxExemptFormSubmitted && form.taxAmount
             ? parseFloat(form.taxAmount)
             : undefined,
-        contractAcknowledgedMissing:
+        contractNotStored:
           form.type === 'Payment Request' || form.type === 'Payment to NU Employee'
-            ? form.contractAcknowledgedMissing
+            ? form.contractNotStored
             : undefined,
-        w9AcknowledgedMissing:
+        w9NotStored:
           isNewVendorPaymentRequest || form.type === 'Payment to NU Employee'
-            ? form.w9AcknowledgedMissing
+            ? form.w9NotStored
             : undefined,
-        contractedServicesAcknowledgedMissing:
+        contractedServicesNotStored:
           isNewVendorPaymentRequest && form.isIndividualVendor
-            ? form.contractedServicesAcknowledgedMissing
+            ? form.contractedServicesNotStored
             : undefined,
-        conflictOfInterestAcknowledgedMissing:
+        conflictOfInterestNotStored:
           isNewVendorPaymentRequest && form.isIndividualVendor
-            ? form.conflictOfInterestAcknowledgedMissing
+            ? form.conflictOfInterestNotStored
             : undefined,
-        specialPayFormAcknowledgedMissing:
+        specialPayFormNotStored:
           form.type === 'Payment to NU Employee'
-            ? form.specialPayFormAcknowledgedMissing
+            ? form.specialPayFormNotStored
             : undefined,
         receiptFileUrl,
         contractFileUrl,
@@ -398,6 +414,7 @@ export function useAddTransactionForm({
     handleReceiptChange,
     handleChange,
     handleTypeChange,
+    setDocumentNotStored,
     handleSubmit,
     submitTransaction,
     cancelOverdraft,

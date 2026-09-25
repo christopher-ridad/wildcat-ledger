@@ -242,7 +242,7 @@ describe('AddTransactionForm', () => {
       contractFileUrl: 'clubs/org-1/transactions/txn-1/contract_doc.pdf',
     });
     expect(transaction.w9FileUrl).toBeUndefined();
-    expect(transaction.w9AcknowledgedMissing).toBeUndefined();
+    expect(transaction.w9NotStored).toBeUndefined();
     expect(transaction.isIndividualVendor).toBeUndefined();
   });
 
@@ -276,7 +276,26 @@ describe('AddTransactionForm', () => {
     });
   });
 
-  test('submits a payment to a Northwestern employee missing all its documents when acknowledged', async () => {
+  test('saves a payment to a Northwestern employee before any of its documents are in', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fireEvent.change(screen.getByLabelText(/Transaction Type/), {
+      target: { value: 'Payment to NU Employee' },
+    });
+    fillCommonFields('Guest speaker honorarium', '200.00');
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction).toMatchObject({
+      contractNotStored: false,
+      w9NotStored: false,
+      specialPayFormNotStored: false,
+    });
+    expect(transaction.w9FileUrl).toBeUndefined();
+  });
+
+  test('never uploads a file picked only to check a document that is not stored', async () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({ addTransaction });
     fireEvent.change(screen.getByLabelText(/Transaction Type/), {
@@ -284,24 +303,22 @@ describe('AddTransactionForm', () => {
     });
     fillCommonFields('Guest speaker honorarium', '200.00');
 
-    for (const name of [
-      'contractAcknowledgedMissing',
-      'w9AcknowledgedMissing',
-      'specialPayFormAcknowledgedMissing',
-    ]) {
-      fireEvent.click(
-        document.querySelector(`input[name="${name}"]`) as HTMLInputElement,
-      );
-    }
+    // Second of three: RSO Agreement, W-9, Special Pay Form.
+    fireEvent.click(
+      screen.getAllByRole('checkbox', {
+        name: "Don't store this document in WildcatLedger",
+      })[1],
+    );
+    const file = new File(['x'], 'w9.pdf', { type: 'application/pdf' });
+    fireEvent.change(document.getElementById('w9File') as HTMLInputElement, {
+      target: { files: [file] },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
 
     await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
     const [transaction] = addTransaction.mock.calls[0];
-    expect(transaction).toMatchObject({
-      contractAcknowledgedMissing: true,
-      w9AcknowledgedMissing: true,
-      specialPayFormAcknowledgedMissing: true,
-    });
+    expect(transaction.w9NotStored).toBe(true);
+    expect(transaction.w9FileUrl).toBeUndefined();
   });
 
   test('warns before an outflow that would overdraw the budget line, and lets the user cancel', () => {

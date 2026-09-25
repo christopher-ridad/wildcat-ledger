@@ -1,7 +1,10 @@
 import type { ChangeEvent } from 'react';
 
 import { Transaction } from '../../../types';
-import { DOCUMENT_REQUIREMENTS_BY_KEY } from '../../../utils/documentRequirements';
+import {
+  DOCUMENT_REQUIREMENTS_BY_KEY,
+  DocumentRequirement,
+} from '../../../utils/documentRequirements';
 import { DocumentUploadField } from './DocumentUploadField';
 import { RSOAgreementCompletenessCheck } from './RSOAgreementCompletenessCheck';
 import { FormState } from './types';
@@ -14,6 +17,7 @@ interface NUEmployeePaymentFieldsProps {
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onW9CheckBlockingChange: (blocking: boolean) => void;
   onRsoCheckBlockingChange: (blocking: boolean) => void;
+  onNotStoredChange: (doc: DocumentRequirement, notStored: boolean) => void;
 }
 
 export const NUEmployeePaymentFields = ({
@@ -23,14 +27,17 @@ export const NUEmployeePaymentFields = ({
   onChange,
   onW9CheckBlockingChange,
   onRsoCheckBlockingChange,
+  onNotStoredChange,
 }: NUEmployeePaymentFieldsProps) => (
   <>
     <DocumentUploadField
       doc={DOCUMENT_REQUIREMENTS_BY_KEY.contract}
+      hasCompletenessCheck
       form={form}
       isEditing={isEditing}
       existingTransaction={existingTransaction}
       onChange={onChange}
+      onNotStoredChange={onNotStoredChange}
     />
     <RSOAgreementCompletenessCheck
       file={form.contractFile}
@@ -38,10 +45,12 @@ export const NUEmployeePaymentFields = ({
     />
     <DocumentUploadField
       doc={DOCUMENT_REQUIREMENTS_BY_KEY.w9}
+      hasCompletenessCheck
       form={form}
       isEditing={isEditing}
       existingTransaction={existingTransaction}
       onChange={onChange}
+      onNotStoredChange={onNotStoredChange}
     />
     <W9CompletenessCheck file={form.w9File} onBlockingChange={onW9CheckBlockingChange} />
     <DocumentUploadField
@@ -50,6 +59,7 @@ export const NUEmployeePaymentFields = ({
       isEditing={isEditing}
       existingTransaction={existingTransaction}
       onChange={onChange}
+      onNotStoredChange={onNotStoredChange}
     />
   </>
 );

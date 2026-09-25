@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
 import { buildMockTransaction } from '../../../test/mocks';
-import { getMissingDocuments, getRequiredDocuments } from './documentRequirements';
+import {
+  getMissingDocuments,
+  getNotStoredDocuments,
+  getRequiredDocuments,
+} from './documentRequirements';
 
 describe('getRequiredDocuments', () => {
   test.each([
@@ -62,13 +66,15 @@ describe('getMissingDocuments', () => {
     expect(getMissingDocuments(t).map((d) => d.key)).toEqual(['w9']);
   });
 
-  test('a document acknowledged missing still counts as missing', () => {
+  test('a document marked not stored is not missing', () => {
     const t = buildMockTransaction({
       type: 'Payment to NU Employee',
       contractFileUrl: undefined,
-      contractAcknowledgedMissing: true,
+      contractNotStored: true,
+      w9FileUrl: undefined,
+      specialPayFormUrl: undefined,
     });
-    expect(getMissingDocuments(t).map((d) => d.key)).toContain('contract');
+    expect(getMissingDocuments(t).map((d) => d.key)).toEqual(['w9', 'specialPayForm']);
   });
 
   test('a Debit Card purchase with an exemption form but no receipt is not missing its receipt', () => {
@@ -96,6 +102,27 @@ describe('getMissingDocuments', () => {
       exemptionFormUrl: 'orgs/1/exemption.pdf',
     });
     expect(getMissingDocuments(t).map((d) => d.key)).toEqual(['receipt']);
+  });
+});
+
+describe('getNotStoredDocuments', () => {
+  test('lists required documents marked not stored', () => {
+    const t = buildMockTransaction({
+      type: 'Payment Request',
+      contractFileUrl: 'orgs/1/contract.pdf',
+      w9FileUrl: undefined,
+      w9NotStored: true,
+    });
+    expect(getNotStoredDocuments(t).map((d) => d.key)).toEqual(['w9']);
+  });
+
+  test('ignores a not-stored flag on a document that is no longer required', () => {
+    const t = buildMockTransaction({
+      type: 'Payment Request',
+      isIndividualVendor: false,
+      contractedServicesNotStored: true,
+    });
+    expect(getNotStoredDocuments(t)).toEqual([]);
   });
 });
 

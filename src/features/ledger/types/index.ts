@@ -63,17 +63,14 @@ export interface Transaction {
   noReceiptAcknowledged?: boolean;
   // Uploaded when the transaction has no receipt (satisfies receipt requirement for reconciliation)
   exemptionFormUrl?: string;
-  // Explicitly acknowledged as not yet available when the transaction was
-  // created/edited (see documentRequirements.ts) -- lets the transaction
-  // save without the file, but keeps it out of getMissingDocuments() until
-  // the file actually shows up. Payment Request / Payment to NU Employee.
-  contractAcknowledgedMissing?: boolean;
-  w9AcknowledgedMissing?: boolean;
-  // Payment Request, individual vendor only
-  contractedServicesAcknowledgedMissing?: boolean;
-  conflictOfInterestAcknowledgedMissing?: boolean;
-  // Payment to NU Employee
-  specialPayFormAcknowledgedMissing?: boolean;
+  // The org chose not to keep a copy of this document in WildcatLedger;
+  // counts as having it. See
+  // docs/BUSINESS_RULES.md#documents-kept-outside-wildcatledger.
+  contractNotStored?: boolean;
+  w9NotStored?: boolean;
+  contractedServicesNotStored?: boolean;
+  conflictOfInterestNotStored?: boolean;
+  specialPayFormNotStored?: boolean;
   // Single-use, time-limited tokens keyed by document type
   // (receipt/contract/w9/...), minted when a document is requested via
   // email; cleared once that document is uploaded through the link. Lets

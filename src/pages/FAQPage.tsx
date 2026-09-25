@@ -401,7 +401,12 @@ const SECTIONS: FaqSection[] = [
       {
         question: 'What if I don’t have a document yet?',
         answer:
-          'Check "I don’t have this yet" on the form and save the transaction anyway. It gets flagged as missing that document, and it just can’t move to Approved or Paid until the file actually shows up.',
+          'Save the transaction anyway and add the document when you have it. Until then it’s flagged as missing that document, and it can’t move to Approved or Paid.',
+      },
+      {
+        question: 'Do I have to store documents like W-9s in WildcatLedger?',
+        answer:
+          'No. For the RSO Agreement, W-9, Contracted Services Form, Conflict of Interest Form, and Special Pay Form, you can tick “Don’t store this document in WildcatLedger” under that document. You still give it to SOFO as usual, and WildcatLedger just notes that you have it, so it isn’t flagged as missing. For a W-9 or RSO Agreement you can still pick the file to run the automatic check on it, and it’s thrown away afterwards instead of saved. Receipts always need to be uploaded, since reconciliation depends on them.',
       },
       {
         question: 'Can I request a document from someone else without leaving the app?',

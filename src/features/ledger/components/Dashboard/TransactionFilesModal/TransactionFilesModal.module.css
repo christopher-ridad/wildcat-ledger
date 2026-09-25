@@ -15,6 +15,12 @@
   margin-bottom: 20px;
 }
 
+.wl-not-stored-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
 .wl-missing-docs-list {
   list-style: none;
   margin: 0;

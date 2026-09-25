@@ -46,14 +46,11 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
   taxExemptFormSubmitted: row.tax_exempt_form_submitted ?? undefined,
   taxAmount: row.tax_amount != null ? Number(row.tax_amount) : undefined,
   taxReimbursed: row.tax_reimbursed ?? undefined,
-  contractAcknowledgedMissing: row.contract_acknowledged_missing ?? undefined,
-  w9AcknowledgedMissing: row.w9_acknowledged_missing ?? undefined,
-  contractedServicesAcknowledgedMissing:
-    row.contracted_services_acknowledged_missing ?? undefined,
-  conflictOfInterestAcknowledgedMissing:
-    row.conflict_of_interest_acknowledged_missing ?? undefined,
-  specialPayFormAcknowledgedMissing:
-    row.special_pay_form_acknowledged_missing ?? undefined,
+  contractNotStored: row.contract_not_stored,
+  w9NotStored: row.w9_not_stored,
+  contractedServicesNotStored: row.contracted_services_not_stored,
+  conflictOfInterestNotStored: row.conflict_of_interest_not_stored,
+  specialPayFormNotStored: row.special_pay_form_not_stored,
   uploadTokens: row.upload_tokens as Transaction['uploadTokens'],
 });
 

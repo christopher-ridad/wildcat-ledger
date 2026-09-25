@@ -12,10 +12,14 @@ interface DocumentUploadFieldProps {
   isEditing: boolean;
   existingTransaction?: Transaction;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onNotStoredChange: (doc: DocumentRequirement, notStored: boolean) => void;
+  // W-9 and RSO Agreement run a completeness check on the picked file, which
+  // is still useful when no copy is being stored.
+  hasCompletenessCheck?: boolean;
 }
 
-// A file input + "I don't have this yet" checkbox + missing-document notice
-// + existing-file link, for one DocumentRequirement. Shared by
+// A file input + existing-file link for one DocumentRequirement, with the
+// option not to store a copy in WildcatLedger. Shared by
 // DirectPaymentFields and NUEmployeePaymentFields, which otherwise repeated
 // this block once per document.
 export const DocumentUploadField = ({
@@ -24,21 +28,20 @@ export const DocumentUploadField = ({
   isEditing,
   existingTransaction,
   onChange,
+  onNotStoredChange,
+  hasCompletenessCheck = false,
 }: DocumentUploadFieldProps) => {
-  const file = form[doc.formField];
-  const acknowledgedMissing = (
-    doc.formAcknowledgedMissingField ? form[doc.formAcknowledgedMissingField] : false
-  ) as boolean;
+  const notStored = !!doc.formNotStoredField && !!form[doc.formNotStoredField];
   const existingUrl = existingTransaction?.[doc.field] as string | undefined;
+  // Nothing ever deletes an uploaded file from storage, so offering "don't
+  // store" on a document that's already stored would only hide the link.
+  const canSkipStoring = !!doc.formNotStoredField && !existingUrl;
 
   return (
     <div className="wl-form-group">
       <div className="wl-form-label-row">
         <label className="wl-form-label" htmlFor={doc.formField}>
-          {doc.label}{' '}
-          {!isEditing && !acknowledgedMissing && (
-            <span className={styles['wl-form-required']}>*</span>
-          )}
+          {doc.label}
         </label>
         {doc.templatePath && (
           <a
@@ -51,6 +54,7 @@ export const DocumentUploadField = ({
           </a>
         )}
       </div>
+
       <div className={styles['wl-receipt-options']}>
         <input
           id={doc.formField}
@@ -58,7 +62,6 @@ export const DocumentUploadField = ({
           type="file"
           accept="image/*,application/pdf"
           className="wl-form-file"
-          disabled={acknowledgedMissing}
           onChange={onChange}
         />
         {isEditing && existingUrl && (
@@ -66,27 +69,25 @@ export const DocumentUploadField = ({
             Current: <ExistingFileLink path={existingUrl} />
           </span>
         )}
-      </div>
-      {!file && !(isEditing && existingUrl) && doc.formAcknowledgedMissingField && (
-        <div className={styles['wl-form-no-receipt']}>
+        {canSkipStoring && (
           <label className={styles['wl-form-checkbox']}>
             <input
               type="checkbox"
-              name={doc.formAcknowledgedMissingField}
-              checked={acknowledgedMissing}
-              onChange={onChange}
+              name={doc.formNotStoredField}
+              checked={notStored}
+              onChange={(e) => onNotStoredChange(doc, e.target.checked)}
             />
-            <span>I don&apos;t have this yet</span>
+            <span>Don&apos;t store this document in WildcatLedger</span>
           </label>
-          {acknowledgedMissing && (
-            <div className={styles['wl-form-no-receipt-notice']}>
-              ⚠ This transaction will be flagged as missing the {doc.label}. You can
-              request it via email from the transaction&apos;s Files panel once it&apos;s
-              saved.
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {notStored && (
+          <p className={styles['wl-form-hint']}>
+            {hasCompletenessCheck
+              ? "Pick the file to check it for missing fields. It won't be saved."
+              : "A file picked here won't be saved."}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

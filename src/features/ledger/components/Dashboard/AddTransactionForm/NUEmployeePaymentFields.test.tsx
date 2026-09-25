@@ -16,21 +16,22 @@ const renderFields = (
       onChange={vi.fn()}
       onW9CheckBlockingChange={vi.fn()}
       onRsoCheckBlockingChange={vi.fn()}
+      onNotStoredChange={vi.fn()}
       {...overrides}
     />,
   );
 
 describe('NUEmployeePaymentFields', () => {
-  test('requires contract, W-9, and Special Pay Form, each with an "I don\'t have this yet" checkbox, when creating', () => {
+  test('shows contract, W-9, and Special Pay Form fields, each of which can skip storing a copy', () => {
     renderFields();
-    expect(screen.getAllByText("I don't have this yet")).toHaveLength(3);
-  });
-
-  test('hides the "I don\'t have this yet" checkbox once a file is attached', () => {
-    const file = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
-    renderFields({ form: { ...initialForm, contractFile: file } });
-    // Only W-9 and Special Pay Form checkboxes remain.
-    expect(screen.getAllByText("I don't have this yet")).toHaveLength(2);
+    expect(screen.getByLabelText('RSO Agreement')).toBeInTheDocument();
+    expect(screen.getByLabelText('W-9')).toBeInTheDocument();
+    expect(screen.getByLabelText('Special Pay Form')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('checkbox', {
+        name: "Don't store this document in WildcatLedger",
+      }),
+    ).toHaveLength(3);
   });
 
   test('shows existing file links when editing with existing documents', () => {
@@ -43,21 +44,19 @@ describe('NUEmployeePaymentFields', () => {
       }),
     });
     expect(screen.getAllByText('View file')).toHaveLength(3);
-    expect(screen.queryByText("I don't have this yet")).not.toBeInTheDocument();
   });
 
-  test('checking "Special Pay Form missing" shows a warning notice and calls onChange', () => {
-    const onChange = vi.fn();
-    renderFields({ onChange });
-    const checkboxes = screen.getAllByRole('checkbox', { name: "I don't have this yet" });
-    fireEvent.click(checkboxes[2]);
-    expect(onChange).toHaveBeenCalled();
-  });
-
-  test('shows a warning notice once the Special Pay Form is acknowledged missing', () => {
-    renderFields({ form: { ...initialForm, specialPayFormAcknowledgedMissing: true } });
-    expect(
-      screen.getByText(/flagged as missing the Special Pay Form/),
-    ).toBeInTheDocument();
+  test('ticking the Special Pay Form not-stored checkbox reports which document', () => {
+    const onNotStoredChange = vi.fn();
+    renderFields({ onNotStoredChange });
+    fireEvent.click(
+      screen.getAllByRole('checkbox', {
+        name: "Don't store this document in WildcatLedger",
+      })[2],
+    );
+    expect(onNotStoredChange).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'specialPayForm' }),
+      true,
+    );
   });
 });

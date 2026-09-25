@@ -32,8 +32,6 @@ test('create a Payment Request', async ({ page }) => {
   await dialog.getByLabel(/Transaction Type/).selectOption('Payment Request');
   await dialog.getByLabel(/^Title/).fill(title);
   await dialog.getByLabel(/^Amount/).fill('200');
-  await dialog.locator('input[name="contractAcknowledgedMissing"]').check();
-  await dialog.locator('input[name="w9AcknowledgedMissing"]').check();
   await dialog.getByRole('button', { name: 'Add Transaction', exact: true }).click();
 
   await expect(dialog).toBeHidden();
@@ -56,8 +54,6 @@ test('a Payment Request missing its documents is flagged and blocked from Approv
   await dialog.getByLabel(/Transaction Type/).selectOption('Payment Request');
   await dialog.getByLabel(/^Title/).fill(title);
   await dialog.getByLabel(/^Amount/).fill('200');
-  await dialog.locator('input[name="contractAcknowledgedMissing"]').check();
-  await dialog.locator('input[name="w9AcknowledgedMissing"]').check();
   await dialog.getByRole('button', { name: 'Add Transaction', exact: true }).click();
   await expect(dialog).toBeHidden();
 
@@ -72,4 +68,33 @@ test('a Payment Request missing its documents is flagged and blocked from Approv
   );
   // The gate rejected the change server-side, so the select reverts.
   await expect(row.getByLabel('Payment status')).toHaveValue('Pending');
+});
+
+test('documents marked not stored count as provided, so the Payment Request can be Approved', async ({
+  page,
+}) => {
+  const title = `E2E Not Stored ${Date.now()}`;
+
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: '+ Add Transaction' }).click();
+  const dialog = page.getByRole('dialog');
+
+  await dialog.getByLabel(/Transaction Type/).selectOption('Payment Request');
+  await dialog.getByLabel(/^Title/).fill(title);
+  await dialog.getByLabel(/^Amount/).fill('200');
+  const notStoredBoxes = dialog.getByRole('checkbox', {
+    name: "Don't store this document in WildcatLedger",
+  });
+  await expect(notStoredBoxes).toHaveCount(2); // RSO Agreement, W-9
+  await notStoredBoxes.nth(0).check();
+  await notStoredBoxes.nth(1).check();
+  await dialog.getByRole('button', { name: 'Add Transaction', exact: true }).click();
+  await expect(dialog).toBeHidden();
+
+  const row = page.getByRole('row', { name: new RegExp(title) });
+  await expect(row.getByText(/⚠ Missing/)).toHaveCount(0);
+
+  // update_payment_status_with_audit treats *_not_stored as present.
+  await row.getByLabel('Payment status').selectOption('Approved');
+  await expect(row.getByLabel('Payment status')).toHaveValue('Approved');
 });
