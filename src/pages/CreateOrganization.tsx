@@ -14,7 +14,13 @@ import { TopNav } from '../layouts/TopNav';
 import { getErrorMessage } from '../utils/errors';
 
 export const CreateOrganization = () => {
-  const { activeOrganization, initializeBudgetAllocations, loading } = useLedger();
+  const {
+    activeOrganization,
+    initializeBudgetAllocations,
+    loading,
+    canEdit,
+    peopleNames,
+  } = useLedger();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -118,6 +124,32 @@ export const CreateOrganization = () => {
   };
 
   if (!activeOrganization) return null;
+
+  // Only a SOFO Approver can set the initial budget (initializeBudgetAllocations
+  // is rejected server-side otherwise -- see the "managers can update their
+  // org" RLS policy). Checked here too, up front, so an Officer doesn't
+  // upload and scan a document only to hit that failure at save time --
+  // this is exactly what happened live: someone was listed as an Officer,
+  // not a SOFO Approver, and only found out after the scan succeeded.
+  if (!canEdit) {
+    const displayName = (email: string) => peopleNames[email] ?? email;
+    return (
+      <div className="wl-register-root wl-topnav-offset">
+        <TopNav />
+        <div className="wl-register-card">
+          <h1 className="wl-register-title">{activeOrganization.name}</h1>
+          <p className="wl-register-subtitle">
+            Only a SOFO Approver can set up this organization&apos;s initial budget.
+          </p>
+          <div className="wl-form-error" style={{ marginTop: 12 }}>
+            Ask a SOFO Approver to complete this step:{' '}
+            {activeOrganization.sofoApprovers.map(displayName).join(', ') ||
+              'none listed for this organization yet -- contact an administrator.'}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="wl-register-root wl-topnav-offset">

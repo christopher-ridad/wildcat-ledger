@@ -59,9 +59,51 @@ describe('CreateOrganization', () => {
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: true }),
       initializeBudgetAllocations: vi.fn(),
       loading: false,
+      canEdit: true,
     } as never);
     renderPage();
     expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
+  });
+
+  // Regression test: reported live -- someone was listed as an Officer, not
+  // a SOFO Approver, and reached this page, scanned a document, and only
+  // found out at save time (via a permission error) that they never had
+  // access. Checked up front now instead.
+  test('blocks an Officer (non-SOFO-Approver) from the budget setup page, naming who to ask', () => {
+    mockUseLedger.mockReturnValue({
+      activeOrganization: buildMockOrganization({
+        isBudgetLinesSet: false,
+        sofoApprovers: ['treasurer@example.com', 'president@example.com'],
+      }),
+      initializeBudgetAllocations: vi.fn(),
+      loading: false,
+      canEdit: false,
+      peopleNames: { 'treasurer@example.com': 'Jane Treasurer' },
+    } as never);
+    renderPage();
+
+    expect(
+      screen.getByText(/Only a SOFO Approver can set up this organization/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Jane Treasurer/)).toBeInTheDocument();
+    expect(screen.getByText(/president@example.com/)).toBeInTheDocument();
+    expect(screen.queryByText('Click to upload budget document')).not.toBeInTheDocument();
+  });
+
+  test('tells an Officer to contact an administrator when the org has no SOFO Approvers listed', () => {
+    mockUseLedger.mockReturnValue({
+      activeOrganization: buildMockOrganization({
+        isBudgetLinesSet: false,
+        sofoApprovers: [],
+      }),
+      initializeBudgetAllocations: vi.fn(),
+      loading: false,
+      canEdit: false,
+      peopleNames: {},
+    } as never);
+    renderPage();
+
+    expect(screen.getByText(/contact an administrator/)).toBeInTheDocument();
   });
 
   test('uploading a document scans it and shows the allocation form on success', async () => {
@@ -69,6 +111,7 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations: vi.fn(),
+      canEdit: true,
     } as never);
     const { container } = renderPage();
 
@@ -88,6 +131,7 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations: vi.fn(),
+      canEdit: true,
     } as never);
     const { container } = renderPage();
 
@@ -107,6 +151,7 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations: vi.fn(),
+      canEdit: true,
     } as never);
     const { container } = renderPage();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -131,6 +176,7 @@ describe('CreateOrganization', () => {
       activeOrganization: org,
       initializeBudgetAllocations,
       loading: false,
+      canEdit: true,
     } as never);
     const { container, rerender } = renderPage();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -164,6 +210,7 @@ describe('CreateOrganization', () => {
       activeOrganization: { ...org, isBudgetLinesSet: true },
       initializeBudgetAllocations,
       loading: false,
+      canEdit: true,
     } as never);
     rerender(
       <MemoryRouter>
@@ -189,6 +236,7 @@ describe('CreateOrganization', () => {
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations,
       loading: false,
+      canEdit: true,
     } as never);
     const { container } = renderPage();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -219,6 +267,7 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations,
+      canEdit: true,
     } as never);
     const { container } = renderPage();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -239,6 +288,7 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations,
+      canEdit: true,
     } as never);
     const { container } = renderPage();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -258,6 +308,7 @@ describe('CreateOrganization', () => {
     mockUseLedger.mockReturnValue({
       activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
       initializeBudgetAllocations: vi.fn(),
+      canEdit: true,
     } as never);
     const { container } = renderPage();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;

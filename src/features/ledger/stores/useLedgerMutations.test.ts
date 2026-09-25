@@ -23,14 +23,19 @@ const mockUploadDocument = vi.mocked(uploadDocument);
 
 // Sets up the supabase.from(table).update(patch).eq(col, val) chain used by
 // updateActiveOrganization/uploadExemptionForm, and returns the
-// `update`/`eq`/`select`/`single` spies so callers can assert on what was
-// actually sent. eq()'s return value is both directly awaitable (the shape
-// uploadExemptionForm uses) and chainable via .select().single() (the shape
-// updateActiveOrganization uses, so a zero-row RLS mismatch surfaces as a
-// real error instead of silently no-op'ing -- see useLedgerMutations.ts).
-const mockUpdateEq = (result: { error: unknown } = { error: null }) => {
-  const single = vi.fn().mockResolvedValue(result);
-  const select = vi.fn(() => ({ single }));
+// `update`/`eq`/`select`/`maybeSingle` spies so callers can assert on what
+// was actually sent. eq()'s return value is both directly awaitable (the
+// shape uploadExemptionForm uses) and chainable via .select().maybeSingle()
+// (the shape updateActiveOrganization uses, so a zero-row RLS mismatch --
+// `data: null`, no error -- surfaces as our own clear error instead of
+// silently no-op'ing -- see useLedgerMutations.ts). Defaults to a truthy
+// placeholder row so tests that don't care about the exact shape read as a
+// successful update, not a zero-row permission mismatch.
+const mockUpdateEq = (
+  result: { data?: unknown; error: unknown } = { data: {}, error: null },
+) => {
+  const maybeSingle = vi.fn().mockResolvedValue(result);
+  const select = vi.fn(() => ({ maybeSingle }));
   const eq = vi.fn(() => {
     const chain = Promise.resolve(result) as Promise<typeof result> & {
       select: typeof select;
@@ -40,7 +45,7 @@ const mockUpdateEq = (result: { error: unknown } = { error: null }) => {
   });
   const update = vi.fn(() => ({ eq }));
   mockFrom.mockReturnValue({ update } as never);
-  return { update, eq, select, single };
+  return { update, eq, select, maybeSingle };
 };
 
 beforeEach(() => {
@@ -241,6 +246,20 @@ describe('organization settings updates', () => {
     await expect(
       updateBudgetAllocations({ ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 }),
     ).rejects.toEqual({ message: 'boom' });
+  });
+
+  // Regression test: an RLS mismatch (the caller isn't actually a SOFO
+  // Approver for this org) matches zero rows without PostgREST itself
+  // raising an error -- .select().maybeSingle() resolves with `data: null,
+  // error: null`. This must surface as our own clear message, not silently
+  // succeed, and not PostgREST's raw "Cannot coerce the result to a single
+  // JSON object" (what .single() throws in this exact situation).
+  test('throws a clear permission error when the update matches zero rows', async () => {
+    mockUpdateEq({ data: null, error: null });
+    const { initializeBudgetAllocations } = useLedgerMutations('org-1', 'sofoApprover');
+    await expect(
+      initializeBudgetAllocations({ ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 }),
+    ).rejects.toThrow(/not be listed as a SOFO Approver/);
   });
 });
 
