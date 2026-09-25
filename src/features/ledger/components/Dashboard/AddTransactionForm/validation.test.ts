@@ -77,15 +77,15 @@ describe('deriveBudgetLine', () => {
     'Payment Request',
     'Non-Officer Reimbursement',
     'Payment to NU Employee',
-    'Deposit',
+    'Journal',
   ] as const)('%s maps to the selected funding line', (type) => {
     expect(deriveBudgetLine(type, 'Operating')).toBe('Operating');
   });
 });
 
 describe('deriveDirection', () => {
-  test('Deposit is an Inflow', () => {
-    expect(deriveDirection('Deposit')).toBe('Inflow');
+  test('Journal is an Inflow', () => {
+    expect(deriveDirection('Journal')).toBe('Inflow');
   });
 
   test.each([
@@ -414,8 +414,8 @@ describe('validateTransactionForm', () => {
     });
   });
 
-  test('Deposit requires only title and amount', () => {
-    const form = { ...baseForm, type: 'Deposit' as const, receiptFile: null };
+  test('Journal requires only title and amount', () => {
+    const form = { ...baseForm, type: 'Journal' as const, receiptFile: null };
     expect(validateTransactionForm(form, false, undefined)).toBeNull();
   });
 });

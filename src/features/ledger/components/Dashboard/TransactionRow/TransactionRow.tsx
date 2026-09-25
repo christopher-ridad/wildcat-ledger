@@ -34,8 +34,8 @@ const PAYMENT_STATUS_TYPES: Transaction['type'][] = [
 ];
 
 // See docs/BUSINESS_RULES.md#payment-status-lifecycle.
-const statusLabel = (status: PaymentStatus, isReloadDeposit: boolean) =>
-  isReloadDeposit && status === 'Paid' ? 'Reloaded' : status;
+const statusLabel = (status: PaymentStatus, isReloadJournal: boolean) =>
+  isReloadJournal && status === 'Paid' ? 'Reloaded' : status;
 
 export const TransactionRow = ({
   t,
@@ -93,11 +93,11 @@ export const TransactionRow = ({
   const colSpan = canEdit ? 7 : 6;
   const txnNeedsTaxReimbursement = needsTaxReimbursement(t);
   // See docs/BUSINESS_RULES.md#payment-status-lifecycle.
-  const isReloadDeposit = t.budgetLine === 'Debit Card' && t.type === 'Deposit';
-  const isDebitCardPurchase = t.budgetLine === 'Debit Card' && !isReloadDeposit;
+  const isReloadJournal = t.budgetLine === 'Debit Card' && t.type === 'Journal';
+  const isDebitCardPurchase = t.budgetLine === 'Debit Card' && !isReloadJournal;
   const isReconciled = isDebitCardPurchase && t.reconciledAt != null;
   const paymentStatus =
-    PAYMENT_STATUS_TYPES.includes(t.type) || isReloadDeposit
+    PAYMENT_STATUS_TYPES.includes(t.type) || isReloadJournal
       ? (t.paymentStatus ?? 'Pending')
       : null;
 
@@ -188,8 +188,8 @@ export const TransactionRow = ({
                   onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
                 >
                   <option value="Pending">Pending</option>
-                  {!isReloadDeposit && <option value="Approved">Approved</option>}
-                  <option value="Paid">{statusLabel('Paid', isReloadDeposit)}</option>
+                  {!isReloadJournal && <option value="Approved">Approved</option>}
+                  <option value="Paid">{statusLabel('Paid', isReloadJournal)}</option>
                 </select>
                 {statusState.error && (
                   <div className={styles['wl-status-error']} role="alert">
@@ -201,7 +201,7 @@ export const TransactionRow = ({
               <span
                 className={`${styles['wl-status-badge']} ${STATUS_BADGE_CLASS[paymentStatus]}`}
               >
-                {statusLabel(paymentStatus, isReloadDeposit)}
+                {statusLabel(paymentStatus, isReloadJournal)}
               </span>
             )
           ) : (

@@ -26,7 +26,7 @@ describe('getRequiredDocuments', () => {
       { type: 'Payment to NU Employee' },
       ['contract', 'w9', 'specialPayForm'],
     ],
-    ['Deposit requires nothing', { type: 'Deposit' }, []],
+    ['Journal requires nothing', { type: 'Journal' }, []],
   ] as const)('%s', (_description, overrides, expectedKeys) => {
     const t = buildMockTransaction(overrides);
     expect(getRequiredDocuments(t).map((d) => d.key)).toEqual(expectedKeys);

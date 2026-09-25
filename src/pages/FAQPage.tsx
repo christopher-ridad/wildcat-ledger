@@ -107,7 +107,7 @@ const SECTIONS: FaqSection[] = [
           <>
             <p>
               Every transaction type asks you to pick which line is funding it: ASG,
-              Operating, or Gifts, including a Deposit. Incoming ASG money (a supplemental
+              Operating, or Gifts, including a Journal. Incoming ASG money (a supplemental
               grant or Senate appeal, say) needs somewhere to go too.
             </p>
             <ul>
@@ -277,7 +277,7 @@ const SECTIONS: FaqSection[] = [
               any amount up to that limit.
             </p>
             <p>
-              <strong>In WildcatLedger:</strong> a reload is recorded as a Deposit on the
+              <strong>In WildcatLedger:</strong> a reload is recorded as a Journal on the
               Debit Card budget line, shown as &ldquo;Reloaded&rdquo; once it reaches
               Paid. It skips the Approved step since approving a reload is reloading it.
             </p>
@@ -327,13 +327,13 @@ const SECTIONS: FaqSection[] = [
         ),
       },
       {
-        question: 'Deposit',
+        question: 'Journal',
         answer: (
           <>
             <p>
-              Deposit isn&rsquo;t one of SOFO&rsquo;s own transaction types. It&rsquo;s
+              Journal isn&rsquo;t one of SOFO&rsquo;s own transaction types. It&rsquo;s
               WildcatLedger&rsquo;s way of tracking money coming into a budget line.
-              There&rsquo;s no SOFO paperwork to submit for one of these, so a Deposit
+              There&rsquo;s no SOFO paperwork to submit for one of these, so a Journal
               doesn&rsquo;t need a document attached. Some examples:
             </p>
             <ul>
@@ -463,7 +463,7 @@ const SECTIONS: FaqSection[] = [
       {
         question: 'When does a transaction actually affect my budget balance?',
         answer:
-          'For Payment Requests, Reimbursements, NU-Employee payments, and debit-card reloads, not until it reaches Paid, since the money hasn’t actually moved before then. A Debit Card purchase or a regular Deposit hits the balance right away, since that money already moved the moment it happened.',
+          'For Payment Requests, Reimbursements, NU-Employee payments, and debit-card reloads, not until it reaches Paid, since the money hasn’t actually moved before then. A Debit Card purchase or a regular Journal hits the balance right away, since that money already moved the moment it happened.',
       },
       {
         question: 'What happens if a transaction would overdraw a budget line?',

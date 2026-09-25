@@ -18,7 +18,7 @@ describe('requirementSeedsForPaymentType', () => {
       { type: 'Payment Request', individual: false },
       { type: 'Payment Request', individual: true },
       { type: 'Payment to NU Employee', individual: false },
-      { type: 'Deposit', individual: false },
+      { type: 'Journal', individual: false },
     ];
 
     for (const { type, individual } of types) {
@@ -45,7 +45,7 @@ describe('requirementSeedsForPaymentType', () => {
     ]);
   });
 
-  test('Deposit has no requirements', () => {
-    expect(requirementSeedsForPaymentType('Deposit', false)).toEqual([]);
+  test('Journal has no requirements', () => {
+    expect(requirementSeedsForPaymentType('Journal', false)).toEqual([]);
   });
 });

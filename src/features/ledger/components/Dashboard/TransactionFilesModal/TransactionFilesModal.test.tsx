@@ -56,7 +56,7 @@ describe('getTransactionFiles', () => {
 
 describe('TransactionFilesModal', () => {
   test('shows an empty state when the transaction has no attachments or requirements', () => {
-    renderModal(buildMockTransaction({ type: 'Deposit', budgetLine: 'Operating' }));
+    renderModal(buildMockTransaction({ type: 'Journal', budgetLine: 'Operating' }));
     expect(
       screen.getByText('No files attached to this transaction.'),
     ).toBeInTheDocument();

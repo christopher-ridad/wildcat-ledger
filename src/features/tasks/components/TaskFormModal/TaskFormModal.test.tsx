@@ -242,7 +242,7 @@ describe('TaskFormModal', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  test("payment type select is populated from the app's existing supported types, excluding Deposit", () => {
+  test("payment type select is populated from the app's existing supported types, excluding Journal", () => {
     renderModal();
     expect(screen.getByRole('option', { name: 'No payment type' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Debit Card' })).toBeInTheDocument();
@@ -253,9 +253,9 @@ describe('TaskFormModal', () => {
     expect(
       screen.getByRole('option', { name: 'Payment to NU Employee' }),
     ).toBeInTheDocument();
-    // Deposits are Debit Card reloads, not something a task's payment type
+    // Journals are Debit Card reloads, not something a task's payment type
     // ever needs to represent.
-    expect(screen.queryByRole('option', { name: 'Deposit' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Journal' })).not.toBeInTheDocument();
   });
 
   test('the individual-vendor checkbox and hint only appear once Payment Request is selected', () => {
