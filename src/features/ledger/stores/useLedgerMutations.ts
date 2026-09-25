@@ -38,20 +38,29 @@ export function useLedgerMutations(
   // Same shape as callOrgRpc, for the mutations that patch the active
   // organization row directly instead of going through an RPC.
   //
-  // .select().single() (rather than a bare .update()) is deliberate: a plain
-  // PATCH with no representation requested returns a 204 with no error even
-  // when the "managers can update their org" RLS policy matches zero rows,
-  // so a permission mismatch would otherwise silently no-op instead of
-  // failing. Selecting the row back turns that into a real, visible error.
+  // .select().maybeSingle() (rather than a bare .update()) is deliberate: a
+  // plain PATCH with no representation requested returns a 204 with no
+  // error even when the "managers can update their org" RLS policy matches
+  // zero rows, so a permission mismatch would otherwise silently no-op
+  // instead of failing. Selecting the row back turns that into a real,
+  // visible error -- maybeSingle() (not single()) so that zero-row case
+  // surfaces as our own clear message below instead of PostgREST's raw,
+  // confusing "Cannot coerce the result to a single JSON object".
   const updateActiveOrganization = async (patch: Record<string, unknown>) => {
     if (!activeOrganizationId) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('organizations')
       .update(patch)
       .eq('id', activeOrganizationId)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
+    if (!data) {
+      throw new Error(
+        "This organization's settings couldn't be saved -- you may not be listed as a " +
+          "SOFO Approver for it. Contact an administrator if that doesn't sound right.",
+      );
+    }
   };
 
   const addTransaction = async (
