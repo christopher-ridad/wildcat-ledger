@@ -87,6 +87,7 @@ export const TimelineBoard = () => {
     assigneeEmails: string[];
     paymentType?: TransactionType;
     isIndividualVendor?: boolean;
+    isExistingVendor?: boolean;
   }) => {
     if (editingTask) {
       await updateFinancialTask(editingTask.id, task);

@@ -22,6 +22,16 @@ describe('getRequiredDocuments', () => {
       ['contract', 'w9', 'contractedServices', 'conflictOfInterest'],
     ],
     [
+      'Payment Request requires only the contract for an existing vendor',
+      { type: 'Payment Request', isExistingVendor: true },
+      ['contract'],
+    ],
+    [
+      'An existing individual vendor still only needs the contract',
+      { type: 'Payment Request', isExistingVendor: true, isIndividualVendor: true },
+      ['contract'],
+    ],
+    [
       'Payment to NU Employee requires contract, W-9, and Special Pay Form',
       { type: 'Payment to NU Employee' },
       ['contract', 'w9', 'specialPayForm'],

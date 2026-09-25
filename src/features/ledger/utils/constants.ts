@@ -7,6 +7,11 @@ export const POLICY_EXEMPTION_FORM_URL =
 export const SOFO_SALES_TAX_REIMBURSEMENT_URL =
   'https://sofosalestax.securepayments.cardpointe.com/pay';
 
+// SOFO's short link, kept rather than the SharePoint URL it redirects to so
+// it keeps working when they replace the file. See
+// docs/BUSINESS_RULES.md#existing-vendors.
+export const EXISTING_VENDOR_LIST_URL = 'https://tinyurl.com/ExistingVendorList';
+
 export const EMPTY_ALLOCATIONS: BudgetAllocations = {
   ASG: 0,
   Operating: 0,

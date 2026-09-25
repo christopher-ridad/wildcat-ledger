@@ -37,6 +37,8 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
     w9File: null,
     w9AcknowledgedMissing: t.w9AcknowledgedMissing ?? false,
     isIndividualVendor: t.isIndividualVendor ?? false,
+    isExistingVendor: t.isExistingVendor ?? false,
+    existingVendorNumber: t.existingVendorNumber ?? '',
     contractedServicesFile: null,
     contractedServicesAcknowledgedMissing:
       t.contractedServicesAcknowledgedMissing ?? false,
@@ -49,6 +51,18 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
     reimbursedMemberName: t.reimbursedMemberName ?? '',
     notes: t.notes ?? '',
   };
+};
+
+// SOFO already has an existing vendor's W-9 (and individual-vendor forms),
+// so ticking "existing vendor" drops anything entered for them.
+const NEW_VENDOR_ONLY_FIELDS_CLEARED: Partial<FormState> = {
+  w9File: null,
+  w9AcknowledgedMissing: false,
+  isIndividualVendor: false,
+  contractedServicesFile: null,
+  contractedServicesAcknowledgedMissing: false,
+  conflictOfInterestFile: null,
+  conflictOfInterestAcknowledgedMissing: false,
 };
 
 // Form state, OCR-triggered receipt scanning, document uploads, and
@@ -133,7 +147,18 @@ export function useAddTransactionForm({
   ) => {
     const target = e.target;
     const { name } = target;
-    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+    if (name === 'isExistingVendor' && target instanceof HTMLInputElement) {
+      setForm((prev) => ({
+        ...prev,
+        ...(target.checked
+          ? NEW_VENDOR_ONLY_FIELDS_CLEARED
+          : { existingVendorNumber: '' }),
+        isExistingVendor: target.checked,
+      }));
+      // The W-9 check unmounts along with its field, and only resets its
+      // blocking flag when its file changes, so release it here.
+      if (target.checked) setW9CheckBlocking(false);
+    } else if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       setForm((prev) => ({ ...prev, [name]: target.checked }));
     } else if (target instanceof HTMLInputElement && target.type === 'file') {
       setForm((prev) => ({ ...prev, [name]: target.files?.[0] ?? null }));
@@ -169,6 +194,8 @@ export function useAddTransactionForm({
       w9File: null,
       w9AcknowledgedMissing: false,
       isIndividualVendor: false,
+      isExistingVendor: false,
+      existingVendorNumber: '',
       contractedServicesFile: null,
       contractedServicesAcknowledgedMissing: false,
       conflictOfInterestFile: null,
@@ -270,6 +297,8 @@ export function useAddTransactionForm({
         specialPayFormUrl,
       } = uploadedFileUrls;
 
+      const isNewVendorPaymentRequest =
+        form.type === 'Payment Request' && !form.isExistingVendor;
       const newTransaction: Omit<Transaction, 'id'> = {
         title: form.title.trim(),
         date: form.date || todayISO(),
@@ -285,8 +314,15 @@ export function useAddTransactionForm({
           form.type === 'Non-Officer Reimbursement'
             ? form.reimbursedMemberName.trim()
             : undefined,
-        isIndividualVendor:
-          form.type === 'Payment Request' ? form.isIndividualVendor : undefined,
+        isIndividualVendor: isNewVendorPaymentRequest
+          ? form.isIndividualVendor
+          : undefined,
+        isExistingVendor:
+          form.type === 'Payment Request' ? form.isExistingVendor : undefined,
+        existingVendorNumber:
+          form.type === 'Payment Request' && form.isExistingVendor
+            ? form.existingVendorNumber.trim()
+            : undefined,
         noReceiptAcknowledged:
           form.type === 'Debit Card' || form.type === 'Non-Officer Reimbursement'
             ? form.noReceiptAcknowledged
@@ -302,15 +338,15 @@ export function useAddTransactionForm({
             ? form.contractAcknowledgedMissing
             : undefined,
         w9AcknowledgedMissing:
-          form.type === 'Payment Request' || form.type === 'Payment to NU Employee'
+          isNewVendorPaymentRequest || form.type === 'Payment to NU Employee'
             ? form.w9AcknowledgedMissing
             : undefined,
         contractedServicesAcknowledgedMissing:
-          form.type === 'Payment Request' && form.isIndividualVendor
+          isNewVendorPaymentRequest && form.isIndividualVendor
             ? form.contractedServicesAcknowledgedMissing
             : undefined,
         conflictOfInterestAcknowledgedMissing:
-          form.type === 'Payment Request' && form.isIndividualVendor
+          isNewVendorPaymentRequest && form.isIndividualVendor
             ? form.conflictOfInterestAcknowledgedMissing
             : undefined,
         specialPayFormAcknowledgedMissing:

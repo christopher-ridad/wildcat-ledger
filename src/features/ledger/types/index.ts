@@ -40,6 +40,10 @@ export interface Transaction {
   paymentStatus?: PaymentStatus;
   // Payment Request
   isIndividualVendor?: boolean;
+  // On SOFO's Existing Vendor List, so only the RSO Agreement is needed and
+  // the SOFO form takes existingVendorNumber (the number from that list).
+  isExistingVendor?: boolean;
+  existingVendorNumber?: string;
   // Legacy field from before Payment to NU Employee was split out into its
   // own type -- new transactions no longer set this, the type itself
   // conveys it. Kept for historical Payment Request rows that used the

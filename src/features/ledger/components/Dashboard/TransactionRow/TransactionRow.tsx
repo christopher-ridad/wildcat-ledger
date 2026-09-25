@@ -165,7 +165,14 @@ export const TransactionRow = ({
           {isInflow ? '+' : '-'}
           {formatCurrency(t.amount)}
         </td>
-        <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>{t.type}</td>
+        <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>
+          {t.type}
+          {t.type === 'Payment Request' && t.isExistingVendor && (
+            <span className={styles['wl-td-type-detail']}>
+              Existing vendor #{t.existingVendorNumber}
+            </span>
+          )}
+        </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-status']}`}>
           {isDebitCardPurchase ? (
             <span

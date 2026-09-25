@@ -38,6 +38,8 @@ export interface FormState {
   w9File: File | null;
   w9AcknowledgedMissing: boolean;
   isIndividualVendor: boolean;
+  isExistingVendor: boolean;
+  existingVendorNumber: string;
   contractedServicesFile: File | null;
   contractedServicesAcknowledgedMissing: boolean;
   conflictOfInterestFile: File | null;
@@ -67,6 +69,8 @@ export const initialForm: FormState = {
   w9File: null,
   w9AcknowledgedMissing: false,
   isIndividualVendor: false,
+  isExistingVendor: false,
+  existingVendorNumber: '',
   contractedServicesFile: null,
   contractedServicesAcknowledgedMissing: false,
   conflictOfInterestFile: null,

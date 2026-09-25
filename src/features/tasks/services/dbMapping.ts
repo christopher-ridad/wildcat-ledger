@@ -24,6 +24,7 @@ export const rowToFinancialTask = (row: FinancialTaskRow): FinancialTask => ({
   createdAt: row.created_at,
   paymentType: (row.payment_type ?? undefined) as TransactionType | undefined,
   isIndividualVendor: row.is_individual_vendor,
+  isExistingVendor: row.is_existing_vendor,
 });
 
 export const rowToFinancialTaskRequirement = (

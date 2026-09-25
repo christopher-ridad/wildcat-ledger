@@ -136,11 +136,13 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
 };
 
 // The documents a transaction needs, based on its type (and, for Payment
-// Request, whether the vendor is an individual). Mirrors the requirements
-// enforced in validation.ts (form-time) and the Approved/Paid gate in
-// update_payment_status_with_audit (server-side) -- keep all three in sync.
+// Request, whether the vendor is already on SOFO's Existing Vendor List or
+// is an individual). Mirrors the requirements enforced in validation.ts
+// (form-time) and the Approved/Paid gate in update_payment_status_with_audit
+// (server-side) -- keep all three in sync. See
+// docs/BUSINESS_RULES.md#existing-vendors.
 export const getRequiredDocuments = (
-  t: Pick<Transaction, 'type' | 'isIndividualVendor'>,
+  t: Pick<Transaction, 'type' | 'isIndividualVendor' | 'isExistingVendor'>,
 ): DocumentRequirement[] => {
   switch (t.type) {
     case 'Debit Card':
@@ -148,6 +150,7 @@ export const getRequiredDocuments = (
     case 'Non-Officer Reimbursement':
       return [RECEIPT];
     case 'Payment Request':
+      if (t.isExistingVendor) return [CONTRACT];
       return t.isIndividualVendor
         ? [CONTRACT, W9, CONTRACTED_SERVICES, CONFLICT_OF_INTEREST]
         : [CONTRACT, W9];

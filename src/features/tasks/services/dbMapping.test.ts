@@ -20,6 +20,7 @@ describe('rowToFinancialTask', () => {
     created_at: '2026-08-01T00:00:00.000Z',
     payment_type: null,
     is_individual_vendor: false,
+    is_existing_vendor: false,
   };
 
   test('maps a minimal (no description/assignees, incomplete, no payment type) row', () => {
@@ -35,6 +36,7 @@ describe('rowToFinancialTask', () => {
       createdAt: '2026-08-01T00:00:00.000Z',
       paymentType: undefined,
       isIndividualVendor: false,
+      isExistingVendor: false,
     });
   });
 
@@ -54,15 +56,17 @@ describe('rowToFinancialTask', () => {
     expect(task.completedAt).toBe('2026-09-10T12:00:00.000Z');
   });
 
-  test('passes through payment type and isIndividualVendor', () => {
+  test('passes through payment type and vendor flags', () => {
     const row: FinancialTaskRow = {
       ...minimalFinancialTaskRow,
       payment_type: 'Payment Request',
       is_individual_vendor: true,
+      is_existing_vendor: true,
     };
     const task = rowToFinancialTask(row);
     expect(task.paymentType).toBe('Payment Request');
     expect(task.isIndividualVendor).toBe(true);
+    expect(task.isExistingVendor).toBe(true);
   });
 });
 

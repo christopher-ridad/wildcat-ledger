@@ -210,6 +210,42 @@ describe('AddTransactionForm', () => {
     expect(transaction.noReceiptAcknowledged).toBe(true);
   });
 
+  test('submits an existing-vendor payment request with only the contract and vendor number', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    renderForm({ addTransaction });
+    fireEvent.change(screen.getByLabelText(/Transaction Type/), {
+      target: { value: 'Payment Request' },
+    });
+    fillCommonFields('DJ for formal', '300.00');
+
+    const file = new File(['x'], 'doc.pdf', { type: 'application/pdf' });
+    fireEvent.change(document.getElementById('contractFile') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    // A W-9 picked before realizing the vendor is already on file shouldn't
+    // be uploaded once "existing vendor" is ticked.
+    fireEvent.change(document.getElementById('w9File') as HTMLInputElement, {
+      target: { files: [file] },
+    });
+    fireEvent.click(screen.getByRole('checkbox', { name: /Existing Vendor List/ }));
+    fireEvent.change(screen.getByLabelText(/Vendor Number/), {
+      target: { value: ' 12345 ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Transaction' }));
+
+    await vi.waitFor(() => expect(addTransaction).toHaveBeenCalled());
+    const [transaction] = addTransaction.mock.calls[0];
+    expect(transaction).toMatchObject({
+      type: 'Payment Request',
+      isExistingVendor: true,
+      existingVendorNumber: '12345',
+      contractFileUrl: 'clubs/org-1/transactions/txn-1/contract_doc.pdf',
+    });
+    expect(transaction.w9FileUrl).toBeUndefined();
+    expect(transaction.w9AcknowledgedMissing).toBeUndefined();
+    expect(transaction.isIndividualVendor).toBeUndefined();
+  });
+
   test('submits a payment to a Northwestern employee with contract, W-9, and Special Pay Form', async () => {
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     renderForm({ addTransaction });

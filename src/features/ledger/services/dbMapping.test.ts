@@ -28,6 +28,8 @@ const minimalTransactionRow: TransactionRow = {
   reimbursed_member_name: null,
   payment_status: null,
   is_individual_vendor: null,
+  is_existing_vendor: null,
+  existing_vendor_number: null,
   is_northwestern_employee: null,
   receipt_file_url: null,
   contract_file_url: null,
@@ -97,6 +99,8 @@ describe('rowToTransaction', () => {
       reimbursed_member_name: 'Jane Doe',
       payment_status: 'Approved',
       is_individual_vendor: true,
+      is_existing_vendor: true,
+      existing_vendor_number: '12345',
       is_northwestern_employee: false,
       receipt_file_url: 'clubs/org-1/receipt.pdf',
       contract_file_url: 'clubs/org-1/contract.pdf',
@@ -125,6 +129,8 @@ describe('rowToTransaction', () => {
     expect(t.reimbursedMemberName).toBe('Jane Doe');
     expect(t.paymentStatus).toBe('Approved');
     expect(t.isIndividualVendor).toBe(true);
+    expect(t.isExistingVendor).toBe(true);
+    expect(t.existingVendorNumber).toBe('12345');
     expect(t.isNorthwesternEmployee).toBe(false);
     expect(t.receiptFileUrl).toBe('clubs/org-1/receipt.pdf');
     expect(t.contractFileUrl).toBe('clubs/org-1/contract.pdf');
