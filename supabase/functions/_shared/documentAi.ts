@@ -183,7 +183,9 @@ export function checkFieldsPresent(
   const flags: PresenceFlag[] = [];
   for (const spec of specs) {
     const field = formFields.find((f) => {
-      const name = extractText(documentText, f.fieldName?.textAnchor).trim().toLowerCase();
+      const name = extractText(documentText, f.fieldName?.textAnchor)
+        .trim()
+        .toLowerCase();
       return spec.matchName(name);
     });
     const value = field

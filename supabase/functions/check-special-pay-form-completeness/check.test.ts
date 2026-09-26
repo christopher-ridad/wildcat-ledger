@@ -115,15 +115,22 @@ Deno.test('checkSpecialPayForm - blank Earnings Amount is flagged', () => {
   );
 });
 
-Deno.test('checkSpecialPayForm - blank "Name of Person Completing Form" is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[8] = doc.field('Name of Person Completing Form: (print)', '', ARBITRARY_BOX);
-  const flags = checkSpecialPayForm(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'Completed By'),
-    true,
-  );
-});
+Deno.test(
+  'checkSpecialPayForm - blank "Name of Person Completing Form" is flagged',
+  () => {
+    const { doc, formFields } = fullyFilledDoc();
+    formFields[8] = doc.field(
+      'Name of Person Completing Form: (print)',
+      '',
+      ARBITRARY_BOX,
+    );
+    const flags = checkSpecialPayForm(doc.text, formFields);
+    assertEquals(
+      flags.some((f) => f.label === 'Completed By'),
+      true,
+    );
+  },
+);
 
 Deno.test('checkSpecialPayForm - field name matching is case-insensitive', () => {
   const { doc, formFields } = fullyFilledDoc();

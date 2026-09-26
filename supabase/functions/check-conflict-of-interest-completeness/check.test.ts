@@ -10,7 +10,11 @@ function fullyFilledDoc() {
   const doc = new FixtureDoc();
   const formFields = [
     doc.field('Proposed Vendor Name:', 'Acme Consulting', ARBITRARY_BOX),
-    doc.field('Individual submitting the form via the NUPortal:', 'Jane Doe', ARBITRARY_BOX),
+    doc.field(
+      'Individual submitting the form via the NUPortal:',
+      'Jane Doe',
+      ARBITRARY_BOX,
+    ),
     doc.field(
       'Individual (s) who selected or directed the vendor to be added to NUFinancials:',
       'John Smith',
@@ -25,14 +29,17 @@ Deno.test('checkConflictOfInterest - fully filled document has no flags', () => 
   assertEquals(checkConflictOfInterest(doc.text, formFields), []);
 });
 
-Deno.test('checkConflictOfInterest - blank vendor name is flagged with its own box', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[0] = doc.field('Proposed Vendor Name:', '', ARBITRARY_BOX);
-  const flags = checkConflictOfInterest(doc.text, formFields);
-  assertEquals(flags.length, 1);
-  assertEquals(flags[0].label, 'Vendor Name');
-  assertEquals(flags[0].box, ARBITRARY_BOX);
-});
+Deno.test(
+  'checkConflictOfInterest - blank vendor name is flagged with its own box',
+  () => {
+    const { doc, formFields } = fullyFilledDoc();
+    formFields[0] = doc.field('Proposed Vendor Name:', '', ARBITRARY_BOX);
+    const flags = checkConflictOfInterest(doc.text, formFields);
+    assertEquals(flags.length, 1);
+    assertEquals(flags[0].label, 'Vendor Name');
+    assertEquals(flags[0].box, ARBITRARY_BOX);
+  },
+);
 
 Deno.test('checkConflictOfInterest - vendor name missing entirely has a null box', () => {
   const { doc, formFields } = fullyFilledDoc();
