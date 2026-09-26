@@ -2,7 +2,7 @@ import { assertEquals } from 'jsr:@std/assert@1';
 
 import { boxFrom } from '../_shared/documentAi.ts';
 import { FixtureDoc } from '../_shared/testFixtures.ts';
-import { checkContractedServices } from './check.ts';
+import { checkContractedServices, SECTION_BOXES } from './check.ts';
 
 const ARBITRARY_BOX = boxFrom(0, 0.1, 0, 0.1);
 
@@ -68,48 +68,12 @@ Deno.test(
 );
 
 Deno.test(
-  'checkContractedServices - the Contractor Information box covers every field in that section, filled or not',
+  "checkContractedServices - the Contractor Information box is the section's fixed, hand-marked-up position",
   () => {
     const { doc, formFields, lines } = fullyFilledDoc();
     lines[0] = doc.line('Name: ', ARBITRARY_BOX);
     const flags = checkContractedServices(doc.text, formFields, lines);
-    // Every field in the fixture shares the same ARBITRARY_BOX, so the
-    // union should equal it exactly.
-    assertEquals(flags[0].box, ARBITRARY_BOX);
-  },
-);
-
-Deno.test(
-  'checkContractedServices - Contractor Information entirely missing (no lines at all) has a null box',
-  () => {
-    const doc = new FixtureDoc();
-    const flags = checkContractedServices(doc.text, [], []);
-    const infoFlag = flags.find((f) => f.label === 'Contractor Information');
-    assertEquals(infoFlag?.box, null);
-  },
-);
-
-Deno.test(
-  'checkContractedServices - the Contractor Information box widens to include the section heading and Address Line 2, when present',
-  () => {
-    const { doc, formFields, lines } = fullyFilledDoc();
-    lines[0] = doc.line('Name: ', ARBITRARY_BOX);
-    const headerBox = boxFrom(0.05, 0.3, 0.2, 0.22);
-    const addressLine2Box = boxFrom(0.05, 0.3, 0.3, 0.32);
-    lines.push(doc.line('Contractor Information', headerBox));
-    lines.push(doc.line('Address Line 2: ', addressLine2Box));
-    const flags = checkContractedServices(doc.text, formFields, lines);
-    // The union now spans from ARBITRARY_BOX (every field shares it here)
-    // through both anchors' boxes, so the result should stretch wider and
-    // taller than ARBITRARY_BOX alone.
-    assertEquals(flags[0].box, {
-      normalizedVertices: [
-        { x: 0, y: 0 },
-        { x: 0.3, y: 0 },
-        { x: 0.3, y: 0.32 },
-        { x: 0, y: 0.32 },
-      ],
-    });
+    assertEquals(flags[0].box, SECTION_BOXES.contractorInformation);
   },
 );
 
@@ -236,21 +200,12 @@ Deno.test(
 );
 
 Deno.test(
-  'checkContractedServices - the Acknowledgement box widens to include the section heading, when present',
+  "checkContractedServices - the Acknowledgement box is the section's fixed, hand-marked-up position",
   () => {
     const { doc, formFields, lines } = fullyFilledDoc();
     lines[9] = doc.line('Contractor Signature: ', ARBITRARY_BOX);
-    const headerBox = boxFrom(0.05, 0.3, 0.2, 0.22);
-    lines.push(doc.line("Contractor's Acknowledgement", headerBox));
     const flags = checkContractedServices(doc.text, formFields, lines);
-    assertEquals(flags[0].box, {
-      normalizedVertices: [
-        { x: 0, y: 0 },
-        { x: 0.3, y: 0 },
-        { x: 0.3, y: 0.22 },
-        { x: 0, y: 0.22 },
-      ],
-    });
+    assertEquals(flags[0].box, SECTION_BOXES.acknowledgement);
   },
 );
 

@@ -300,44 +300,6 @@ export function checkLabeledFieldsRobust(
     }));
 }
 
-// The matched line's own box for a literal, lowercase substring search
-// among the page's raw OCR'd lines -- no filled/blank semantics, just "is
-// this text on the page, and where." Used to pull extra real anchor
-// points (a section's own heading, an unchecked row that still belongs
-// visually inside it) into a section-level box via unionBoxes, when a
-// group of RobustFieldSpecs' own boxes alone don't stretch far enough to
-// cover the section as printed.
-export function findLineBox(
-  documentText: string,
-  lines: Line[],
-  labelSubstring: string,
-): Box | null {
-  for (const line of lines) {
-    const lineText = extractText(documentText, line.layout?.textAnchor);
-    if (normalizeHomoglyphs(lineText.toLowerCase()).includes(labelSubstring)) {
-      return line.layout?.boundingPoly ?? null;
-    }
-  }
-  return null;
-}
-
-// The smallest box that contains every given box -- used to highlight a
-// whole visual section (e.g. "Contractor Information") on the page when
-// any field inside it is missing, rather than drawing several individual
-// boxes. Built from whatever field boxes were actually found (filled or
-// not -- see findLabeledFieldStatuses), not a hand-measured section
-// position, so it stays accurate regardless of exactly where the section
-// happens to render. Returns null only if none of the given boxes were
-// found at all.
-export function unionBoxes(boxes: (Box | null)[]): Box | null {
-  const found = boxes.filter((b): b is Box => !!b);
-  if (!found.length) return null;
-  const vertices = found.flatMap((b) => b.normalizedVertices);
-  const xs = vertices.map((v) => v.x);
-  const ys = vertices.map((v) => v.y);
-  return boxFrom(Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys));
-}
-
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

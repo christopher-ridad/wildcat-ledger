@@ -107,13 +107,12 @@ since all three run through the same processor.
 
 Contracted Services' flags are grouped by the form's own two printed sections -- "Contractor
 Information" and "Contractor's Acknowledgement" -- rather than one flag per field, the same way RSO
-Agreement's flags are grouped by its numbered sections. Its box is the union of whichever member
-fields' own positions Document AI actually reported, widened with a couple of real anchor points
-(the section's own printed heading, and an unchecked row still visually inside it) rather than a
-hand-measured absolute position -- there's no real Document AI sample calibrating one, unlike RSO's
-own section boxes. Still not exact: a real but entirely blank multi-line box (Additional Description
-of Services) has no content of its own to anchor to, so the box can't stretch into blank space below
-its label the way a hand-measured one could.
+Agreement's flags are grouped by its numbered sections, each with its own fixed box
+(`SECTION_BOXES`) the same way RSO Agreement's are. The difference is where the coordinates came
+from: RSO Agreement's were captured from a real Document AI feasibility spike, while these two were
+read by eye off a reference image Christopher marked up directly on the blank template showing
+exactly where each box should land, no live Document AI sample involved -- worth a nudge in whatever
+direction it looks off once actually seen against a real render.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,

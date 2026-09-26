@@ -32,37 +32,31 @@
 // Description of Services) and "Contractor's Acknowledgement" (Signature,
 // Date) -- and flags the whole section if anything inside it is missing,
 // the same as RSO Agreement already does with its own numbered sections
-// (see check-rso-agreement-completeness/check.ts). Unlike RSO's sections,
-// there's no hand-calibrated box for either of these two (no real
-// Document AI sample to calibrate one against) -- the box drawn is the
-// union of whichever member fields' own positions were actually found
-// (see unionBoxes), filled or not, widened with a couple of extra real
-// anchor points each (SECTION_EXTRA_ANCHORS below) so it reaches closer
-// to the section's actual printed extent: the section's own heading
-// (pulls the top edge up to it) and, for Contractor Information,
-// "Address Line 2:" (an unchecked row -- always blank on both real
-// examples so far, per docs/BUSINESS_RULES.md#document-requirements--
-// requesting-documents's note on the org filling in "their side" -- but
-// still visually inside the section). Still not exact: a real, unfilled
-// multi-line box like Additional Description of Services has no content
-// of its own to anchor to, so the union can't stretch into blank space
-// below its label the way a hand-measured box could.
+// (see SECTION_BOXES in check-rso-agreement-completeness/check.ts).
 //
-// Still deliberately NOT checked: the University Approvals table and the
-// University Payment Request section (both blank on the real examples too
-// -- SOFO's own internal processing, added after upload -- see
-// docs/BUSINESS_RULES.md#document-requirements--requesting-documents on
-// the org filling in "their side" before sending it on) and the Check
-// Handling checkboxes.
+// SECTION_BOXES below is the same idea, but calibrated differently: RSO
+// Agreement's boxes came from a real Document AI feasibility spike; these
+// two are read by eye off a reference image Christopher marked up directly
+// on the blank template PDF showing exactly where each box should land, no
+// live Document AI sample involved. Expect these two fractions to need a
+// nudge once seen against a real render -- if a box is off, say which
+// direction and roughly how far (e.g. "Contractor Information needs to
+// start a bit higher") rather than exact numbers; that's enough to correct
+// it.
 import {
+  Box,
+  boxFrom,
   findLabeledFieldStatuses,
-  findLineBox,
   FormField,
   Line,
   PresenceFlag,
   RobustFieldSpec,
-  unionBoxes,
 } from '../_shared/documentAi.ts';
+
+export const SECTION_BOXES: Record<'contractorInformation' | 'acknowledgement', Box> = {
+  contractorInformation: boxFrom(0.04, 0.97, 0.198, 0.391),
+  acknowledgement: boxFrom(0.04, 0.97, 0.391, 0.526),
+};
 
 const CONTRACTOR_INFO_SPECS: RobustFieldSpec[] = [
   {
@@ -150,22 +144,13 @@ function checkSection(
   formFields: FormField[],
   lines: Line[],
   specs: RobustFieldSpec[],
-  extraAnchors: string[],
+  box: Box,
   sectionLabel: string,
   sectionMessage: string,
 ): PresenceFlag[] {
   const statuses = findLabeledFieldStatuses(documentText, formFields, lines, specs);
   if (statuses.every((s) => s.filled)) return [];
-  const extraBoxes = extraAnchors.map((anchor) =>
-    findLineBox(documentText, lines, anchor),
-  );
-  return [
-    {
-      label: sectionLabel,
-      message: sectionMessage,
-      box: unionBoxes([...statuses.map((s) => s.box), ...extraBoxes]),
-    },
-  ];
+  return [{ label: sectionLabel, message: sectionMessage, box }];
 }
 
 export function checkContractedServices(
@@ -179,7 +164,7 @@ export function checkContractedServices(
       formFields,
       lines,
       CONTRACTOR_INFO_SPECS,
-      ['contractor information', 'address line 2'],
+      SECTION_BOXES.contractorInformation,
       'Contractor Information',
       'Contractor Information looks incomplete.',
     ),
@@ -188,7 +173,7 @@ export function checkContractedServices(
       formFields,
       lines,
       ACKNOWLEDGEMENT_SPECS,
-      ["contractor's acknowledgement"],
+      SECTION_BOXES.acknowledgement,
       "Contractor's Acknowledgement",
       "Contractor's Acknowledgement looks incomplete.",
     ),
