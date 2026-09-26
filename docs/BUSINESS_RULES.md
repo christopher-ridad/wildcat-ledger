@@ -115,9 +115,23 @@ one of these newer three forms ever looks wrong on a real upload:
   discovered when Conflict of Interest's three Yes/No questions, anchored by two-word phrases, came
   back as "couldn't locate this question" on a real upload despite the questions being clearly
   printed on the page.
-  Only the first two are confirmed necessary for Contracted Services specifically; all three are
-  applied to Conflict of Interest and Special Pay Form too, since all three forms run through the same
-  processor -- Special Pay Form's in particular is still a precaution, not independently confirmed.
+- A printed label and its handwritten value often OCR as two separate lines rather than one combined
+  "Label: value" line -- Conflict of Interest's "Proposed Vendor Name:" is its own line, with the
+  handwritten name a distinct line immediately after it (sitting slightly above the blank it's
+  written on, so its line's own vertical center can even read as a touch _above_ the label's).
+  Checked the same way Contracted Services' Additional Description of Services is: the label's field
+  looks at the next OCR'd line, not the same one.
+- A handwritten checkmark isn't nothing, and isn't something that needs pixel-level column-position
+  guessing either -- a real Document AI response confirmed it OCRs as an actual Unicode glyph
+  (`☑`, BALLOT BOX WITH CHECK) on its own line. Conflict of Interest's Yes/No questions now
+  search for that glyph within each question's own vertical span, with no horizontal constraint at
+  all -- the original column-position guess never had any real data behind it and was very likely
+  the actual cause of every row misfiring, not the row-finding logic itself (which real data
+  confirmed was already correct).
+
+Only the first two are confirmed necessary for Contracted Services specifically; the rest are applied
+to Conflict of Interest and Special Pay Form too, since all three forms run through the same
+processor -- Special Pay Form's in particular is still a precaution, not independently confirmed.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,

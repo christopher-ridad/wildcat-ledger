@@ -19,14 +19,14 @@ serveDocumentCheck((text, pages) => {
   const lines: Line[] = page.lines ?? [];
   const tokens: Token[] = page.tokens ?? [];
 
-  // TEMPORARY: two rounds of live testing against real filled examples
-  // have already corrected the name fields and the Yes/No question
-  // anchors once each, and this round adds Y-range disambiguation for
-  // Signature/Date -- none of which were confirmed against real Document
-  // AI position data. Logging every detected field, line, and token
-  // position (visible in the Supabase dashboard's function logs) so any
-  // remaining mismatch can be fixed against real data instead of guessed
-  // again -- remove once a live test comes back clean.
+  // TEMPORARY: a real logged response already fixed the Vendor Name
+  // label/value line split and confirmed checkmarks OCR as a real glyph
+  // for two of three Yes/No rows -- the third row's checkmark didn't show
+  // up as that glyph on that same response, a possible genuine OCR gap
+  // rather than a position bug. Keeping this in place specifically to see
+  // whether row 1 still misfires, and if so, whether its mark shows up
+  // differently at the token level even though it didn't as its own line.
+  // Remove once a live test comes back clean.
   console.log(
     'check-conflict-of-interest-completeness formFields:',
     JSON.stringify(
@@ -56,5 +56,5 @@ serveDocumentCheck((text, pages) => {
     ),
   );
 
-  return { flags: checkConflictOfInterest(text, formFields, lines, tokens) };
+  return { flags: checkConflictOfInterest(text, formFields, lines) };
 });

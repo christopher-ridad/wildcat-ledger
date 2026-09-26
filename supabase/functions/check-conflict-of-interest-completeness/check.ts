@@ -3,24 +3,42 @@
 // fixtures instead of only ever being exercised by a real, billed Document
 // AI call.
 //
-// Grounded in real correctly-filled examples and a live test of the
-// deployed check (provided by Christopher, September 2026) rather than a
-// guess from the blank template alone:
+// Grounded in real correctly-filled examples and multiple live tests of
+// the deployed check (provided by Christopher, September 2026) rather
+// than a guess from the blank template alone:
 //   - "Individual submitting the form via the NUPortal" is left entirely
 //     blank -- name, signature, and date -- on a genuinely complete
 //     submission; only "Individual(s) who selected or directed the
 //     vendor" is filled in (alongside its own signature and date). An
 //     earlier version of this check required both name fields, and would
 //     have wrongly flagged a real, complete document as missing one.
-//   - A live test flagged all three Yes/No questions as "couldn't locate
-//     this question on the page" -- the anchor phrases used to find each
-//     one ('employed by', 'received any gifts', 'given a gift') were each
-//     two words, and each question wraps across several printed lines;
-//     if Document AI's line-wrap happens to fall between those two words,
-//     the phrase never appears intact on any single OCR'd line, and the
-//     search finds nothing. Switched to single-word anchors, which can't
-//     be split this way -- a line only ever wraps at a space between
-//     words, never in the middle of one.
+//   - The Yes/No questions' anchor phrases originally being two words each
+//     ('employed by', 'received any gifts', 'given a gift') failed
+//     outright on a real upload -- each question wraps across several
+//     printed lines, and if Document AI's line-wrap happens to fall
+//     between the two words, the phrase never appears intact on any
+//     single OCR'd line. Switched to single-word anchors, which can't be
+//     split this way.
+//   - A real Document AI response (logged live) showed a printed label
+//     and its handwritten value often OCR as two separate lines, not one
+//     combined "Label: value" line -- "Proposed Vendor Name:" is its own
+//     line, with "Matt Rivers" a distinct line immediately after it (the
+//     handwriting sits slightly above the blank, not overlapping it, so
+//     its own line's vertical center can even read as *above* the
+//     label's). Vendor Name now checks the next line, the same way
+//     Contracted Services' Additional Description of Services does.
+//   - That same real response confirmed a handwritten checkmark reads as
+//     an actual Unicode glyph ("☑", BALLOT BOX WITH CHECK) on its own
+//     line -- not nothing, and not something that needs pixel-level
+//     token/column-position guessing the way this was originally built.
+//     Each Yes/No row is now checked by searching for that glyph within
+//     the row's own vertical span, with no horizontal (column) constraint
+//     at all -- the column-position guess never had any real Document AI
+//     data behind it and was very likely part of why this kept failing.
+//     Real data confirmed this for two of the three rows on that upload;
+//     the third's checkmark didn't show up as this glyph at all, a
+//     possible genuine OCR gap rather than a position bug -- worth a
+//     specific follow-up if row 1 specifically still misfires.
 //
 // Per Christopher (with a reference image marked up directly on the blank
 // template, the same way Contracted Services' two sections were): flags
@@ -39,7 +57,11 @@
 // Signature/Date pairs (the NUPortal submitter's, and the conditional COI
 // Manager's) by vertical position (yRange, matching Selected/Directed By's
 // own box), the same technique RSO Agreement's own Section 3/5 fields use
-// -- there's no other distinguishing text on any of the three.
+// -- there's no other distinguishing text on any of the three. Unlike
+// Vendor Name, this one wasn't confirmed broken on a real upload (per
+// Christopher, this section already reads correctly), so its 'sameLine'
+// value location is left as-is rather than changed to match Vendor Name's
+// fix on a guess.
 //
 // Still deliberately NOT checked: the Comments column (free text, no
 // static label to check against) and the conditional COI Manager sign-off
@@ -55,7 +77,6 @@ import {
   Line,
   PresenceFlag,
   RobustFieldSpec,
-  Token,
 } from '../_shared/documentAi.ts';
 
 const SELECTED_BY_Y_RANGE = { yMin: 0.49, yMax: 0.6 };
@@ -73,7 +94,12 @@ export const SECTION_BOXES: Record<'vendorInformation' | 'selectedDirectedBy', B
 const VENDOR_NAME_SPEC: RobustFieldSpec = {
   matchFieldName: (n) => n.includes('proposed vendor name'),
   lineLabel: 'proposed vendor name',
-  valueLocation: 'sameLine',
+  valueLocation: 'nextLine',
+  // If blank, the next real printed content on the page is the Yes/No
+  // table's own header ("To the best of your knowledge:"), confirmed on
+  // the same real response that showed the label/value split -- without
+  // this, a genuinely blank name would still read as filled.
+  nextLineBoilerplate: ['to the best of your knowledge'],
   label: 'Vendor Name',
   message: 'Proposed Vendor Name looks blank.',
 };
@@ -110,21 +136,24 @@ const SELECTED_BY_SPECS: RobustFieldSpec[] = [
 // questions or any surrounding paragraph text.
 const YES_NO_ANCHORS = ['employed', 'received', 'provided'];
 
-// The YES/NO columns' combined horizontal span, as a fraction of page
-// width -- an estimate from the page's visual layout (question column
-// wide on the left, YES then NO narrow columns, Comments wide on the
-// right), not measured Document AI output.
-const YES_NO_COLUMNS_X = { xMin: 0.5, xMax: 0.67 };
-// How far above/below the anchor line's own center to look for a mark --
-// generous, since each question wraps across several lines and the
-// matched anchor word may not fall exactly in the vertical middle of its
-// row.
-const ROW_Y_BAND = 0.035;
+// Confirmed via a real Document AI response: a handwritten checkmark OCRs
+// as one of these on its own line. "☑" (BALLOT BOX WITH CHECK) is the
+// one actually seen; the plain checkmark/X variants are included in case a
+// differently-drawn mark OCRs differently.
+const CHECK_GLYPHS = ['☑', '✓', '☒', '✗'];
+
+// How far above/below the anchor word's own line to look for a checkmark
+// glyph -- generous, since each question wraps across several lines and
+// the matched anchor word may not fall exactly in the vertical middle of
+// its row. Confirmed sufficient for 2 of 3 rows against a real response
+// (real offsets seen: +0.010 and +0.003); no confirmed horizontal
+// (column) constraint exists, so none is applied -- see the header
+// comment for why that was very likely part of the original bug.
+const ROW_Y_BAND = 0.045;
 
 function isYesNoRowAnswered(
   documentText: string,
   lines: Line[],
-  tokens: Token[],
   anchorText: string,
 ): boolean {
   const anchorLine = lines.find((l) =>
@@ -136,15 +165,11 @@ function isYesNoRowAnswered(
   // worth surfacing as incomplete too).
   if (!center) return false;
 
-  return tokens.some((t) => {
-    const tokenCenter = centerOf(t.layout?.boundingPoly);
-    return (
-      tokenCenter &&
-      tokenCenter.x >= YES_NO_COLUMNS_X.xMin &&
-      tokenCenter.x <= YES_NO_COLUMNS_X.xMax &&
-      tokenCenter.y >= center.y - ROW_Y_BAND &&
-      tokenCenter.y <= center.y + ROW_Y_BAND
-    );
+  return lines.some((l) => {
+    const text = extractText(documentText, l.layout?.textAnchor);
+    if (!CHECK_GLYPHS.some((glyph) => text.includes(glyph))) return false;
+    const y = centerOf(l.layout?.boundingPoly)?.y;
+    return y !== undefined && y >= center.y - ROW_Y_BAND && y <= center.y + ROW_Y_BAND;
   });
 }
 
@@ -152,7 +177,6 @@ export function checkConflictOfInterest(
   documentText: string,
   formFields: FormField[],
   lines: Line[],
-  tokens: Token[],
 ): PresenceFlag[] {
   const flags: PresenceFlag[] = [];
 
@@ -160,7 +184,7 @@ export function checkConflictOfInterest(
     VENDOR_NAME_SPEC,
   ])[0].filled;
   const allQuestionsAnswered = YES_NO_ANCHORS.every((anchorText) =>
-    isYesNoRowAnswered(documentText, lines, tokens, anchorText),
+    isYesNoRowAnswered(documentText, lines, anchorText),
   );
   if (!vendorNameFilled || !allQuestionsAnswered) {
     flags.push({
