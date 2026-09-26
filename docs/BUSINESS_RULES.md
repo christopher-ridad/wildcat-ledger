@@ -85,14 +85,25 @@ example of that exact form -- including reading checkbox darkness directly off t
 W-9's tax classification and the RSO Agreement's Section 4, which a plain text-field read can't
 reliably catch. The newer three (Contracted Services, Conflict of Interest, Special Pay Form) are
 narrower: each only checks whatever fields have a label unique enough on the page to match with
-confidence, informed by a real correctly-filled example of the Contracted Services and Conflict of
+confidence, informed by real correctly-filled examples of the Contracted Services and Conflict of
 Interest Forms (which is also what caught two fields these checks originally required but a real
 complete submission actually leaves blank -- see each check's own header comment). The Conflict of
 Interest Form's three Yes/No questions are checked too -- each needs some mark, Yes or No, or it's
 flagged unanswered -- located by the question's own printed text rather than a fixed position, but
 using a column-position estimate that (unlike the W-9/RSO checkbox reading) was never calibrated
 against a real Document AI response, so it's the one piece of any of these five checks most likely
-to need adjusting once it's actually run against a live upload.
+to still need adjusting.
+
+A live test of the deployed Contracted Services check also surfaced two things worth knowing about
+if a check on one of these newer three forms ever looks wrong on a real upload: Document AI's
+generic Form Parser doesn't reliably pair every label with its value on these forms the way it does
+on the W-9 (Name and Address Line 1 never showed up paired at all, despite being filled in), and it
+can occasionally misread a Latin letter as its Greek lookalike in some fonts ("To:" came back as
+"Το:", Greek Tau + omicron). Both are handled now (`checkLabeledFieldsRobust` falls back to scanning
+the page's raw text lines directly when a field never gets paired, and `normalizeHomoglyphs`
+corrects for the Greek/Latin mixup), but the same fallback logic hasn't been confirmed necessary for
+Conflict of Interest or Special Pay Form specifically -- it's applied there too as a precaution,
+since all three run through the same processor.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,

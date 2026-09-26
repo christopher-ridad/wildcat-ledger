@@ -3,12 +3,19 @@
 // fixtures instead of only ever being exercised by a real, billed Document
 // AI call.
 //
-// Unlike the W-9 and RSO Agreement checks, this one was NOT calibrated
-// against a real Document AI response (no live sample was available) --
-// its field-name matchers are a best effort read of the actual template
-// PDF's printed labels (public/forms/special-pay-request-form.pdf), and it
-// only covers the Employee Information / Payment Information fields plus
-// who filled the form out, all of which are uniquely labeled on the page.
+// Field-name matchers are a best effort read of the actual template PDF's
+// printed labels (public/forms/special-pay-request-form.pdf), covering the
+// Employee Information / Payment Information fields plus who filled the
+// form out, all of which are uniquely labeled on the page.
+//
+// Uses checkLabeledFieldsRobust (see its own header comment in
+// _shared/documentAi.ts) rather than a plain formFields lookup, on the
+// assumption that this form -- also Northwestern-designed, also run
+// through the same generic Document AI processor -- has the same
+// unreliable formFields pairing a real Contracted Services Form upload
+// confirmed (its Name and Address fields never got paired at all). Not
+// independently confirmed for this specific form yet, but cheap insurance
+// against the same class of false positive.
 //
 // Deliberately NOT checked:
 //   - Hours of Work per Week: conditionally optional (not required for
@@ -27,55 +34,79 @@
 //     distinguishing label text, the same kind of ambiguity the Conflict
 //     of Interest check's header comment describes for its own repeated
 //     Signature/Date pairs.
-import { checkFieldsPresent, FormField, PresenceFlag } from '../_shared/documentAi.ts';
+import {
+  checkLabeledFieldsRobust,
+  FormField,
+  Line,
+  PresenceFlag,
+} from '../_shared/documentAi.ts';
 
 export function checkSpecialPayForm(
   documentText: string,
   formFields: FormField[],
+  lines: Line[],
 ): PresenceFlag[] {
-  return checkFieldsPresent(documentText, formFields, [
+  return checkLabeledFieldsRobust(documentText, formFields, lines, [
     {
-      matchName: (n) => n.includes('university id number'),
+      matchFieldName: (n) => n.includes('university id number'),
+      lineLabel: 'university id number',
+      valueLocation: 'sameLine',
       label: 'University ID Number',
       message: 'University ID Number looks blank.',
     },
     {
-      matchName: (n) => n === 'last name:',
+      matchFieldName: (n) => n === 'last name:',
+      lineLabel: 'last name:',
+      valueLocation: 'sameLine',
       label: 'Last Name',
       message: 'Last Name looks blank.',
     },
     {
-      matchName: (n) => n === 'first name:',
+      matchFieldName: (n) => n === 'first name:',
+      lineLabel: 'first name:',
+      valueLocation: 'sameLine',
       label: 'First Name',
       message: 'First Name looks blank.',
     },
     {
-      matchName: (n) => n.includes('hr department id'),
+      matchFieldName: (n) => n.includes('hr department id'),
+      lineLabel: 'hr department id',
+      valueLocation: 'sameLine',
       label: 'HR Department ID',
       message: 'HR Department ID looks blank.',
     },
     {
-      matchName: (n) => n === 'department name:',
+      matchFieldName: (n) => n === 'department name:',
+      lineLabel: 'department name:',
+      valueLocation: 'sameLine',
       label: 'Department Name',
       message: 'Department Name looks blank.',
     },
     {
-      matchName: (n) => n.includes('period of service begin date'),
+      matchFieldName: (n) => n.includes('period of service begin date'),
+      lineLabel: 'period of service begin date',
+      valueLocation: 'sameLine',
       label: 'Period of Service (Begin)',
       message: 'Period of Service Begin Date looks blank.',
     },
     {
-      matchName: (n) => n.includes('period of service end date'),
+      matchFieldName: (n) => n.includes('period of service end date'),
+      lineLabel: 'period of service end date',
+      valueLocation: 'sameLine',
       label: 'Period of Service (End)',
       message: 'Period of Service End Date looks blank.',
     },
     {
-      matchName: (n) => n.includes('earnings amount'),
+      matchFieldName: (n) => n.includes('earnings amount'),
+      lineLabel: 'earnings amount',
+      valueLocation: 'sameLine',
       label: 'Earnings Amount',
       message: 'Earnings Amount looks blank.',
     },
     {
-      matchName: (n) => n.includes('name of person completing form'),
+      matchFieldName: (n) => n.includes('name of person completing form'),
+      lineLabel: 'name of person completing form',
+      valueLocation: 'sameLine',
       label: 'Completed By',
       message: 'The name of the person completing this form looks blank.',
     },

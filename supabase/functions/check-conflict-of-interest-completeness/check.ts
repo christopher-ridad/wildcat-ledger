@@ -3,18 +3,24 @@
 // fixtures instead of only ever being exercised by a real, billed Document
 // AI call.
 //
-// Unlike the W-9 and RSO Agreement checks, this one was not calibrated
-// against a real Document AI API response (no live sample was available),
-// but is grounded in a real example of a correctly filled-out form
-// (provided by Christopher, September 2026) rather than a guess from the
-// blank template alone. That example is also what revealed "Individual
-// submitting the form via the NUPortal" is left entirely blank -- name,
-// signature, and date -- on a genuinely complete submission; only
-// "Individual(s) who selected or directed the vendor" was filled in
-// (alongside its own signature and date). An earlier version of this check
-// required both name fields and would have wrongly flagged that real,
-// complete example as missing one -- this only checks the one field the
-// real example actually confirms matters.
+// Grounded in a real correctly-filled example (provided by Christopher,
+// September 2026) rather than a guess from the blank template alone. That
+// example revealed "Individual submitting the form via the NUPortal" is
+// left entirely blank -- name, signature, and date -- on a genuinely
+// complete submission; only "Individual(s) who selected or directed the
+// vendor" was filled in (alongside its own signature and date). An earlier
+// version of this check required both name fields and would have wrongly
+// flagged that real, complete example as missing one -- this only checks
+// the one field the real example actually confirms matters.
+//
+// The two name fields use checkLabeledFieldsRobust (see its own header
+// comment in _shared/documentAi.ts) rather than a plain formFields lookup,
+// on the assumption that this form -- also Northwestern-designed, also run
+// through the same generic Document AI processor -- has the same
+// unreliable formFields pairing a real Contracted Services Form upload
+// confirmed (its Name and Address fields never got paired at all). Not
+// independently confirmed for this specific form yet, but cheap insurance
+// against the same class of false positive.
 //
 // The three Yes/No questions are also checked, per Christopher: each row
 // needs SOME mark (Yes or No, doesn't matter which) or it's flagged as
@@ -43,7 +49,7 @@
 // is answered "Yes," which this doesn't distinguish).
 import {
   centerOf,
-  checkFieldsPresent,
+  checkLabeledFieldsRobust,
   extractText,
   FormField,
   Line,
@@ -127,14 +133,18 @@ export function checkConflictOfInterest(
   tokens: Token[],
 ): PresenceFlag[] {
   return [
-    ...checkFieldsPresent(documentText, formFields, [
+    ...checkLabeledFieldsRobust(documentText, formFields, lines, [
       {
-        matchName: (n) => n.includes('proposed vendor name'),
+        matchFieldName: (n) => n.includes('proposed vendor name'),
+        lineLabel: 'proposed vendor name',
+        valueLocation: 'sameLine',
         label: 'Vendor Name',
         message: 'Proposed Vendor Name looks blank.',
       },
       {
-        matchName: (n) => n.includes('selected or directed the vendor'),
+        matchFieldName: (n) => n.includes('selected or directed the vendor'),
+        lineLabel: 'selected or directed the vendor',
+        valueLocation: 'sameLine',
         label: 'Selected/Directed By',
         message:
           'The name of the individual(s) who selected or directed the vendor looks blank.',

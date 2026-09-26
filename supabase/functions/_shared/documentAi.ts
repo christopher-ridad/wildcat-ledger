@@ -159,46 +159,104 @@ export interface PresenceFlag {
   box: Box | null;
 }
 
-export interface PresenceFieldSpec {
-  matchName: (name: string) => boolean;
+// Document AI's OCR occasionally reads a Latin letter as its Greek
+// lookalike in certain fonts/sizes -- confirmed on a real Contracted
+// Services Form upload, where "To:" was read back as "Το:" (Greek
+// capital Tau + lowercase omicron, not Latin T + o). Applied to
+// already-lowercased text before any label comparison, in every check
+// that uses checkLabeledFieldsRobust below, so a match isn't thrown off
+// by this. Greek letters lowercase predictably via .toLowerCase() the
+// same way Latin ones do, so this only needs to handle the lowercase
+// forms.
+export function normalizeHomoglyphs(lowercased: string): string {
+  return lowercased.replace(/τ/g, 't').replace(/ο/g, 'o');
+}
+
+export interface RobustFieldSpec {
+  // Try Document AI's own formFields pairing first, when given -- a more
+  // precise box than the line fallback below gets, and correct more often
+  // than not. Matched against the field name after normalizeHomoglyphs,
+  // trim, and lowercase. Omit for a field Document AI has never been seen
+  // to pair as a formField at all (skips straight to the line fallback).
+  matchFieldName?: (name: string) => boolean;
+  // Fallback for when formFields didn't pair this field at all, or paired
+  // it with an empty value -- confirmed happening on real uploads (see
+  // each check's own header comment for which fields and why). A literal,
+  // lowercase substring searched for among the page's raw OCR'd lines.
+  lineLabel: string;
+  // Where the actual value prints relative to the matched line:
+  //  - 'sameLine': immediately after the label on the same OCR'd line
+  //    ("Name: John Doe"). Only the text after the label on that line
+  //    counts.
+  //  - 'nextLine': on the line below the label's own line -- for a label
+  //    that has its own trailing static/instructional text (which would
+  //    otherwise look like a filled-in value if the same line were
+  //    checked), or a value that only ever prints on its own line, such
+  //    as a multi-line text box.
+  // Deliberately no "try both" option: a blank sameLine field would
+  // almost always find *some* content on the next OCR'd line anyway --
+  // typically the start of the next field entirely -- which would read as
+  // a false "filled." Each spec has to commit to the one that's actually
+  // true for that field.
+  valueLocation: 'sameLine' | 'nextLine';
   label: string;
   message: string;
 }
 
-// A "does this labeled field have any text in it" check, for the simpler
-// completeness checks whose forms don't need anything fancier -- no
-// checkbox/table handling, no fallback box calibration (see each check's
-// own check.ts header comment for why: unlike the W-9 and RSO Agreement,
-// there's no real Document AI sample these were calibrated against, so
-// each spec here only covers fields with a name unique enough on the page
-// to match confidently). Box comes from Document AI's own detected
-// position when the field was paired at all (blank fields are usually
-// still paired to their label); null when it wasn't paired at all, rather
-// than a guessed fallback position.
-export function checkFieldsPresent(
+// A "does this labeled field have any text in it" check for the simpler
+// completeness checks (Contracted Services, Conflict of Interest, Special
+// Pay Form) -- these forms' fields aren't reliably paired into formFields
+// by Document AI's generic Form Parser the way the W-9's are (confirmed on
+// a real Contracted Services Form upload, where Name and Address Line 1
+// never appeared in formFields at all despite being filled in), so this
+// tries formFields first and falls back to scanning the page's raw OCR'd
+// lines directly for the label and its value.
+export function checkLabeledFieldsRobust(
   documentText: string,
   formFields: FormField[],
-  specs: PresenceFieldSpec[],
+  lines: Line[],
+  specs: RobustFieldSpec[],
 ): PresenceFlag[] {
   const flags: PresenceFlag[] = [];
+
   for (const spec of specs) {
-    const field = formFields.find((f) => {
-      const name = extractText(documentText, f.fieldName?.textAnchor)
-        .trim()
-        .toLowerCase();
-      return spec.matchName(name);
-    });
-    const value = field
-      ? extractText(documentText, field.fieldValue?.textAnchor).trim()
-      : '';
-    if (!value) {
-      flags.push({
-        label: spec.label,
-        message: spec.message,
-        box: field?.fieldName?.boundingPoly ?? null,
-      });
+    const field = spec.matchFieldName
+      ? formFields.find((f) =>
+          spec.matchFieldName!(
+            normalizeHomoglyphs(
+              extractText(documentText, f.fieldName?.textAnchor).trim().toLowerCase(),
+            ),
+          ),
+        )
+      : undefined;
+    if (field && extractText(documentText, field.fieldValue?.textAnchor).trim()) {
+      continue; // Document AI paired this field with a non-empty value.
+    }
+
+    let filled = false;
+    let box: Box | null = field?.fieldName?.boundingPoly ?? null;
+    for (let i = 0; i < lines.length; i++) {
+      const lineText = extractText(documentText, lines[i].layout?.textAnchor);
+      const idx = normalizeHomoglyphs(lineText.toLowerCase()).indexOf(spec.lineLabel);
+      if (idx === -1) continue;
+
+      box = box ?? lines[i].layout?.boundingPoly ?? null;
+      const sameLineAfter = lineText.slice(idx + spec.lineLabel.length).trim();
+      const nextLineText = lines[i + 1]
+        ? extractText(documentText, lines[i + 1].layout?.textAnchor).trim()
+        : '';
+      filled =
+        spec.valueLocation === 'sameLine'
+          ? sameLineAfter.length > 0
+          : nextLineText.length > 0;
+      break; // use the first matching line
+    }
+
+    if (!filled) {
+      flags.push({ label: spec.label, message: spec.message, box });
     }
   }
+
   return flags;
 }
 
