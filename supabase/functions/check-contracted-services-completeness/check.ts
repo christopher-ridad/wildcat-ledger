@@ -33,9 +33,20 @@
 // Date) -- and flags the whole section if anything inside it is missing,
 // the same as RSO Agreement already does with its own numbered sections
 // (see check-rso-agreement-completeness/check.ts). Unlike RSO's sections,
-// there's no hand-calibrated box for either of these two -- the box drawn
-// is the union of whichever member fields' own positions were actually
-// found (see unionBoxes), filled or not.
+// there's no hand-calibrated box for either of these two (no real
+// Document AI sample to calibrate one against) -- the box drawn is the
+// union of whichever member fields' own positions were actually found
+// (see unionBoxes), filled or not, widened with a couple of extra real
+// anchor points each (SECTION_EXTRA_ANCHORS below) so it reaches closer
+// to the section's actual printed extent: the section's own heading
+// (pulls the top edge up to it) and, for Contractor Information,
+// "Address Line 2:" (an unchecked row -- always blank on both real
+// examples so far, per docs/BUSINESS_RULES.md#document-requirements--
+// requesting-documents's note on the org filling in "their side" -- but
+// still visually inside the section). Still not exact: a real, unfilled
+// multi-line box like Additional Description of Services has no content
+// of its own to anchor to, so the union can't stretch into blank space
+// below its label the way a hand-measured box could.
 //
 // Still deliberately NOT checked: the University Approvals table and the
 // University Payment Request section (both blank on the real examples too
@@ -45,6 +56,7 @@
 // Handling checkboxes.
 import {
   findLabeledFieldStatuses,
+  findLineBox,
   FormField,
   Line,
   PresenceFlag,
@@ -138,16 +150,20 @@ function checkSection(
   formFields: FormField[],
   lines: Line[],
   specs: RobustFieldSpec[],
+  extraAnchors: string[],
   sectionLabel: string,
   sectionMessage: string,
 ): PresenceFlag[] {
   const statuses = findLabeledFieldStatuses(documentText, formFields, lines, specs);
   if (statuses.every((s) => s.filled)) return [];
+  const extraBoxes = extraAnchors.map((anchor) =>
+    findLineBox(documentText, lines, anchor),
+  );
   return [
     {
       label: sectionLabel,
       message: sectionMessage,
-      box: unionBoxes(statuses.map((s) => s.box)),
+      box: unionBoxes([...statuses.map((s) => s.box), ...extraBoxes]),
     },
   ];
 }
@@ -163,6 +179,7 @@ export function checkContractedServices(
       formFields,
       lines,
       CONTRACTOR_INFO_SPECS,
+      ['contractor information', 'address line 2'],
       'Contractor Information',
       'Contractor Information looks incomplete.',
     ),
@@ -171,6 +188,7 @@ export function checkContractedServices(
       formFields,
       lines,
       ACKNOWLEDGEMENT_SPECS,
+      ["contractor's acknowledgement"],
       "Contractor's Acknowledgement",
       "Contractor's Acknowledgement looks incomplete.",
     ),

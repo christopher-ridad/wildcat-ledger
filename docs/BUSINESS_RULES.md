@@ -105,6 +105,16 @@ corrects for the Greek/Latin mixup), but the same fallback logic hasn't been con
 Conflict of Interest or Special Pay Form specifically -- it's applied there too as a precaution,
 since all three run through the same processor.
 
+Contracted Services' flags are grouped by the form's own two printed sections -- "Contractor
+Information" and "Contractor's Acknowledgement" -- rather than one flag per field, the same way RSO
+Agreement's flags are grouped by its numbered sections. Its box is the union of whichever member
+fields' own positions Document AI actually reported, widened with a couple of real anchor points
+(the section's own printed heading, and an unchecked row still visually inside it) rather than a
+hand-measured absolute position -- there's no real Document AI sample calibrating one, unlike RSO's
+own section boxes. Still not exact: a real but entirely blank multi-line box (Additional Description
+of Services) has no content of its own to anchor to, so the box can't stretch into blank space below
+its label the way a hand-measured one could.
+
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,
 `check-conflict-of-interest-completeness`, `check-special-pay-form-completeness`) that runs the

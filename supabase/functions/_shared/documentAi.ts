@@ -300,6 +300,27 @@ export function checkLabeledFieldsRobust(
     }));
 }
 
+// The matched line's own box for a literal, lowercase substring search
+// among the page's raw OCR'd lines -- no filled/blank semantics, just "is
+// this text on the page, and where." Used to pull extra real anchor
+// points (a section's own heading, an unchecked row that still belongs
+// visually inside it) into a section-level box via unionBoxes, when a
+// group of RobustFieldSpecs' own boxes alone don't stretch far enough to
+// cover the section as printed.
+export function findLineBox(
+  documentText: string,
+  lines: Line[],
+  labelSubstring: string,
+): Box | null {
+  for (const line of lines) {
+    const lineText = extractText(documentText, line.layout?.textAnchor);
+    if (normalizeHomoglyphs(lineText.toLowerCase()).includes(labelSubstring)) {
+      return line.layout?.boundingPoly ?? null;
+    }
+  }
+  return null;
+}
+
 // The smallest box that contains every given box -- used to highlight a
 // whole visual section (e.g. "Contractor Information") on the page when
 // any field inside it is missing, rather than drawing several individual
