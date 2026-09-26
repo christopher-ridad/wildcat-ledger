@@ -85,9 +85,14 @@ example of that exact form -- including reading checkbox darkness directly off t
 W-9's tax classification and the RSO Agreement's Section 4, which a plain text-field read can't
 reliably catch. The newer three (Contracted Services, Conflict of Interest, Special Pay Form) are
 narrower: each only checks whatever fields have a label unique enough on the page to match with
-confidence, and skips anything that would need that same kind of checkbox/table calibration against
-a real sample to get right (see each `check-*-completeness/check.ts`'s own header comment for
-exactly what's covered and what's deliberately left out for a given form).
+confidence, informed by a real correctly-filled example of the Contracted Services and Conflict of
+Interest Forms (which is also what caught two fields these checks originally required but a real
+complete submission actually leaves blank -- see each check's own header comment). The Conflict of
+Interest Form's three Yes/No questions are checked too -- each needs some mark, Yes or No, or it's
+flagged unanswered -- located by the question's own printed text rather than a fixed position, but
+using a column-position estimate that (unlike the W-9/RSO checkbox reading) was never calibrated
+against a real Document AI response, so it's the one piece of any of these five checks most likely
+to need adjusting once it's actually run against a live upload.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,
