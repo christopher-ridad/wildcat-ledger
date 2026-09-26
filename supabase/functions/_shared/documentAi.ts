@@ -199,27 +199,45 @@ export interface RobustFieldSpec {
   // a false "filled." Each spec has to commit to the one that's actually
   // true for that field.
   valueLocation: 'sameLine' | 'nextLine';
+  // 'nextLine' only: literal, lowercase prefixes that, if the next line
+  // starts with one, mean that line is actually the form's own static
+  // text -- a following section's heading, say -- not a real value. A
+  // blank multi-line text box usually produces no OCR'd line of its own
+  // at all, so the "next line" found is really whatever prints after the
+  // box, not inside it; without this, a genuinely blank field would read
+  // as filled every time (confirmed while testing Contracted Services'
+  // Additional Description of Services, immediately followed on the real
+  // form by the "Contractor's Acknowledgement" section heading whether
+  // the description itself was filled in or not).
+  nextLineBoilerplate?: string[];
   label: string;
   message: string;
 }
 
-// A "does this labeled field have any text in it" check for the simpler
-// completeness checks (Contracted Services, Conflict of Interest, Special
-// Pay Form) -- these forms' fields aren't reliably paired into formFields
-// by Document AI's generic Form Parser the way the W-9's are (confirmed on
-// a real Contracted Services Form upload, where Name and Address Line 1
-// never appeared in formFields at all despite being filled in), so this
-// tries formFields first and falls back to scanning the page's raw OCR'd
-// lines directly for the label and its value.
-export function checkLabeledFieldsRobust(
+export interface LabeledFieldStatus {
+  spec: RobustFieldSpec;
+  filled: boolean;
+  box: Box | null;
+}
+
+// The actual per-field lookup checkLabeledFieldsRobust and section-grouped
+// checks both build on: tries Document AI's formFields pairing first, and
+// falls back to scanning the page's raw OCR'd lines directly when
+// formFields doesn't pair the field at all -- these forms' fields aren't
+// reliably paired into formFields the way the W-9's are (confirmed on a
+// real Contracted Services Form upload, where Name and Address Line 1
+// never appeared in formFields at all despite being filled in). Returns a
+// status for every spec, not just the unfilled ones, so a caller that
+// wants to group several fields under one section-level flag (see
+// unionBoxes below) has each member's own box to work with even when it
+// turned out to be filled.
+export function findLabeledFieldStatuses(
   documentText: string,
   formFields: FormField[],
   lines: Line[],
   specs: RobustFieldSpec[],
-): PresenceFlag[] {
-  const flags: PresenceFlag[] = [];
-
-  for (const spec of specs) {
+): LabeledFieldStatus[] {
+  return specs.map((spec) => {
     const field = spec.matchFieldName
       ? formFields.find((f) =>
           spec.matchFieldName!(
@@ -230,7 +248,8 @@ export function checkLabeledFieldsRobust(
         )
       : undefined;
     if (field && extractText(documentText, field.fieldValue?.textAnchor).trim()) {
-      continue; // Document AI paired this field with a non-empty value.
+      // Document AI paired this field with a non-empty value.
+      return { spec, filled: true, box: field.fieldName?.boundingPoly ?? null };
     }
 
     let filled = false;
@@ -242,9 +261,14 @@ export function checkLabeledFieldsRobust(
 
       box = box ?? lines[i].layout?.boundingPoly ?? null;
       const sameLineAfter = lineText.slice(idx + spec.lineLabel.length).trim();
-      const nextLineText = lines[i + 1]
+      const nextLineTextRaw = lines[i + 1]
         ? extractText(documentText, lines[i + 1].layout?.textAnchor).trim()
         : '';
+      const nextLineNormalized = normalizeHomoglyphs(nextLineTextRaw.toLowerCase());
+      const nextLineIsBoilerplate = (spec.nextLineBoilerplate ?? []).some((p) =>
+        nextLineNormalized.startsWith(p),
+      );
+      const nextLineText = nextLineIsBoilerplate ? '' : nextLineTextRaw;
       filled =
         spec.valueLocation === 'sameLine'
           ? sameLineAfter.length > 0
@@ -252,12 +276,45 @@ export function checkLabeledFieldsRobust(
       break; // use the first matching line
     }
 
-    if (!filled) {
-      flags.push({ label: spec.label, message: spec.message, box });
-    }
-  }
+    return { spec, filled, box };
+  });
+}
 
-  return flags;
+// A "does this labeled field have any text in it" check for the simpler
+// completeness checks (Contracted Services, Conflict of Interest, Special
+// Pay Form) -- one flag per unfilled field. See findLabeledFieldStatuses
+// above for what this builds on; use that directly instead when several
+// fields need grouping under one section-level flag.
+export function checkLabeledFieldsRobust(
+  documentText: string,
+  formFields: FormField[],
+  lines: Line[],
+  specs: RobustFieldSpec[],
+): PresenceFlag[] {
+  return findLabeledFieldStatuses(documentText, formFields, lines, specs)
+    .filter((status) => !status.filled)
+    .map((status) => ({
+      label: status.spec.label,
+      message: status.spec.message,
+      box: status.box,
+    }));
+}
+
+// The smallest box that contains every given box -- used to highlight a
+// whole visual section (e.g. "Contractor Information") on the page when
+// any field inside it is missing, rather than drawing several individual
+// boxes. Built from whatever field boxes were actually found (filled or
+// not -- see findLabeledFieldStatuses), not a hand-measured section
+// position, so it stays accurate regardless of exactly where the section
+// happens to render. Returns null only if none of the given boxes were
+// found at all.
+export function unionBoxes(boxes: (Box | null)[]): Box | null {
+  const found = boxes.filter((b): b is Box => !!b);
+  if (!found.length) return null;
+  const vertices = found.flatMap((b) => b.normalizedVertices);
+  const xs = vertices.map((v) => v.x);
+  const ys = vertices.map((v) => v.y);
+  return boxFrom(Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys));
 }
 
 export const corsHeaders = {
