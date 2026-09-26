@@ -86,33 +86,38 @@ W-9's tax classification and the RSO Agreement's Section 4, which a plain text-f
 reliably catch. The newer three (Contracted Services, Conflict of Interest, Special Pay Form) are
 narrower: each only checks whatever fields have a label unique enough on the page to match with
 confidence, informed by real correctly-filled examples of the Contracted Services and Conflict of
-Interest Forms (which is also what caught two fields these checks originally required but a real
-complete submission actually leaves blank -- see each check's own header comment). The Conflict of
-Interest Form's three Yes/No questions are checked too -- each needs some mark, Yes or No, or it's
-flagged unanswered -- located by the question's own printed text rather than a fixed position, but
-using a column-position estimate that (unlike the W-9/RSO checkbox reading) was never calibrated
-against a real Document AI response, so it's the one piece of any of these five checks most likely
-to still need adjusting.
+Interest Forms (which is also what caught fields these checks originally required but a real
+complete submission actually leaves blank -- see each check's own header comment).
 
-A live test of the deployed Contracted Services check also surfaced two things worth knowing about
-if a check on one of these newer three forms ever looks wrong on a real upload: Document AI's
-generic Form Parser doesn't reliably pair every label with its value on these forms the way it does
-on the W-9 (Name and Address Line 1 never showed up paired at all, despite being filled in), and it
-can occasionally misread a Latin letter as its Greek lookalike in some fonts ("To:" came back as
-"Το:", Greek Tau + omicron). Both are handled now (`checkLabeledFieldsRobust` falls back to scanning
-the page's raw text lines directly when a field never gets paired, and `normalizeHomoglyphs`
-corrects for the Greek/Latin mixup), but the same fallback logic hasn't been confirmed necessary for
-Conflict of Interest or Special Pay Form specifically -- it's applied there too as a precaution,
-since all three run through the same processor.
+Contracted Services and Conflict of Interest both group their flags by the form's own printed
+sections rather than one flag per field, the same way RSO Agreement's flags are grouped by its
+numbered sections -- Contracted Services into "Contractor Information" and "Contractor's
+Acknowledgement," Conflict of Interest into "Vendor Information" (the vendor name, plus its three
+Yes/No questions, each needing some mark, Yes or No, it doesn't matter which) and "Selected/Directed
+By" (the "Individual(s) who selected or directed the vendor" name, signature, and date). Each
+section has its own fixed box (`SECTION_BOXES`), the same way RSO Agreement's do -- but where RSO
+Agreement's were captured from a real Document AI feasibility spike, these were read by eye off a
+reference image Christopher marked up directly on each blank template showing exactly where each box
+should land, no live Document AI sample involved -- worth a nudge in whatever direction one looks off
+once actually seen against a real render.
 
-Contracted Services' flags are grouped by the form's own two printed sections -- "Contractor
-Information" and "Contractor's Acknowledgement" -- rather than one flag per field, the same way RSO
-Agreement's flags are grouped by its numbered sections, each with its own fixed box
-(`SECTION_BOXES`) the same way RSO Agreement's are. The difference is where the coordinates came
-from: RSO Agreement's were captured from a real Document AI feasibility spike, while these two were
-read by eye off a reference image Christopher marked up directly on the blank template showing
-exactly where each box should land, no live Document AI sample involved -- worth a nudge in whatever
-direction it looks off once actually seen against a real render.
+Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
+one of these newer three forms ever looks wrong on a real upload:
+
+- Its generic Form Parser doesn't reliably pair every label with its value the way it does on the
+  W-9 (Contracted Services' Name and Address Line 1 never showed up paired at all, despite being
+  filled in) -- handled by `checkLabeledFieldsRobust` falling back to scanning the page's raw text
+  lines directly when a field never gets paired.
+- It can occasionally misread a Latin letter as its Greek lookalike in some fonts ("To:" came back
+  as "Το:", Greek Tau + omicron) -- handled by `normalizeHomoglyphs`.
+- A long question that wraps across several printed lines can have its line break fall between two
+  words of whatever text is being searched for, so a match needs to be a single word, not a phrase --
+  discovered when Conflict of Interest's three Yes/No questions, anchored by two-word phrases, came
+  back as "couldn't locate this question" on a real upload despite the questions being clearly
+  printed on the page.
+  Only the first two are confirmed necessary for Contracted Services specifically; all three are
+  applied to Conflict of Interest and Special Pay Form too, since all three forms run through the same
+  processor -- Special Pay Form's in particular is still a precaution, not independently confirmed.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,

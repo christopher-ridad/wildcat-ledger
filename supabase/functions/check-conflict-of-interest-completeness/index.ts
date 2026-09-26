@@ -3,6 +3,7 @@
 // logic can be unit tested (check.test.ts) without going through a real
 // Document AI call.
 import {
+  centerOf,
   DocumentAiPage,
   extractText,
   FormField,
@@ -18,27 +19,41 @@ serveDocumentCheck((text, pages) => {
   const lines: Line[] = page.lines ?? [];
   const tokens: Token[] = page.tokens ?? [];
 
-  // TEMPORARY: a live test against a real filled example just flagged
-  // Vendor Name and Selected/Directed By as blank (both were filled in),
-  // and all three Yes/No questions as "couldn't locate" -- the label/
-  // anchor-text matchers here were written from the blank template and a
-  // separate real Contracted Services Form response, not a real Document
-  // AI response for THIS form. Logging every detected field and line
-  // (visible in the Supabase dashboard's function logs) so the matchers
-  // in check.ts can be corrected against real data -- remove once that's
-  // done.
+  // TEMPORARY: two rounds of live testing against real filled examples
+  // have already corrected the name fields and the Yes/No question
+  // anchors once each, and this round adds Y-range disambiguation for
+  // Signature/Date -- none of which were confirmed against real Document
+  // AI position data. Logging every detected field, line, and token
+  // position (visible in the Supabase dashboard's function logs) so any
+  // remaining mismatch can be fixed against real data instead of guessed
+  // again -- remove once a live test comes back clean.
   console.log(
     'check-conflict-of-interest-completeness formFields:',
     JSON.stringify(
       formFields.map((f) => ({
         name: extractText(text, f.fieldName?.textAnchor),
         value: extractText(text, f.fieldValue?.textAnchor),
+        y: centerOf(f.fieldName?.boundingPoly)?.y,
       })),
     ),
   );
   console.log(
     'check-conflict-of-interest-completeness lines:',
-    JSON.stringify(lines.map((l) => extractText(text, l.layout?.textAnchor))),
+    JSON.stringify(
+      lines.map((l) => ({
+        text: extractText(text, l.layout?.textAnchor),
+        y: centerOf(l.layout?.boundingPoly)?.y,
+      })),
+    ),
+  );
+  console.log(
+    'check-conflict-of-interest-completeness tokens:',
+    JSON.stringify(
+      tokens.map((t) => ({
+        text: extractText(text, t.layout?.textAnchor),
+        center: centerOf(t.layout?.boundingPoly),
+      })),
+    ),
   );
 
   return { flags: checkConflictOfInterest(text, formFields, lines, tokens) };

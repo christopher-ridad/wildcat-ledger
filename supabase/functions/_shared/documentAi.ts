@@ -210,6 +210,13 @@ export interface RobustFieldSpec {
   // form by the "Contractor's Acknowledgement" section heading whether
   // the description itself was filled in or not).
   nextLineBoilerplate?: string[];
+  // Restricts matching to a field/line whose own vertical center falls
+  // within this range -- for a label printed identically more than once
+  // on the page ("Signature:", "Date:"), disambiguated by roughly where
+  // it falls rather than by any distinguishing text of its own, the same
+  // technique RSO Agreement's Section 3/5 fields use (see
+  // check-rso-agreement-completeness/check.ts).
+  yRange?: { yMin: number; yMax: number };
   label: string;
   message: string;
 }
@@ -220,6 +227,12 @@ export interface LabeledFieldStatus {
   box: Box | null;
 }
 
+function withinYRange(box: Box | undefined, yRange?: { yMin: number; yMax: number }) {
+  if (!yRange) return true;
+  const center = centerOf(box);
+  return !!center && center.y >= yRange.yMin && center.y <= yRange.yMax;
+}
+
 // The actual per-field lookup checkLabeledFieldsRobust and section-grouped
 // checks both build on: tries Document AI's formFields pairing first, and
 // falls back to scanning the page's raw OCR'd lines directly when
@@ -228,9 +241,8 @@ export interface LabeledFieldStatus {
 // real Contracted Services Form upload, where Name and Address Line 1
 // never appeared in formFields at all despite being filled in). Returns a
 // status for every spec, not just the unfilled ones, so a caller that
-// wants to group several fields under one section-level flag (see
-// unionBoxes below) has each member's own box to work with even when it
-// turned out to be filled.
+// wants to group several fields under one section-level flag has each
+// member's own box to work with even when it turned out to be filled.
 export function findLabeledFieldStatuses(
   documentText: string,
   formFields: FormField[],
@@ -239,12 +251,13 @@ export function findLabeledFieldStatuses(
 ): LabeledFieldStatus[] {
   return specs.map((spec) => {
     const field = spec.matchFieldName
-      ? formFields.find((f) =>
-          spec.matchFieldName!(
-            normalizeHomoglyphs(
-              extractText(documentText, f.fieldName?.textAnchor).trim().toLowerCase(),
-            ),
-          ),
+      ? formFields.find(
+          (f) =>
+            spec.matchFieldName!(
+              normalizeHomoglyphs(
+                extractText(documentText, f.fieldName?.textAnchor).trim().toLowerCase(),
+              ),
+            ) && withinYRange(f.fieldName?.boundingPoly, spec.yRange),
         )
       : undefined;
     if (field && extractText(documentText, field.fieldValue?.textAnchor).trim()) {
@@ -258,6 +271,7 @@ export function findLabeledFieldStatuses(
       const lineText = extractText(documentText, lines[i].layout?.textAnchor);
       const idx = normalizeHomoglyphs(lineText.toLowerCase()).indexOf(spec.lineLabel);
       if (idx === -1) continue;
+      if (!withinYRange(lines[i].layout?.boundingPoly, spec.yRange)) continue;
 
       box = box ?? lines[i].layout?.boundingPoly ?? null;
       const sameLineAfter = lineText.slice(idx + spec.lineLabel.length).trim();
