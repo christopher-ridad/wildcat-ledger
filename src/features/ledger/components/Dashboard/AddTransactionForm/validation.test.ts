@@ -21,18 +21,18 @@ const baseForm: FormState = {
   taxExemptFormSubmitted: false,
   taxAmount: '',
   contractFile: null,
-  contractAcknowledgedMissing: false,
+  contractNotStored: false,
   w9File: null,
-  w9AcknowledgedMissing: false,
+  w9NotStored: false,
   isIndividualVendor: false,
   isExistingVendor: false,
   existingVendorNumber: '',
   contractedServicesFile: null,
-  contractedServicesAcknowledgedMissing: false,
+  contractedServicesNotStored: false,
   conflictOfInterestFile: null,
-  conflictOfInterestAcknowledgedMissing: false,
+  conflictOfInterestNotStored: false,
   specialPayFormFile: null,
-  specialPayFormAcknowledgedMissing: false,
+  specialPayFormNotStored: false,
   zelleInfo: '',
   reimbursedMemberName: '',
   notes: '',
@@ -166,93 +166,24 @@ describe('validateTransactionForm', () => {
   });
 
   describe('Payment Request', () => {
-    const contractFile = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
-    const w9File = new File(['x'], 'w9.pdf', { type: 'application/pdf' });
-
-    test('requires a contract when creating', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile: null,
-        w9File,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(/RSO Agreement/);
-    });
-
-    test('passes when the contract is acknowledged missing', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile: null,
-        contractAcknowledgedMissing: true,
-        w9File,
-      };
+    test('saves without any documents attached', () => {
+      const form = { ...baseForm, type: 'Payment Request' as const };
       expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
 
-    test('requires a W-9 when creating', () => {
+    test('saves an individual vendor without any documents attached', () => {
       const form = {
         ...baseForm,
         type: 'Payment Request' as const,
-        contractFile,
-        w9File: null,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(/W-9/);
-    });
-
-    test('does not require contract/W-9 when editing', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile: null,
-        w9File: null,
-      };
-      expect(validateTransactionForm(form, true, undefined)).toBeNull();
-    });
-
-    test('individual vendors additionally require contracted services and conflict of interest forms', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile,
-        w9File,
         isIndividualVendor: true,
-        contractedServicesFile: null,
-        conflictOfInterestFile: null,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(
-        /Contracted Services Form/,
-      );
-    });
-
-    test('existing vendors only need the contract, not a W-9', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile,
-        w9File: null,
-        isExistingVendor: true,
-        existingVendorNumber: '12345',
       };
       expect(validateTransactionForm(form, false, undefined)).toBeNull();
-    });
-
-    test('existing vendors still require the contract', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile: null,
-        isExistingVendor: true,
-        existingVendorNumber: '12345',
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(/RSO Agreement/);
     });
 
     test('existing vendors require a vendor number', () => {
       const form = {
         ...baseForm,
         type: 'Payment Request' as const,
-        contractFile,
         isExistingVendor: true,
         existingVendorNumber: '  ',
       };
@@ -261,120 +192,20 @@ describe('validateTransactionForm', () => {
       );
     });
 
-    test('individual-vendor requirements can be acknowledged missing', () => {
+    test('passes for an existing vendor with a vendor number', () => {
       const form = {
         ...baseForm,
         type: 'Payment Request' as const,
-        contractFile,
-        w9File,
-        isIndividualVendor: true,
-        contractedServicesFile: null,
-        contractedServicesAcknowledgedMissing: true,
-        conflictOfInterestFile: null,
-        conflictOfInterestAcknowledgedMissing: true,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toBeNull();
-    });
-
-    test('passes once all individual-vendor documents are provided', () => {
-      const csFile = new File(['x'], 'cs.pdf', { type: 'application/pdf' });
-      const coiFile = new File(['x'], 'coi.pdf', { type: 'application/pdf' });
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile,
-        w9File,
-        isIndividualVendor: true,
-        contractedServicesFile: csFile,
-        conflictOfInterestFile: coiFile,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toBeNull();
-    });
-
-    test('passes for a non-individual vendor with contract and W-9', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment Request' as const,
-        contractFile,
-        w9File,
+        isExistingVendor: true,
+        existingVendorNumber: '12345',
       };
       expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
   });
 
   describe('Payment to NU Employee', () => {
-    const contractFile = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
-    const w9File = new File(['x'], 'w9.pdf', { type: 'application/pdf' });
-    const specialPayFormFile = new File(['x'], 'special-pay.pdf', {
-      type: 'application/pdf',
-    });
-
-    test('requires a contract when creating', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment to NU Employee' as const,
-        contractFile: null,
-        w9File,
-        specialPayFormFile,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(/RSO Agreement/);
-    });
-
-    test('requires a W-9 when creating', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment to NU Employee' as const,
-        contractFile,
-        w9File: null,
-        specialPayFormFile,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(/W-9/);
-    });
-
-    test('requires the Special Pay Form when creating', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment to NU Employee' as const,
-        contractFile,
-        w9File,
-        specialPayFormFile: null,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toMatch(/Special Pay Form/);
-    });
-
-    test('passes once all three are acknowledged missing', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment to NU Employee' as const,
-        contractFile: null,
-        contractAcknowledgedMissing: true,
-        w9File: null,
-        w9AcknowledgedMissing: true,
-        specialPayFormFile: null,
-        specialPayFormAcknowledgedMissing: true,
-      };
-      expect(validateTransactionForm(form, false, undefined)).toBeNull();
-    });
-
-    test('does not require documents when editing', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment to NU Employee' as const,
-        contractFile: null,
-        w9File: null,
-        specialPayFormFile: null,
-      };
-      expect(validateTransactionForm(form, true, undefined)).toBeNull();
-    });
-
-    test('passes once contract, W-9, and Special Pay Form are all provided', () => {
-      const form = {
-        ...baseForm,
-        type: 'Payment to NU Employee' as const,
-        contractFile,
-        w9File,
-        specialPayFormFile,
-      };
+    test('saves without any documents attached', () => {
+      const form = { ...baseForm, type: 'Payment to NU Employee' as const };
       expect(validateTransactionForm(form, false, undefined)).toBeNull();
     });
   });

@@ -6,7 +6,11 @@ import { useLedger } from '../../../hooks/useLedger';
 import { parseReceipt } from '../../../services/parseReceipt';
 import { documentPath, uploadDocument } from '../../../services/storage';
 import { Transaction } from '../../../types';
-import { DOCUMENT_REQUIREMENTS_BY_KEY } from '../../../utils/documentRequirements';
+import {
+  DOCUMENT_REQUIREMENTS_BY_KEY,
+  DocumentRequirement,
+  getRequiredDocuments,
+} from '../../../utils/documentRequirements';
 import {
   AddTransactionFormProps,
   FormState,
@@ -33,20 +37,18 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
     taxExemptFormSubmitted: t.taxExemptFormSubmitted ?? false,
     taxAmount: t.taxAmount != null ? String(t.taxAmount) : '',
     contractFile: null,
-    contractAcknowledgedMissing: t.contractAcknowledgedMissing ?? false,
+    contractNotStored: t.contractNotStored ?? false,
     w9File: null,
-    w9AcknowledgedMissing: t.w9AcknowledgedMissing ?? false,
+    w9NotStored: t.w9NotStored ?? false,
     isIndividualVendor: t.isIndividualVendor ?? false,
     isExistingVendor: t.isExistingVendor ?? false,
     existingVendorNumber: t.existingVendorNumber ?? '',
     contractedServicesFile: null,
-    contractedServicesAcknowledgedMissing:
-      t.contractedServicesAcknowledgedMissing ?? false,
+    contractedServicesNotStored: t.contractedServicesNotStored ?? false,
     conflictOfInterestFile: null,
-    conflictOfInterestAcknowledgedMissing:
-      t.conflictOfInterestAcknowledgedMissing ?? false,
+    conflictOfInterestNotStored: t.conflictOfInterestNotStored ?? false,
     specialPayFormFile: null,
-    specialPayFormAcknowledgedMissing: t.specialPayFormAcknowledgedMissing ?? false,
+    specialPayFormNotStored: t.specialPayFormNotStored ?? false,
     zelleInfo: t.zelleInfo ?? '',
     reimbursedMemberName: t.reimbursedMemberName ?? '',
     notes: t.notes ?? '',
@@ -57,12 +59,12 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
 // so ticking "existing vendor" drops anything entered for them.
 const NEW_VENDOR_ONLY_FIELDS_CLEARED: Partial<FormState> = {
   w9File: null,
-  w9AcknowledgedMissing: false,
+  w9NotStored: false,
   isIndividualVendor: false,
   contractedServicesFile: null,
-  contractedServicesAcknowledgedMissing: false,
+  contractedServicesNotStored: false,
   conflictOfInterestFile: null,
-  conflictOfInterestAcknowledgedMissing: false,
+  conflictOfInterestNotStored: false,
 };
 
 // Form state, OCR-triggered receipt scanning, document uploads, and
@@ -147,18 +149,7 @@ export function useAddTransactionForm({
   ) => {
     const target = e.target;
     const { name } = target;
-    if (name === 'isExistingVendor' && target instanceof HTMLInputElement) {
-      setForm((prev) => ({
-        ...prev,
-        ...(target.checked
-          ? NEW_VENDOR_ONLY_FIELDS_CLEARED
-          : { existingVendorNumber: '' }),
-        isExistingVendor: target.checked,
-      }));
-      // The W-9 check unmounts along with its field, and only resets its
-      // blocking flag when its file changes, so release it here.
-      if (target.checked) setW9CheckBlocking(false);
-    } else if (target instanceof HTMLInputElement && target.type === 'checkbox') {
+    if (target instanceof HTMLInputElement && target.type === 'checkbox') {
       setForm((prev) => ({ ...prev, [name]: target.checked }));
     } else if (target instanceof HTMLInputElement && target.type === 'file') {
       setForm((prev) => ({ ...prev, [name]: target.files?.[0] ?? null }));
@@ -180,30 +171,40 @@ export function useAddTransactionForm({
     setError(null);
   };
 
+  const handleExistingVendorChange = (isExistingVendor: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      ...(isExistingVendor
+        ? NEW_VENDOR_ONLY_FIELDS_CLEARED
+        : { existingVendorNumber: '' }),
+      isExistingVendor,
+    }));
+    // The W-9 check unmounts along with its field, and only resets its
+    // blocking flag when its file changes, so release it here.
+    if (isExistingVendor) setW9CheckBlocking(false);
+  };
+
+  // Switching between storing a copy and not clears any picked file, so a
+  // file chosen only to run the completeness check can't end up uploaded.
+  const setDocumentNotStored = (doc: DocumentRequirement, notStored: boolean) => {
+    const field = doc.notStoredField;
+    if (!field) return;
+    setForm((prev) => ({ ...prev, [doc.formField]: null, [field]: notStored }));
+    setError(null);
+  };
+
+  // Everything type-specific resets; only the fields every type shares carry
+  // over.
   const handleTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const newType = e.target.value as FormState['type'];
     setForm((prev) => ({
-      ...prev,
+      ...initialForm,
       type: newType,
-      receiptFile: null,
-      noReceiptAcknowledged: false,
-      taxExemptFormSubmitted: false,
-      taxAmount: '',
-      contractFile: null,
-      contractAcknowledgedMissing: false,
-      w9File: null,
-      w9AcknowledgedMissing: false,
-      isIndividualVendor: false,
-      isExistingVendor: false,
-      existingVendorNumber: '',
-      contractedServicesFile: null,
-      contractedServicesAcknowledgedMissing: false,
-      conflictOfInterestFile: null,
-      conflictOfInterestAcknowledgedMissing: false,
-      specialPayFormFile: null,
-      specialPayFormAcknowledgedMissing: false,
-      zelleInfo: '',
-      reimbursedMemberName: '',
+      title: prev.title,
+      date: prev.date,
+      amount: prev.amount,
+      funding: prev.funding,
+      notes: prev.notes,
     }));
     setError(null);
     setOcrError(null);
@@ -232,12 +233,32 @@ export function useAddTransactionForm({
     }
   };
 
-  const uploadFile = async (
-    file: File,
-    prefix: string,
-    transactionId: string,
-  ): Promise<string> => {
-    const path = documentPath(activeOrganizationId ?? '', transactionId, file, prefix);
+  // Uploads each newly picked document and returns the transaction's
+  // document fields: a stored path per document (a new upload, or the
+  // existing one when editing), plus -- for required documents only --
+  // whether it was marked not stored.
+  const uploadDocuments = async (transactionId: string) => {
+    const requiredDocKeys = new Set(getRequiredDocuments(form).map((doc) => doc.key));
+    const documentFields: Record<string, string | boolean | undefined> = {};
+    for (const doc of Object.values(DOCUMENT_REQUIREMENTS_BY_KEY)) {
+      const notStored = !!doc.notStoredField && form[doc.notStoredField];
+      // A file picked for a document marked not stored was only there for
+      // the completeness check -- never upload it.
+      const file = notStored ? null : (form[doc.formField] as File | null);
+      documentFields[doc.field] = file
+        ? await uploadFile(file, doc.key, transactionId)
+        : (existingTransaction?.[doc.field] as string | undefined);
+      if (doc.notStoredField) {
+        documentFields[doc.notStoredField] = requiredDocKeys.has(doc.key)
+          ? notStored
+          : undefined;
+      }
+    }
+    return documentFields;
+  };
+
+  const uploadFile = async (file: File, docKey: string, transactionId: string) => {
+    const path = documentPath(activeOrganizationId ?? '', transactionId, file, docKey);
     await uploadDocument(path, file);
     return path;
   };
@@ -271,34 +292,9 @@ export function useAddTransactionForm({
       const txnId = preGeneratedId ?? generateTransactionId();
       if (!preGeneratedId) setPreGeneratedId(txnId);
 
-      // Upload any new files to Storage and get their object paths.
-      // If editing and no new file was selected, preserve the existing path.
-      // Receipt is handled separately since it also drives OCR (see
-      // handleReceiptChange); every other document type follows the same
-      // upload-or-keep-existing shape, so loop over the shared requirement
-      // list instead of repeating that shape once per document.
-      const receiptFileUrl = form.receiptFile
-        ? await uploadFile(form.receiptFile, 'receipt', txnId)
-        : existingTransaction?.receiptFileUrl;
+      const documentFields = await uploadDocuments(txnId);
 
-      const uploadedFileUrls: Record<string, string | undefined> = {};
-      for (const doc of Object.values(DOCUMENT_REQUIREMENTS_BY_KEY)) {
-        if (doc.key === 'receipt') continue;
-        const file = form[doc.formField] as File | null;
-        uploadedFileUrls[doc.field] = file
-          ? await uploadFile(file, doc.key, txnId)
-          : (existingTransaction?.[doc.field] as string | undefined);
-      }
-      const {
-        contractFileUrl,
-        w9FileUrl,
-        contractedServicesFileUrl,
-        conflictOfInterestFileUrl,
-        specialPayFormUrl,
-      } = uploadedFileUrls;
-
-      const isNewVendorPaymentRequest =
-        form.type === 'Payment Request' && !form.isExistingVendor;
+      const isPaymentRequest = form.type === 'Payment Request';
       const newTransaction: Omit<Transaction, 'id'> = {
         title: form.title.trim(),
         date: form.date || todayISO(),
@@ -314,13 +310,13 @@ export function useAddTransactionForm({
           form.type === 'Non-Officer Reimbursement'
             ? form.reimbursedMemberName.trim()
             : undefined,
-        isIndividualVendor: isNewVendorPaymentRequest
-          ? form.isIndividualVendor
-          : undefined,
-        isExistingVendor:
-          form.type === 'Payment Request' ? form.isExistingVendor : undefined,
+        isIndividualVendor:
+          isPaymentRequest && !form.isExistingVendor
+            ? form.isIndividualVendor
+            : undefined,
+        isExistingVendor: isPaymentRequest ? form.isExistingVendor : undefined,
         existingVendorNumber:
-          form.type === 'Payment Request' && form.isExistingVendor
+          isPaymentRequest && form.isExistingVendor
             ? form.existingVendorNumber.trim()
             : undefined,
         noReceiptAcknowledged:
@@ -333,32 +329,7 @@ export function useAddTransactionForm({
           form.type === 'Debit Card' && !form.taxExemptFormSubmitted && form.taxAmount
             ? parseFloat(form.taxAmount)
             : undefined,
-        contractAcknowledgedMissing:
-          form.type === 'Payment Request' || form.type === 'Payment to NU Employee'
-            ? form.contractAcknowledgedMissing
-            : undefined,
-        w9AcknowledgedMissing:
-          isNewVendorPaymentRequest || form.type === 'Payment to NU Employee'
-            ? form.w9AcknowledgedMissing
-            : undefined,
-        contractedServicesAcknowledgedMissing:
-          isNewVendorPaymentRequest && form.isIndividualVendor
-            ? form.contractedServicesAcknowledgedMissing
-            : undefined,
-        conflictOfInterestAcknowledgedMissing:
-          isNewVendorPaymentRequest && form.isIndividualVendor
-            ? form.conflictOfInterestAcknowledgedMissing
-            : undefined,
-        specialPayFormAcknowledgedMissing:
-          form.type === 'Payment to NU Employee'
-            ? form.specialPayFormAcknowledgedMissing
-            : undefined,
-        receiptFileUrl,
-        contractFileUrl,
-        w9FileUrl,
-        contractedServicesFileUrl,
-        conflictOfInterestFileUrl,
-        specialPayFormUrl,
+        ...documentFields,
       };
 
       if (direction === 'Outflow') {
@@ -398,6 +369,8 @@ export function useAddTransactionForm({
     handleReceiptChange,
     handleChange,
     handleTypeChange,
+    handleExistingVendorChange,
+    setDocumentNotStored,
     handleSubmit,
     submitTransaction,
     cancelOverdraft,

@@ -47,13 +47,11 @@ export const validateTransactionForm = (
   }
 
   for (const doc of getRequiredDocuments(form)) {
-    const hasExistingFile =
-      isEditing && (!doc.checkExistingFileOnEdit || !!existingTransaction?.[doc.field]);
-    const acknowledgedMissing = doc.formAcknowledgedMissingField
-      ? form[doc.formAcknowledgedMissingField]
-      : false;
+    if (!doc.saveRequirement) continue;
+    const hasExistingFile = isEditing && !!existingTransaction?.[doc.field];
+    const acknowledgedMissing = form[doc.saveRequirement.formAcknowledgedMissingField];
     if (!form[doc.formField] && !hasExistingFile && !acknowledgedMissing) {
-      return doc.missingMessage;
+      return doc.saveRequirement.missingMessage;
     }
   }
 

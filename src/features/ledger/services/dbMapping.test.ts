@@ -48,6 +48,11 @@ const minimalTransactionRow: TransactionRow = {
   contracted_services_acknowledged_missing: null,
   conflict_of_interest_acknowledged_missing: null,
   special_pay_form_acknowledged_missing: null,
+  contract_not_stored: false,
+  w9_not_stored: false,
+  contracted_services_not_stored: false,
+  conflict_of_interest_not_stored: false,
+  special_pay_form_not_stored: false,
   upload_tokens: {},
 };
 
@@ -81,11 +86,11 @@ describe('rowToTransaction', () => {
       taxExemptFormSubmitted: undefined,
       taxAmount: undefined,
       taxReimbursed: undefined,
-      contractAcknowledgedMissing: undefined,
-      w9AcknowledgedMissing: undefined,
-      contractedServicesAcknowledgedMissing: undefined,
-      conflictOfInterestAcknowledgedMissing: undefined,
-      specialPayFormAcknowledgedMissing: undefined,
+      contractNotStored: false,
+      w9NotStored: false,
+      contractedServicesNotStored: false,
+      conflictOfInterestNotStored: false,
+      specialPayFormNotStored: false,
       uploadTokens: {},
     });
   });
@@ -119,6 +124,11 @@ describe('rowToTransaction', () => {
       contracted_services_acknowledged_missing: true,
       conflict_of_interest_acknowledged_missing: true,
       special_pay_form_acknowledged_missing: true,
+      contract_not_stored: true,
+      w9_not_stored: true,
+      contracted_services_not_stored: true,
+      conflict_of_interest_not_stored: true,
+      special_pay_form_not_stored: true,
       upload_tokens: { w9: { token: 'tok-1', mintedAt: 1700000000000 } },
     };
 
@@ -144,11 +154,11 @@ describe('rowToTransaction', () => {
     expect(t.taxExemptFormSubmitted).toBe(true);
     expect(t.taxAmount).toBe(3.25);
     expect(t.taxReimbursed).toBe(true);
-    expect(t.contractAcknowledgedMissing).toBe(true);
-    expect(t.w9AcknowledgedMissing).toBe(true);
-    expect(t.contractedServicesAcknowledgedMissing).toBe(true);
-    expect(t.conflictOfInterestAcknowledgedMissing).toBe(true);
-    expect(t.specialPayFormAcknowledgedMissing).toBe(true);
+    expect(t.contractNotStored).toBe(true);
+    expect(t.w9NotStored).toBe(true);
+    expect(t.contractedServicesNotStored).toBe(true);
+    expect(t.conflictOfInterestNotStored).toBe(true);
+    expect(t.specialPayFormNotStored).toBe(true);
     expect(t.uploadTokens).toEqual({ w9: { token: 'tok-1', mintedAt: 1700000000000 } });
   });
 

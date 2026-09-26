@@ -6,7 +6,7 @@ import { useAsyncAction } from '../../../ledger/hooks/useAsyncAction';
 import { useResetOnOpen } from '../../../ledger/hooks/useResetOnOpen';
 import { TransactionType } from '../../../ledger/types';
 import { EXISTING_VENDOR_LIST_URL } from '../../../ledger/utils/constants';
-import { FinancialTask } from '../../types';
+import { FinancialTask, FinancialTaskInput } from '../../types';
 import {
   academicYearStartOf,
   isDateInSupportedQuarter,
@@ -33,15 +33,7 @@ interface TaskFormModalProps {
   task?: FinancialTask;
   rosterEmails: string[];
   peopleNames: Record<string, string>;
-  onSave: (task: {
-    title: string;
-    description?: string;
-    dueDate: string;
-    assigneeEmails: string[];
-    paymentType?: TransactionType;
-    isIndividualVendor?: boolean;
-    isExistingVendor?: boolean;
-  }) => Promise<void>;
+  onSave: (task: FinancialTaskInput) => Promise<void>;
 }
 
 export const TaskFormModal = ({
@@ -196,31 +188,32 @@ export const TaskFormModal = ({
           </select>
 
           {paymentType === 'Payment Request' && (
-            <label className={styles['wl-form-checkbox']}>
-              <input
-                type="checkbox"
-                checked={isExistingVendor}
-                onChange={(e) => setIsExistingVendor(e.target.checked)}
-              />
-              <span>
-                Is this vendor on SOFO&apos;s{' '}
-                <a href={EXISTING_VENDOR_LIST_URL} target="_blank" rel="noreferrer">
-                  Existing Vendor List
-                </a>
-                ?
-              </span>
-            </label>
-          )}
-
-          {paymentType === 'Payment Request' && !isExistingVendor && (
-            <label className={styles['wl-form-checkbox']}>
-              <input
-                type="checkbox"
-                checked={isIndividualVendor}
-                onChange={(e) => setIsIndividualVendor(e.target.checked)}
-              />
-              <span>Is this an individual vendor?</span>
-            </label>
+            <>
+              <label className={styles['wl-form-checkbox']}>
+                <input
+                  type="checkbox"
+                  checked={isExistingVendor}
+                  onChange={(e) => setIsExistingVendor(e.target.checked)}
+                />
+                <span>
+                  Is this vendor on SOFO&apos;s{' '}
+                  <a href={EXISTING_VENDOR_LIST_URL} target="_blank" rel="noreferrer">
+                    Existing Vendor List
+                  </a>
+                  ?
+                </span>
+              </label>
+              {!isExistingVendor && (
+                <label className={styles['wl-form-checkbox']}>
+                  <input
+                    type="checkbox"
+                    checked={isIndividualVendor}
+                    onChange={(e) => setIsIndividualVendor(e.target.checked)}
+                  />
+                  <span>Is this an individual vendor?</span>
+                </label>
+              )}
+            </>
           )}
 
           {paymentType && (

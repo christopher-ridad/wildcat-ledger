@@ -177,8 +177,6 @@ test('the transaction files modal has no WCAG 2.0/2.1 A/AA violations', async ({
   await createDialog.getByLabel(/Transaction Type/).selectOption('Payment Request');
   await createDialog.getByLabel(/^Title/).fill(title);
   await createDialog.getByLabel(/^Amount/).fill('200');
-  await createDialog.locator('input[name="contractAcknowledgedMissing"]').check();
-  await createDialog.locator('input[name="w9AcknowledgedMissing"]').check();
   await createDialog
     .getByRole('button', { name: 'Add Transaction', exact: true })
     .click();

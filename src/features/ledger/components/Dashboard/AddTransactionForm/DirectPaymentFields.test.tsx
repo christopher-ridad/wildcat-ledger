@@ -16,21 +16,22 @@ const renderFields = (
       onChange={vi.fn()}
       onW9CheckBlockingChange={vi.fn()}
       onRsoCheckBlockingChange={vi.fn()}
+      onNotStoredChange={vi.fn()}
+      onExistingVendorChange={vi.fn()}
       {...overrides}
     />,
   );
 
 describe('DirectPaymentFields', () => {
-  test('requires contract and W-9, each with an "I don\'t have this yet" checkbox, when creating', () => {
+  test('shows contract and W-9 fields, each of which can skip storing a copy', () => {
     renderFields();
-    expect(screen.getAllByText("I don't have this yet")).toHaveLength(2);
-  });
-
-  test('hides the "I don\'t have this yet" checkbox once a file is attached', () => {
-    const file = new File(['x'], 'contract.pdf', { type: 'application/pdf' });
-    renderFields({ form: { ...initialForm, contractFile: file } });
-    // Only the W-9 checkbox remains since a contract file is now attached.
-    expect(screen.getAllByText("I don't have this yet")).toHaveLength(1);
+    expect(screen.getByLabelText('RSO Agreement')).toBeInTheDocument();
+    expect(screen.getByLabelText('W-9')).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('checkbox', {
+        name: "Don't store this document in WildcatLedger",
+      }),
+    ).toHaveLength(2);
   });
 
   test('shows existing file links when editing with existing documents', () => {
@@ -42,22 +43,6 @@ describe('DirectPaymentFields', () => {
       }),
     });
     expect(screen.getAllByText('View file')).toHaveLength(2);
-    expect(screen.queryByText("I don't have this yet")).not.toBeInTheDocument();
-  });
-
-  test('checking "contract missing" shows a warning notice and calls onChange', () => {
-    const onChange = vi.fn();
-    renderFields({ onChange });
-    const [contractCheckbox] = screen.getAllByRole('checkbox', {
-      name: "I don't have this yet",
-    });
-    fireEvent.click(contractCheckbox);
-    expect(onChange).toHaveBeenCalled();
-  });
-
-  test('shows a warning notice once the contract is acknowledged missing', () => {
-    renderFields({ form: { ...initialForm, contractAcknowledgedMissing: true } });
-    expect(screen.getByText(/flagged as missing the RSO Agreement/)).toBeInTheDocument();
   });
 
   test('does not show individual-vendor fields by default', () => {
@@ -67,47 +52,29 @@ describe('DirectPaymentFields', () => {
 
   test('reveals contracted-services and conflict-of-interest fields for individual vendors', () => {
     renderFields({ form: { ...initialForm, isIndividualVendor: true } });
-    expect(screen.getByLabelText(/Contracted Services Form/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Conflict of Interest Form/)).toBeInTheDocument();
-    // Contract, W-9, CSF, and COI all get their own "missing" checkbox.
-    expect(screen.getAllByText("I don't have this yet")).toHaveLength(4);
+    expect(screen.getByLabelText('Contracted Services Form')).toBeInTheDocument();
+    expect(screen.getByLabelText('Conflict of Interest Form')).toBeInTheDocument();
   });
 
-  test('checking "conflict of interest missing" shows a warning notice', () => {
+  test('a not-stored Conflict of Interest Form shows as not stored', () => {
     renderFields({
       form: {
         ...initialForm,
         isIndividualVendor: true,
-        conflictOfInterestAcknowledgedMissing: true,
+        conflictOfInterestNotStored: true,
       },
     });
-    expect(
-      screen.getByText(/flagged as missing the Conflict of Interest Form/),
-    ).toBeInTheDocument();
-  });
-
-  test('does not ask for a vendor number unless the vendor is existing', () => {
-    renderFields();
-    expect(screen.queryByLabelText(/Vendor Number/)).not.toBeInTheDocument();
-  });
-
-  test('links to the Existing Vendor List', () => {
-    renderFields();
-    expect(screen.getByRole('link', { name: 'Existing Vendor List' })).toHaveAttribute(
-      'href',
-      'https://tinyurl.com/ExistingVendorList',
-    );
-  });
-
-  test('existing vendors get a vendor number field and only the contract upload', () => {
-    renderFields({
-      form: { ...initialForm, isExistingVendor: true, isIndividualVendor: true },
+    expect(screen.getByLabelText('Conflict of Interest Form')).toBeInTheDocument();
+    const notStoredBoxes = screen.getAllByRole('checkbox', {
+      name: "Don't store this document in WildcatLedger",
     });
-    expect(screen.getByLabelText(/Vendor Number/)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/W-9/)).not.toBeInTheDocument();
-    expect(screen.queryByText('Is this an individual vendor?')).not.toBeInTheDocument();
-    expect(screen.queryByText('Contracted Services Form')).not.toBeInTheDocument();
-    expect(screen.getAllByText("I don't have this yet")).toHaveLength(1);
+    // RSO Agreement, W-9, CSF, COI -- only the COI is ticked.
+    expect(notStoredBoxes.map((box) => (box as HTMLInputElement).checked)).toEqual([
+      false,
+      false,
+      false,
+      true,
+    ]);
   });
 
   test('toggling the individual-vendor checkbox calls onChange', () => {

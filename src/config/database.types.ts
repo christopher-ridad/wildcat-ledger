@@ -354,6 +354,11 @@ export type Database = {
           reimbursed_member_name: string | null;
           special_pay_form_acknowledged_missing: boolean | null;
           special_pay_form_url: string | null;
+          contract_not_stored: boolean;
+          w9_not_stored: boolean;
+          contracted_services_not_stored: boolean;
+          conflict_of_interest_not_stored: boolean;
+          special_pay_form_not_stored: boolean;
           tax_amount: number | null;
           tax_exempt_form_submitted: boolean | null;
           tax_reimbursed: boolean | null;
@@ -391,6 +396,11 @@ export type Database = {
           reimbursed_member_name?: string | null;
           special_pay_form_acknowledged_missing?: boolean | null;
           special_pay_form_url?: string | null;
+          contract_not_stored?: boolean;
+          w9_not_stored?: boolean;
+          contracted_services_not_stored?: boolean;
+          conflict_of_interest_not_stored?: boolean;
+          special_pay_form_not_stored?: boolean;
           tax_amount?: number | null;
           tax_exempt_form_submitted?: boolean | null;
           tax_reimbursed?: boolean | null;
@@ -428,6 +438,11 @@ export type Database = {
           reimbursed_member_name?: string | null;
           special_pay_form_acknowledged_missing?: boolean | null;
           special_pay_form_url?: string | null;
+          contract_not_stored?: boolean;
+          w9_not_stored?: boolean;
+          contracted_services_not_stored?: boolean;
+          conflict_of_interest_not_stored?: boolean;
+          special_pay_form_not_stored?: boolean;
           tax_amount?: number | null;
           tax_exempt_form_submitted?: boolean | null;
           tax_reimbursed?: boolean | null;
@@ -490,6 +505,11 @@ export type Database = {
           reimbursed_member_name: string | null;
           special_pay_form_acknowledged_missing: boolean | null;
           special_pay_form_url: string | null;
+          contract_not_stored: boolean;
+          w9_not_stored: boolean;
+          contracted_services_not_stored: boolean;
+          conflict_of_interest_not_stored: boolean;
+          special_pay_form_not_stored: boolean;
           tax_amount: number | null;
           tax_exempt_form_submitted: boolean | null;
           tax_reimbursed: boolean | null;

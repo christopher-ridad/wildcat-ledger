@@ -40,9 +40,35 @@ There are five kinds of transactions, and each one has its own required paperwor
 | Payment to NU Employee    | RSO Agreement, W-9, and Special Pay Form                                                                                                                                                                                          |
 | Journal                   | none                                                                                                                                                                                                                              |
 
-A transaction can always be saved before its paperwork is in hand. Just check "I don't have this
-yet" on the form. It gets flagged as missing that document, and can't be moved to Approved or Paid
-until the file actually shows up (see [Payment status lifecycle](#payment-status-lifecycle)).
+A transaction can always be saved before its paperwork is in hand. Any document that hasn't been
+provided yet is flagged as missing, and the transaction can't be moved to Approved or Paid until it
+is (see [Payment status lifecycle](#payment-status-lifecycle)). Receipts are the exception: saving
+without one means checking "I don't have a receipt", since that ties into the Policy Exemption Form
+(see [Tax exemption](#tax-exemption--sofo-reimbursement)).
+
+### Documents kept outside WildcatLedger
+
+Several of these documents carry personal information: a W-9 has a taxpayer ID number, and a
+Special Pay Form has an employee's details. So for the RSO Agreement, W-9, Contracted Services
+Form, Conflict of Interest Form, and Special Pay Form, the org can choose, one document at a time,
+not to keep a copy in WildcatLedger (the "Don't store this document in WildcatLedger" checkbox on the form). The org still
+hands the document to SOFO as usual; the app just records that it's been dealt with, and treats it
+as provided, so it isn't flagged missing and doesn't block Approved or Paid. The transaction's Files
+panel lists these under "Not stored in WildcatLedger."
+
+The W-9 and RSO Agreement completeness checks still work on a document that isn't being stored: the
+file can be picked just to run the check, and is discarded afterwards instead of uploaded.
+
+Receipts can't be kept out of the app, since Debit Card reconciliation and reloads depend on them.
+
+Choosing not to store a copy is only offered for a document that doesn't already have one stored.
+Nothing in the app deletes uploaded files from storage, so offering it for an uploaded document would
+only hide the link, not remove the file.
+
+**Technical implementation:** each document has a `*_not_stored` column on `transactions`, which
+`getMissingDocuments()` and `update_payment_status_with_audit` both treat as present (see migration
+`0036`). The older `*_acknowledged_missing` columns, from the "I don't have this yet" checkboxes
+this replaced, are no longer written but are kept for historical rows.
 
 ### Existing vendors
 
@@ -79,7 +105,7 @@ can approve their own request.
 
 Editing is narrower. An edit only needs a second person's approval if it changes the **amount,
 type, or budget line**, since those are the things that actually affect the org's money. Everything
-else (title, date, notes, vendor info, attached documents, "I don't have this yet" checkboxes)
+else (title, date, notes, vendor info, attached documents, whether a document is stored in the app)
 takes effect immediately with no approval needed, and still shows up in the audit log as a plain
 edit.
 

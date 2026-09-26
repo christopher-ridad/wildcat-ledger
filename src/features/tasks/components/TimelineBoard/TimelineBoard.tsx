@@ -2,9 +2,8 @@ import { useMemo, useState } from 'react';
 
 import { useAsyncActionMap } from '../../../ledger/hooks/useAsyncAction';
 import { useLedger } from '../../../ledger/hooks/useLedger';
-import { TransactionType } from '../../../ledger/types';
 import { useTasks } from '../../hooks/useTasks';
-import { FinancialTask, FinancialTaskRequirement } from '../../types';
+import { FinancialTask, FinancialTaskInput, FinancialTaskRequirement } from '../../types';
 import { QuarterBoard } from '../QuarterBoard';
 import { TaskFormModal } from '../TaskFormModal';
 import styles from './TimelineBoard.module.css';
@@ -80,15 +79,7 @@ export const TimelineBoard = () => {
     deleteAction.run(task.id, () => deleteFinancialTask(task.id), 'Failed to delete.');
   };
 
-  const handleSave = async (task: {
-    title: string;
-    description?: string;
-    dueDate: string;
-    assigneeEmails: string[];
-    paymentType?: TransactionType;
-    isIndividualVendor?: boolean;
-    isExistingVendor?: boolean;
-  }) => {
+  const handleSave = async (task: FinancialTaskInput) => {
     if (editingTask) {
       await updateFinancialTask(editingTask.id, task);
     } else {

@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
 import { Database } from '../../../config/database.types';
-import { rowToFinancialTask, rowToFinancialTaskRequirement } from './dbMapping';
+import {
+  rowToFinancialTask,
+  rowToFinancialTaskRequirement,
+  toFinancialTaskColumns,
+} from './dbMapping';
 
 type FinancialTaskRow = Database['public']['Tables']['financial_tasks']['Row'];
 type FinancialTaskRequirementRow =
@@ -99,5 +103,34 @@ describe('rowToFinancialTaskRequirement', () => {
       completed_at: '2026-09-10T12:00:00.000Z',
     });
     expect(requirement.completedAt).toBe('2026-09-10T12:00:00.000Z');
+  });
+});
+
+describe('toFinancialTaskColumns', () => {
+  test('maps input to columns, defaulting optional fields', () => {
+    expect(
+      toFinancialTaskColumns({ title: 'Pay the DJ', dueDate: '2026-10-01' }),
+    ).toEqual({
+      title: 'Pay the DJ',
+      description: null,
+      due_date: '2026-10-01',
+      assignee_emails: [],
+      payment_type: null,
+      is_individual_vendor: false,
+      is_existing_vendor: false,
+    });
+  });
+
+  test('passes through a Payment Request to an existing vendor', () => {
+    const columns = toFinancialTaskColumns({
+      title: 'Pay the DJ',
+      dueDate: '2026-10-01',
+      paymentType: 'Payment Request',
+      isExistingVendor: true,
+    });
+    expect(columns).toMatchObject({
+      payment_type: 'Payment Request',
+      is_existing_vendor: true,
+    });
   });
 });
