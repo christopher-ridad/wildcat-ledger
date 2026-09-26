@@ -97,15 +97,25 @@ export function useAddTransactionForm({
     id?: string;
   } | null>(null);
   const [preGeneratedId, setPreGeneratedId] = useState<string | null>(null);
-  // Set by W9CompletenessCheck/RSOAgreementCompletenessCheck while either
-  // has an unacknowledged flag. Advisory, not a hard requirement
-  // everywhere: this only ever gates the Save button, never the
-  // underlying validation. Kept as one object (rather than a separate
-  // useState per check) so a blocking Save reason is always "is anything
-  // in here true", not a growing list of ORs at the call site.
+  // Set by W9CompletenessCheck/RSOAgreementCompletenessCheck/
+  // GenericCompletenessCheck while any of them has an unacknowledged flag.
+  // Advisory, not a hard requirement everywhere: this only ever gates the
+  // Save button, never the underlying validation. Kept as one object
+  // (rather than a separate useState per check) so a blocking Save reason
+  // is always "is anything in here true", not a growing list of ORs at the
+  // call site.
   const [documentChecksBlocking, setDocumentChecksBlocking] = useState<
-    Record<'w9' | 'rso', boolean>
-  >({ w9: false, rso: false });
+    Record<
+      'w9' | 'rso' | 'contractedServices' | 'conflictOfInterest' | 'specialPayForm',
+      boolean
+    >
+  >({
+    w9: false,
+    rso: false,
+    contractedServices: false,
+    conflictOfInterest: false,
+    specialPayForm: false,
+  });
   const documentCheckBlocking = Object.values(documentChecksBlocking).some(Boolean);
   const setW9CheckBlocking = useCallback(
     (blocking: boolean) =>
@@ -115,6 +125,21 @@ export function useAddTransactionForm({
   const setRsoCheckBlocking = useCallback(
     (blocking: boolean) =>
       setDocumentChecksBlocking((prev) => ({ ...prev, rso: blocking })),
+    [],
+  );
+  const setContractedServicesCheckBlocking = useCallback(
+    (blocking: boolean) =>
+      setDocumentChecksBlocking((prev) => ({ ...prev, contractedServices: blocking })),
+    [],
+  );
+  const setConflictOfInterestCheckBlocking = useCallback(
+    (blocking: boolean) =>
+      setDocumentChecksBlocking((prev) => ({ ...prev, conflictOfInterest: blocking })),
+    [],
+  );
+  const setSpecialPayFormCheckBlocking = useCallback(
+    (blocking: boolean) =>
+      setDocumentChecksBlocking((prev) => ({ ...prev, specialPayForm: blocking })),
     [],
   );
 
@@ -366,6 +391,9 @@ export function useAddTransactionForm({
     documentCheckBlocking,
     setW9CheckBlocking,
     setRsoCheckBlocking,
+    setContractedServicesCheckBlocking,
+    setConflictOfInterestCheckBlocking,
+    setSpecialPayFormCheckBlocking,
     handleReceiptChange,
     handleChange,
     handleTypeChange,

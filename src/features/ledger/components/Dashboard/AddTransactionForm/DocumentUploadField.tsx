@@ -16,11 +16,18 @@ export interface SharedDocumentFieldProps {
   onNotStoredChange: (doc: DocumentRequirement, notStored: boolean) => void;
 }
 
-// Props for a group of document fields that also hosts the W-9/RSO
-// completeness checks (DirectPaymentFields, NUEmployeePaymentFields).
+// Props for a group of document fields that also hosts the completeness
+// checks (DirectPaymentFields, NUEmployeePaymentFields). Not every group
+// uses every one of these -- NUEmployeePaymentFields has no vendor forms,
+// for instance -- but sharing one prop shape keeps DocumentFieldGroupProps
+// a single source of truth rather than a slightly different interface per
+// group.
 export interface DocumentFieldGroupProps extends SharedDocumentFieldProps {
   onW9CheckBlockingChange: (blocking: boolean) => void;
   onRsoCheckBlockingChange: (blocking: boolean) => void;
+  onContractedServicesCheckBlockingChange: (blocking: boolean) => void;
+  onConflictOfInterestCheckBlockingChange: (blocking: boolean) => void;
+  onSpecialPayFormCheckBlockingChange: (blocking: boolean) => void;
 }
 
 interface DocumentUploadFieldProps extends SharedDocumentFieldProps {

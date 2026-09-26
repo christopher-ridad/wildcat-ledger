@@ -25,6 +25,16 @@ export const MAX_DOCUMENT_CHECK_FILE_BYTES = 15 * 1024 * 1024;
 // pages there.
 export const MAX_W9_PAGES = 10;
 export const MAX_RSO_PAGES = 4;
+// Contracted Services and Conflict of Interest are both official 1-page
+// forms -- a small allowance for a scanned cover page, nothing more.
+export const MAX_CONTRACTED_SERVICES_PAGES = 3;
+export const MAX_CONFLICT_OF_INTEREST_PAGES = 3;
+// The Special Pay Request Form template itself is 1 page, but what
+// actually gets uploaded here commonly also includes the signed DCFS
+// Mandated Reporter Acknowledgement it references -- a separate multi-page
+// state form -- so this stays more generous than the two above, similar to
+// why MAX_W9_PAGES is generous for the IRS's own bundled instructions.
+export const MAX_SPECIAL_PAY_PAGES = 6;
 
 // Document AI's coordinates are normalized (0-1) to the page, so they
 // scale to whatever size the canvas actually rendered at.

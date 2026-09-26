@@ -57,14 +57,40 @@ describe('DocumentUploadField', () => {
   });
 
   test('when not stored, keeps the file input on every document and says the file is discarded', () => {
+    // Every current document with a not-stored option also has a
+    // completeness check, so this deliberately overrides hasCompletenessCheck
+    // to exercise DocumentUploadField's other hint branch -- not a claim
+    // that Special Pay Form itself lacks a check (see
+    // check-special-pay-form-completeness).
     renderField({
-      doc: DOCUMENT_REQUIREMENTS_BY_KEY.specialPayForm,
+      doc: {
+        ...DOCUMENT_REQUIREMENTS_BY_KEY.specialPayForm,
+        hasCompletenessCheck: false,
+      },
       form: { ...initialForm, specialPayFormNotStored: true },
     });
     expect(screen.getByLabelText('Special Pay Form')).toBeInTheDocument();
     expect(screen.getByText("A file picked here won't be saved.")).toBeInTheDocument();
     expect(notStoredCheckbox()).toBeChecked();
   });
+
+  test.each([
+    ['contractedServices', 'Contracted Services Form', 'contractedServicesNotStored'],
+    ['conflictOfInterest', 'Conflict of Interest Form', 'conflictOfInterestNotStored'],
+    ['specialPayForm', 'Special Pay Form', 'specialPayFormNotStored'],
+  ] as const)(
+    '%s now has a completeness check, so its check-only hint mentions checking for missing fields',
+    (key, label, notStoredField) => {
+      renderField({
+        doc: DOCUMENT_REQUIREMENTS_BY_KEY[key],
+        form: { ...initialForm, [notStoredField]: true },
+      });
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Pick the file to check it for missing fields/),
+      ).toBeInTheDocument();
+    },
+  );
 
   test('does not offer to skip storing a document that already has a stored copy', () => {
     renderField({

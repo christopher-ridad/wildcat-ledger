@@ -1,7 +1,12 @@
 import { EXISTING_VENDOR_LIST_URL } from '../../../utils/constants';
 import { DOCUMENT_REQUIREMENTS_BY_KEY } from '../../../utils/documentRequirements';
 import styles from './AddTransactionForm.module.css';
+import {
+  MAX_CONFLICT_OF_INTEREST_PAGES,
+  MAX_CONTRACTED_SERVICES_PAGES,
+} from './documentCheckCanvas';
 import { DocumentFieldGroupProps, DocumentUploadField } from './DocumentUploadField';
+import { GenericCompletenessCheck } from './GenericCompletenessCheck';
 import { RSOAgreementCompletenessCheck } from './RSOAgreementCompletenessCheck';
 import { W9CompletenessCheck } from './W9CompletenessCheck';
 
@@ -12,6 +17,8 @@ interface DirectPaymentFieldsProps extends DocumentFieldGroupProps {
 export const DirectPaymentFields = ({
   onW9CheckBlockingChange,
   onRsoCheckBlockingChange,
+  onContractedServicesCheckBlockingChange,
+  onConflictOfInterestCheckBlockingChange,
   onExistingVendorChange,
   ...fieldProps
 }: DirectPaymentFieldsProps) => {
@@ -87,9 +94,23 @@ export const DirectPaymentFields = ({
                 doc={DOCUMENT_REQUIREMENTS_BY_KEY.contractedServices}
                 {...fieldProps}
               />
+              <GenericCompletenessCheck
+                file={form.contractedServicesFile}
+                onBlockingChange={onContractedServicesCheckBlockingChange}
+                functionName="check-contracted-services-completeness"
+                docLabel="Contracted Services Form"
+                maxPages={MAX_CONTRACTED_SERVICES_PAGES}
+              />
               <DocumentUploadField
                 doc={DOCUMENT_REQUIREMENTS_BY_KEY.conflictOfInterest}
                 {...fieldProps}
+              />
+              <GenericCompletenessCheck
+                file={form.conflictOfInterestFile}
+                onBlockingChange={onConflictOfInterestCheckBlockingChange}
+                functionName="check-conflict-of-interest-completeness"
+                docLabel="Conflict of Interest Form"
+                maxPages={MAX_CONFLICT_OF_INTEREST_PAGES}
               />
             </>
           )}

@@ -104,6 +104,7 @@ const CONTRACTED_SERVICES: DocumentRequirement = {
   templatePath: '/forms/contracted-services.pdf',
   requestBehavior: 'prepareFirst',
   formField: 'contractedServicesFile',
+  hasCompletenessCheck: true,
   notStoredField: 'contractedServicesNotStored',
 };
 const CONFLICT_OF_INTEREST: DocumentRequirement = {
@@ -113,6 +114,7 @@ const CONFLICT_OF_INTEREST: DocumentRequirement = {
   templatePath: '/forms/conflict-of-interest.pdf',
   requestBehavior: 'none',
   formField: 'conflictOfInterestFile',
+  hasCompletenessCheck: true,
   notStoredField: 'conflictOfInterestNotStored',
 };
 const SPECIAL_PAY_FORM: DocumentRequirement = {
@@ -122,6 +124,7 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
   templatePath: '/forms/special-pay-request-form.pdf',
   requestBehavior: 'simple',
   formField: 'specialPayFormFile',
+  hasCompletenessCheck: true,
   notStoredField: 'specialPayFormNotStored',
 };
 
