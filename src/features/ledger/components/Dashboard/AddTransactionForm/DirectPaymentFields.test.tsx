@@ -16,6 +16,9 @@ const renderFields = (
       onChange={vi.fn()}
       onW9CheckBlockingChange={vi.fn()}
       onRsoCheckBlockingChange={vi.fn()}
+      onContractedServicesCheckBlockingChange={vi.fn()}
+      onConflictOfInterestCheckBlockingChange={vi.fn()}
+      onSpecialPayFormCheckBlockingChange={vi.fn()}
       onNotStoredChange={vi.fn()}
       onExistingVendorChange={vi.fn()}
       {...overrides}

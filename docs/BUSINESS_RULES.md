@@ -56,8 +56,8 @@ hands the document to SOFO as usual; the app just records that it's been dealt w
 as provided, so it isn't flagged missing and doesn't block Approved or Paid. The transaction's Files
 panel lists these under "Not stored in WildcatLedger."
 
-The W-9 and RSO Agreement completeness checks still work on a document that isn't being stored: the
-file can be picked just to run the check, and is discarded afterwards instead of uploaded.
+The completeness check (see below) still works on a document that isn't being stored: the file can
+be picked just to run the check, and is discarded afterwards instead of uploaded.
 
 Receipts can't be kept out of the app, since Debit Card reconciliation and reloads depend on them.
 
@@ -69,6 +69,35 @@ only hide the link, not remove the file.
 `getMissingDocuments()` and `update_payment_status_with_audit` both treat as present (see migration
 `0036`). The older `*_acknowledged_missing` columns, from the "I don't have this yet" checkboxes
 this replaced, are no longer written but are kept for historical rows.
+
+### AI completeness checker
+
+Every document type with paperwork to fill out -- RSO Agreement, W-9, Contracted Services Form,
+Conflict of Interest Form, Special Pay Form -- gets an automatic check when it's picked: the app
+renders the page back with a red box over anything that looks blank, and a plain-language note
+underneath ("Signature looks blank," etc). It's advisory. A flag needs an explicit "I've reviewed
+this and it's correct as-is" acknowledgment before Save unlocks, but nothing about it is stored or
+sent to SOFO -- it's just a second pair of eyes before submitting, and a failed check (a network hiccup,
+Document AI itself being down) fails open rather than blocking the form on an unrelated outage.
+
+The W-9 and RSO Agreement checks are the most thorough, each calibrated against a real filled
+example of that exact form -- including reading checkbox darkness directly off the page for the
+W-9's tax classification and the RSO Agreement's Section 4, which a plain text-field read can't
+reliably catch. The newer three (Contracted Services, Conflict of Interest, Special Pay Form) are
+narrower: each only checks whatever fields have a label unique enough on the page to match with
+confidence, and skips anything that would need that same kind of checkbox/table calibration against
+a real sample to get right (see each `check-*-completeness/check.ts`'s own header comment for
+exactly what's covered and what's deliberately left out for a given form).
+
+**Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
+`check-rso-agreement-completeness`, `check-contracted-services-completeness`,
+`check-conflict-of-interest-completeness`, `check-special-pay-form-completeness`) that runs the
+uploaded PDF through Google Document AI server-side, since that needs a service-account credential
+Vision API's browser-safe key doesn't require. The actual flagging logic is split out into each
+function's own `check.ts` so it's unit-testable against synthetic fixtures without a real, billed
+Document AI call. On the frontend, `hasCompletenessCheck` on a `DocumentRequirement` in
+`documentRequirements.ts` is what turns a document's not-stored hint from "won't be saved" into
+"pick it to check it, then it won't be saved."
 
 ### Existing vendors
 

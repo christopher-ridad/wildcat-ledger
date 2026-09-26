@@ -153,6 +153,55 @@ export async function processDocument(
   };
 }
 
+export interface PresenceFlag {
+  label: string;
+  message: string;
+  box: Box | null;
+}
+
+export interface PresenceFieldSpec {
+  matchName: (name: string) => boolean;
+  label: string;
+  message: string;
+}
+
+// A "does this labeled field have any text in it" check, for the simpler
+// completeness checks whose forms don't need anything fancier -- no
+// checkbox/table handling, no fallback box calibration (see each check's
+// own check.ts header comment for why: unlike the W-9 and RSO Agreement,
+// there's no real Document AI sample these were calibrated against, so
+// each spec here only covers fields with a name unique enough on the page
+// to match confidently). Box comes from Document AI's own detected
+// position when the field was paired at all (blank fields are usually
+// still paired to their label); null when it wasn't paired at all, rather
+// than a guessed fallback position.
+export function checkFieldsPresent(
+  documentText: string,
+  formFields: FormField[],
+  specs: PresenceFieldSpec[],
+): PresenceFlag[] {
+  const flags: PresenceFlag[] = [];
+  for (const spec of specs) {
+    const field = formFields.find((f) => {
+      const name = extractText(documentText, f.fieldName?.textAnchor)
+        .trim()
+        .toLowerCase();
+      return spec.matchName(name);
+    });
+    const value = field
+      ? extractText(documentText, field.fieldValue?.textAnchor).trim()
+      : '';
+    if (!value) {
+      flags.push({
+        label: spec.label,
+        message: spec.message,
+        box: field?.fieldName?.boundingPoly ?? null,
+      });
+    }
+  }
+  return flags;
+}
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',

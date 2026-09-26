@@ -26,6 +26,9 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     documentCheckBlocking,
     setW9CheckBlocking,
     setRsoCheckBlocking,
+    setContractedServicesCheckBlocking,
+    setConflictOfInterestCheckBlocking,
+    setSpecialPayFormCheckBlocking,
     setDocumentNotStored,
     handleExistingVendorChange,
     handleReceiptChange,
@@ -161,6 +164,9 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
             onChange={handleChange}
             onW9CheckBlockingChange={setW9CheckBlocking}
             onRsoCheckBlockingChange={setRsoCheckBlocking}
+            onContractedServicesCheckBlockingChange={setContractedServicesCheckBlocking}
+            onConflictOfInterestCheckBlockingChange={setConflictOfInterestCheckBlocking}
+            onSpecialPayFormCheckBlockingChange={setSpecialPayFormCheckBlocking}
             onNotStoredChange={setDocumentNotStored}
             onExistingVendorChange={handleExistingVendorChange}
           />
@@ -174,6 +180,9 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
             onChange={handleChange}
             onW9CheckBlockingChange={setW9CheckBlocking}
             onRsoCheckBlockingChange={setRsoCheckBlocking}
+            onContractedServicesCheckBlockingChange={setContractedServicesCheckBlocking}
+            onConflictOfInterestCheckBlockingChange={setConflictOfInterestCheckBlocking}
+            onSpecialPayFormCheckBlockingChange={setSpecialPayFormCheckBlocking}
             onNotStoredChange={setDocumentNotStored}
           />
         )}
