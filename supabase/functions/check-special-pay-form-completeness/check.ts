@@ -49,6 +49,20 @@
 // off a box's bottom edge so adjacent boxes stay visually distinct even
 // when both fire at once.
 //
+// Testing the blank template itself then surfaced a real detection bug:
+// Payment Information's flag never fired at all, even with every field
+// genuinely blank. Its four labels sit crammed onto one printed row --
+// "Period of Service Begin Date: Period of Service End Date: Earnings
+// Amount: Hours of Work per Week:", confirmed straight off the blank
+// template's own extracted text -- and PAYMENT_INFO_SPECS's plain
+// sameLine matcher took everything after a label to the end of the line
+// as its "value," which on a blank row is just the *next* label's own
+// text, not a real value. Replaced with isAnyRowCompleteFromFormFields /
+// isAnyRowCompleteFromLines, generalized from Funding's identical
+// crammed-row problem: both stop a label's value at the next known label
+// rather than reading to the end of the line, so an empty cell can't be
+// mistaken for filled just because more labels follow it on the same row.
+//
 // Per Christopher, the minimum fields for this form to be considered
 // complete, and the five flags they should be grouped into -- one per
 // printed section of the form, each with its own box, rather than one
@@ -210,37 +224,6 @@ const EMPLOYEE_INFO_SPECS: RobustFieldSpec[] = [
   },
 ];
 
-const PAYMENT_INFO_SPECS: RobustFieldSpec[] = [
-  {
-    matchFieldName: (n) => n.includes('period of service begin date'),
-    lineLabel: 'period of service begin date',
-    valueLocation: 'sameLine',
-    label: 'Period of Service (Begin)',
-    message: 'Period of Service Begin Date looks blank.',
-  },
-  {
-    matchFieldName: (n) => n.includes('period of service end date'),
-    lineLabel: 'period of service end date',
-    valueLocation: 'sameLine',
-    label: 'Period of Service (End)',
-    message: 'Period of Service End Date looks blank.',
-  },
-  {
-    matchFieldName: (n) => n.includes('earnings amount'),
-    lineLabel: 'earnings amount',
-    valueLocation: 'sameLine',
-    label: 'Earnings Amount',
-    message: 'Earnings Amount looks blank.',
-  },
-  {
-    matchFieldName: (n) => n.includes('hours of work per week'),
-    lineLabel: 'hours of work per week',
-    valueLocation: 'sameLine',
-    label: 'Hours of Work per Week',
-    message: 'Hours of Work per Week looks blank.',
-  },
-];
-
 function checkSection(
   documentText: string,
   formFields: FormField[],
@@ -255,20 +238,27 @@ function checkSection(
   return [{ label: sectionLabel, message: sectionMessage, box }];
 }
 
-// The Funding table's two rows repeat the same five labels.
-const FUNDING_ROW_LABELS = ['fund:', 'fn dept:', 'project:', 'activity:', 'percent:'];
-const FUNDING_ROW_OTHER_LABELS = ['chartfield1:', 'account:'];
-const FUNDING_ROW_Y_BAND = 0.03;
-
+// Shared by Funding (whose table repeats the same five labels across two
+// rows) and Payment Information (whose four labels sit crammed onto one
+// printed row: "Period of Service Begin Date: Period of Service End
+// Date: Earnings Amount: Hours of Work per Week:", confirmed straight off
+// the blank template's own extracted text). Checks whether ANY cluster
+// of matches for `requiredLabels` -- everything within `yBand` of some
+// anchor match -- has every required label filled; for a label that only
+// ever appears once (Payment Information), this naturally degrades to
+// "is the one row complete."
+//
 // Primary path, confirmed against a real filled example: each cell pairs
 // as its own formField (name "Fund:", value "731", etc), all five in a
 // row landing within a few thousandths of each other in y. Clusters every
 // formField whose name matches a required label by y-proximity to each
-// "anchor" match, and requires all five labels to have a non-empty match
-// in that same cluster.
-function isAnyFundingRowCompleteFromFormFields(
+// "anchor" match, and requires all required labels to have a non-empty
+// match in that same cluster.
+function isAnyRowCompleteFromFormFields(
   documentText: string,
   formFields: FormField[],
+  requiredLabels: string[],
+  yBand: number,
 ): boolean {
   const matches = formFields
     .map((f) => ({
@@ -280,48 +270,57 @@ function isAnyFundingRowCompleteFromFormFields(
     }))
     .filter(
       (f): f is { name: string; value: string; y: number } =>
-        FUNDING_ROW_LABELS.includes(f.name) && f.y !== undefined,
+        requiredLabels.includes(f.name) && f.y !== undefined,
     );
 
   return matches.some(
     (anchor) =>
       anchor.value.length > 0 &&
-      FUNDING_ROW_LABELS.every((label) =>
+      requiredLabels.every((label) =>
         matches.some(
           (m) =>
-            m.name === label &&
-            m.value.length > 0 &&
-            Math.abs(m.y - anchor.y) <= FUNDING_ROW_Y_BAND,
+            m.name === label && m.value.length > 0 && Math.abs(m.y - anchor.y) <= yBand,
         ),
       ),
   );
 }
 
-// Fallback for a scanned/handwritten copy of this form, where a row might
-// not pair into formFields at all -- rather than assume whether Document
-// AI prints a whole row as one OCR'd line or as several separate ones (no
-// real sample of that case to check against), this combines every line
-// within a generous band of each "Fund:" line's own vertical position
-// into one text blob, then looks for each required label inside that blob
-// and takes the text between it and whichever label (in this row or the
-// ones this form doesn't require -- Chartfield1 and Account) comes next
-// as that label's value. Works whether the row is one combined printed
-// line or several close ones.
-function isAnyFundingRowCompleteFromLines(documentText: string, lines: Line[]): boolean {
-  const fundLines = lines.filter((l) =>
-    /\bfund:/.test(
+// Fallback for a scanned/handwritten copy of this form, or a formField
+// that pairs a label with adjacent label text rather than a real value
+// (both confirmed possible -- see this file's header comment) -- rather
+// than assume whether Document AI prints a row as one OCR'd line or as
+// several separate ones, this combines every line within a generous band
+// of the anchor label's own line's vertical position into one text blob,
+// then looks for each required label inside that blob and takes the text
+// between it and whichever label (in this row, or `otherLabels`, present
+// on the page but not required -- Funding's Chartfield1/Account) comes
+// next as that label's value. Works whether the row is one combined
+// printed line or several close ones, and specifically guards against a
+// label's own value being misread as the *next* label's leftover text by
+// stopping at the next known label rather than reading to the end of the
+// line.
+function isAnyRowCompleteFromLines(
+  documentText: string,
+  lines: Line[],
+  anchorLabel: string,
+  requiredLabels: string[],
+  otherLabels: string[],
+  yBand: number,
+): boolean {
+  const anchorLines = lines.filter((l) =>
+    new RegExp(`\\b${anchorLabel}`).test(
       normalizeHomoglyphs(extractText(documentText, l.layout?.textAnchor).toLowerCase()),
     ),
   );
 
-  return fundLines.some((fundLine) => {
-    const y = centerOf(fundLine.layout?.boundingPoly)?.y;
+  return anchorLines.some((anchorLine) => {
+    const y = centerOf(anchorLine.layout?.boundingPoly)?.y;
     if (y === undefined) return false;
 
     const rowText = lines
       .filter((l) => {
         const ly = centerOf(l.layout?.boundingPoly)?.y;
-        return ly !== undefined && Math.abs(ly - y) <= FUNDING_ROW_Y_BAND;
+        return ly !== undefined && Math.abs(ly - y) <= yBand;
       })
       .map((l) =>
         normalizeHomoglyphs(
@@ -330,8 +329,8 @@ function isAnyFundingRowCompleteFromLines(documentText: string, lines: Line[]): 
       )
       .join(' ');
 
-    const allLabels = [...FUNDING_ROW_LABELS, ...FUNDING_ROW_OTHER_LABELS];
-    return FUNDING_ROW_LABELS.every((label) => {
+    const allLabels = [...requiredLabels, ...otherLabels];
+    return requiredLabels.every((label) => {
       const start = rowText.indexOf(label);
       if (start === -1) return false;
       const afterStart = start + label.length;
@@ -345,14 +344,61 @@ function isAnyFundingRowCompleteFromLines(documentText: string, lines: Line[]): 
   });
 }
 
+const FUNDING_ROW_LABELS = ['fund:', 'fn dept:', 'project:', 'activity:', 'percent:'];
+const FUNDING_ROW_OTHER_LABELS = ['chartfield1:', 'account:'];
+const FUNDING_ROW_Y_BAND = 0.03;
+
 function isAnyFundingRowComplete(
   documentText: string,
   formFields: FormField[],
   lines: Line[],
 ): boolean {
   return (
-    isAnyFundingRowCompleteFromFormFields(documentText, formFields) ||
-    isAnyFundingRowCompleteFromLines(documentText, lines)
+    isAnyRowCompleteFromFormFields(
+      documentText,
+      formFields,
+      FUNDING_ROW_LABELS,
+      FUNDING_ROW_Y_BAND,
+    ) ||
+    isAnyRowCompleteFromLines(
+      documentText,
+      lines,
+      'fund:',
+      FUNDING_ROW_LABELS,
+      FUNDING_ROW_OTHER_LABELS,
+      FUNDING_ROW_Y_BAND,
+    )
+  );
+}
+
+const PAYMENT_INFO_LABELS = [
+  'period of service begin date:',
+  'period of service end date:',
+  'earnings amount:',
+  'hours of work per week:',
+];
+const PAYMENT_INFO_ROW_Y_BAND = 0.03;
+
+function isPaymentInfoRowComplete(
+  documentText: string,
+  formFields: FormField[],
+  lines: Line[],
+): boolean {
+  return (
+    isAnyRowCompleteFromFormFields(
+      documentText,
+      formFields,
+      PAYMENT_INFO_LABELS,
+      PAYMENT_INFO_ROW_Y_BAND,
+    ) ||
+    isAnyRowCompleteFromLines(
+      documentText,
+      lines,
+      'period of service begin date:',
+      PAYMENT_INFO_LABELS,
+      [],
+      PAYMENT_INFO_ROW_Y_BAND,
+    )
   );
 }
 
@@ -485,16 +531,15 @@ export function checkSpecialPayForm(
       'Employee Information',
       'Employee Information looks incomplete.',
     ),
-    ...checkSection(
-      documentText,
-      formFields,
-      lines,
-      PAYMENT_INFO_SPECS,
-      sectionBoxes.paymentInformation,
-      'Payment Information',
-      'Payment Information looks incomplete.',
-    ),
   ];
+
+  if (!isPaymentInfoRowComplete(documentText, formFields, lines)) {
+    flags.push({
+      label: 'Payment Information',
+      message: 'Payment Information looks incomplete.',
+      box: sectionBoxes.paymentInformation,
+    });
+  }
 
   if (!isAnyFundingRowComplete(documentText, formFields, lines)) {
     flags.push({

@@ -207,6 +207,65 @@ Deno.test(
   },
 );
 
+// Regression coverage for the real bug: the blank template's own text has
+// all four Payment Information labels crammed onto one printed row with
+// nothing filled in -- an earlier version's plain sameLine matcher read
+// each blank label's "value" as the next label's own leftover text (e.g.
+// Begin Date's "value" became "Period of Service End Date: Earnings
+// Amount: Hours of Work per Week:", a non-empty string), so the section
+// never flagged even though every field was genuinely blank.
+Deno.test(
+  'checkSpecialPayForm - a fully blank Payment Information row crammed onto one line is flagged',
+  () => {
+    const doc = new FixtureDoc();
+    const lines = [
+      doc.line('Employee Information', boxFrom(0.05, 0.3, 0.08, 0.09)),
+      doc.line('Payment Information', boxFrom(0.05, 0.3, 0.16, 0.17)),
+      doc.line(
+        'Period of Service Begin Date: Period of Service End Date: Earnings Amount: Hours of Work per Week:',
+        boxFrom(0.05, 0.9, 0.19, 0.2),
+      ),
+      doc.line('Funding', boxFrom(0.05, 0.3, 0.24, 0.25)),
+      doc.line('Nature of Service', boxFrom(0.05, 0.3, 0.32, 0.33)),
+      doc.line('Employee Certification', boxFrom(0.05, 0.3, 0.5, 0.51)),
+      doc.line('Approvals', boxFrom(0.05, 0.3, 0.6, 0.61)),
+    ];
+    const flags = checkSpecialPayForm(doc.text, [], lines, []);
+    assertEquals(
+      flags.some((f) => f.label === 'Payment Information'),
+      true,
+    );
+  },
+);
+
+// Same crammed-onto-one-line row, but genuinely filled in -- each value
+// should be recognized as sitting between its own label and the next one,
+// not swallowed by (or swallowing) a neighboring label. Only Employee
+// Information's formFields are kept (Payment Information's are dropped
+// entirely), so this is recognized via the line-scan path specifically,
+// not by accident via formFields still being present.
+Deno.test(
+  'checkSpecialPayForm - a filled Payment Information row crammed onto one line is recognized as complete',
+  () => {
+    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    const employeeInfoOnlyFormFields = formFields.slice(0, 5);
+    const crammedLine = doc.line(
+      'Period of Service Begin Date: 1/1/2026 Period of Service End Date: 1/14/2026 Earnings Amount: $500 Hours of Work per Week: 10',
+      boxFrom(0.05, 0.9, 0.19, 0.2),
+    );
+    const linesWithCrammedRow = [...lines, crammedLine];
+    assertEquals(
+      checkSpecialPayForm(
+        doc.text,
+        employeeInfoOnlyFormFields,
+        linesWithCrammedRow,
+        visualElements,
+      ),
+      [],
+    );
+  },
+);
+
 Deno.test('checkSpecialPayForm - field name matching is case-insensitive', () => {
   const { doc, formFields, lines, visualElements } = fullyFilledDoc();
   formFields[0] = doc.field('UNIVERSITY ID NUMBER:', '1234567', ARBITRARY_BOX);

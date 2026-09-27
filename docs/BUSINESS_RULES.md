@@ -141,6 +141,17 @@ HEADING_BOX_PADDING`), so two adjacent flagged sections touched with no visible 
 `SECTION_BOX_GAP` now shaves a little extra off a box's bottom edge so adjacent sections stay visually
 distinct even when both fire at once.
 
+Testing the blank template itself then surfaced a real detection bug: Payment Information's flag never
+fired at all, even with every field genuinely blank. Its four labels sit crammed onto one printed row
+("Period of Service Begin Date: Period of Service End Date: Earnings Amount: Hours of Work per
+Week:", confirmed straight off the blank template's own extracted text), and the original per-field
+`RobustFieldSpec`s' plain `sameLine` matcher took everything after a label to the end of the line as
+its "value" -- on a blank row, that's just the next label's own text, not a real value. Fixed by
+generalizing Funding's row-parsing helpers (`isAnyRowCompleteFromFormFields` /
+`isAnyRowCompleteFromLines`) to take a label list, and using them for Payment Information too: both
+stop a label's value at the next known label rather than reading to the end of the line, so an empty
+cell can't be mistaken for filled just because more labels follow it on the same row.
+
 Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
 one of these newer three forms ever looks wrong on a real upload:
 
