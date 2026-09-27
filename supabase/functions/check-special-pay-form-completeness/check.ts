@@ -3,90 +3,45 @@
 // fixtures instead of only ever being exercised by a real, billed Document
 // AI call.
 //
-// A real filled example (Christopher, September 2026) confirmed the boxes
-// need to be computed from the page's own printed section headings rather
-// than fixed y-fractions: that upload's Payment Information has an extra
-// "Do you anticipate submitting another Special Pay request..." Yes/No
-// question not present on the blank template this was first built
-// against, which shifts every section below it down and made fixed
-// fractions land on the wrong section entirely (Funding's box landing over
-// Payment Information, etc). computeSectionBoxes below finds each
-// section's own heading line and the next section's, and boxes the space
-// between them -- self-correcting for a page that's laid out a bit
-// differently than expected, with a fixed-fraction fallback
-// (FALLBACK_SECTION_BOXES) only for the rare case a heading can't be found
-// at all.
+// Section boxes (computeSectionBoxes) are computed from each section's own
+// printed heading position rather than a fixed y-fraction -- confirmed
+// necessary since a real form revision had an extra Yes/No question in
+// Payment Information that a fixed guess didn't account for, throwing off
+// every box below it. FALLBACK_SECTION_BOXES is only used when a heading
+// can't be found at all.
 //
-// That same real upload -- a genuinely fillable PDF, filled in via its own
-// form fields rather than scanned/handwritten -- also flagged Funding and
-// Employee Certification despite both being filled in. Its actual
-// Document AI response (logged live) showed why: every Funding cell
-// (Fund, FN Dept, Project, Activity, Percent) and both "Employee's
-// Signature:" fields are cleanly paired in formFields with real values
-// (a signature even OCRs as garbled text -- "The be", "There" -- rather
-// than nothing, since Document AI attempts to read cursive handwriting as
-// text). isAnyFundingRowComplete and countFilledEmployeeSignatures
-// originally only scanned raw OCR lines, on the assumption (never
-// confirmed) that a printed row wouldn't pair into formFields the way
-// Contracted Services' Name and Address didn't -- wrong for this
-// document. Both now check formFields first, the same
-// formFields-then-line-scan-fallback order every other field on this page
-// already uses via findLabeledFieldStatuses, falling back to the original
-// line-scan logic only when formFields doesn't have these paired at all
-// (a scanned/handwritten copy of this form, say). Nature of Service picked
-// up the same treatment for the same reason, even though it wasn't
-// independently confirmed broken -- a checked box came through as a
-// formField value ("Honorarium (106243)" paired with "☑"), which its
-// original visualElements/line-glyph-only search would have missed
-// entirely if that had been the checkbox's only representation.
+// Funding, Nature of Service, and Employee Certification each check
+// formFields first and fall back to a raw-line scan, the same order
+// findLabeledFieldStatuses uses elsewhere on this page. Confirmed
+// necessary on a real fillable-PDF upload: every Funding cell and both
+// "Employee's Signature:" fields pair cleanly into formFields (a
+// signature even OCRs as garbled but non-empty text, e.g. "The be"), and
+// a checked Nature of Service box came through as a formField value
+// ("Honorarium (106243)" paired with "☑") rather than its own line.
 //
-// After that fix, a real upload with both Employee Information and
-// Payment Information genuinely incomplete showed their two boxes reading
-// as one merged rectangle -- computeSectionBoxes had a box's bottom edge
-// and the next section's top edge landing on the exact same y (both
-// `nextHeadingY - HEADING_BOX_PADDING`), so two adjacent flagged sections
-// touched with no visible gap. SECTION_BOX_GAP now shaves a little extra
-// off a box's bottom edge so adjacent boxes stay visually distinct even
-// when both fire at once.
+// Funding and Payment Information both have several labels crammed onto
+// one printed row ("Fund: FN Dept: ... Percent:" / "Period of Service
+// Begin Date: ... Hours of Work per Week:", confirmed off the real
+// template's own text) -- isAnyRowCompleteFromFormFields/
+// isAnyRowCompleteFromLines read a label's value only up to the *next*
+// known label rather than to the end of the line, so an empty cell can't
+// be mistaken for filled just because more labels follow it on the same
+// row.
 //
-// Testing the blank template itself then surfaced a real detection bug:
-// Payment Information's flag never fired at all, even with every field
-// genuinely blank. Its four labels sit crammed onto one printed row --
-// "Period of Service Begin Date: Period of Service End Date: Earnings
-// Amount: Hours of Work per Week:", confirmed straight off the blank
-// template's own extracted text -- and PAYMENT_INFO_SPECS's plain
-// sameLine matcher took everything after a label to the end of the line
-// as its "value," which on a blank row is just the *next* label's own
-// text, not a real value. Replaced with isAnyRowCompleteFromFormFields /
-// isAnyRowCompleteFromLines, generalized from Funding's identical
-// crammed-row problem: both stop a label's value at the next known label
-// rather than reading to the end of the line, so an empty cell can't be
-// mistaken for filled just because more labels follow it on the same row.
-//
-// Per Christopher, the minimum fields for this form to be considered
-// complete, and the five flags they should be grouped into -- one per
-// printed section of the form, each with its own box, rather than one
-// combined box spanning several sections (an earlier version of this
-// grouped Employee Information through Nature of Service into a single
-// flag; Christopher's reference image draws one continuous outline across
-// those sections, but the intent is five independent flags so that, say,
-// a missing Funding row only boxes Funding, not the whole region):
+// Per Christopher, the five required sections, each its own independent
+// flag with its own box rather than one box spanning several sections:
 //   - Employee Information: University ID Number, HR Department ID,
 //     Department Name, Last Name, First Name.
 //   - Payment Information: Period of Service Begin/End Date, Earnings
 //     Amount, Hours of Work per Week.
 //   - Funding: at least one row (of the table's two) where Fund, FN Dept,
 //     Project, Activity, and Percent are all filled in -- Chartfield1 and
-//     Account are not required (Account is pre-printed as 60111 on the
-//     template, not a user-entered field).
-//   - Nature of Service: at least one of its ~17 job-title checkboxes
-//     selected -- doesn't matter which.
-//   - Employee Certification: two separate "Employee's Signature:" lines
-//     filled in (one for the grant-account certification, one for the
-//     DCFS acknowledgement immediately below it) -- there's no other
-//     distinguishing label text between the two, so this counts how many
-//     of the (however many are found) have same-line content rather than
-//     trying to match each individually.
+//     Account are not required (Account is pre-printed as 60111).
+//   - Nature of Service: at least one of its ~17 job-title checkboxes.
+//   - Employee Certification: both "Employee's Signature:" lines filled
+//     in -- identical label text with nothing else to tell them apart, so
+//     this counts distinct filled locations rather than matching each one
+//     individually.
 import {
   Box,
   boxFrom,
@@ -224,36 +179,17 @@ const EMPLOYEE_INFO_SPECS: RobustFieldSpec[] = [
   },
 ];
 
-function checkSection(
-  documentText: string,
-  formFields: FormField[],
-  lines: Line[],
-  specs: RobustFieldSpec[],
-  box: Box,
-  sectionLabel: string,
-  sectionMessage: string,
-): PresenceFlag[] {
-  const statuses = findLabeledFieldStatuses(documentText, formFields, lines, specs);
-  if (statuses.every((s) => s.filled)) return [];
-  return [{ label: sectionLabel, message: sectionMessage, box }];
-}
-
-// Shared by Funding (whose table repeats the same five labels across two
-// rows) and Payment Information (whose four labels sit crammed onto one
-// printed row: "Period of Service Begin Date: Period of Service End
-// Date: Earnings Amount: Hours of Work per Week:", confirmed straight off
-// the blank template's own extracted text). Checks whether ANY cluster
-// of matches for `requiredLabels` -- everything within `yBand` of some
-// anchor match -- has every required label filled; for a label that only
-// ever appears once (Payment Information), this naturally degrades to
-// "is the one row complete."
+// Shared by Funding (two repeated rows) and Payment Information (one row).
+// Checks whether ANY cluster of matches for `requiredLabels` -- everything
+// within `yBand` of some anchor match -- has every required label filled;
+// for a label that only ever appears once (Payment Information), this
+// naturally degrades to "is the one row complete."
 //
-// Primary path, confirmed against a real filled example: each cell pairs
-// as its own formField (name "Fund:", value "731", etc), all five in a
-// row landing within a few thousandths of each other in y. Clusters every
-// formField whose name matches a required label by y-proximity to each
-// "anchor" match, and requires all required labels to have a non-empty
-// match in that same cluster.
+// Primary path: each cell pairs as its own formField (confirmed on a real
+// upload -- "Fund:" -> "731", etc, all landing within a few thousandths of
+// each other in y). Clusters formFields matching a required label by
+// y-proximity to each candidate anchor, and requires every label to have a
+// non-empty match in that same cluster.
 function isAnyRowCompleteFromFormFields(
   documentText: string,
   formFields: FormField[],
@@ -285,20 +221,13 @@ function isAnyRowCompleteFromFormFields(
   );
 }
 
-// Fallback for a scanned/handwritten copy of this form, or a formField
-// that pairs a label with adjacent label text rather than a real value
-// (both confirmed possible -- see this file's header comment) -- rather
-// than assume whether Document AI prints a row as one OCR'd line or as
-// several separate ones, this combines every line within a generous band
-// of the anchor label's own line's vertical position into one text blob,
-// then looks for each required label inside that blob and takes the text
-// between it and whichever label (in this row, or `otherLabels`, present
-// on the page but not required -- Funding's Chartfield1/Account) comes
-// next as that label's value. Works whether the row is one combined
-// printed line or several close ones, and specifically guards against a
-// label's own value being misread as the *next* label's leftover text by
-// stopping at the next known label rather than reading to the end of the
-// line.
+// Fallback for a scanned/handwritten copy, or a formField that pairs a
+// label with adjacent label text instead of a real value: combines every
+// line within `yBand` of the anchor label's line into one text blob, then
+// slices out each required label's value up to whichever label (in this
+// row, or `otherLabels` -- present on the page but not required, e.g.
+// Funding's Chartfield1/Account) comes next, rather than reading to the
+// end of the line.
 function isAnyRowCompleteFromLines(
   documentText: string,
   lines: Line[],
@@ -520,18 +449,21 @@ export function checkSpecialPayForm(
   visualElements: VisualElement[],
 ): PresenceFlag[] {
   const sectionBoxes = computeSectionBoxes(documentText, lines);
+  const flags: PresenceFlag[] = [];
 
-  const flags: PresenceFlag[] = [
-    ...checkSection(
-      documentText,
-      formFields,
-      lines,
-      EMPLOYEE_INFO_SPECS,
-      sectionBoxes.employeeInformation,
-      'Employee Information',
-      'Employee Information looks incomplete.',
-    ),
-  ];
+  const employeeInfoStatuses = findLabeledFieldStatuses(
+    documentText,
+    formFields,
+    lines,
+    EMPLOYEE_INFO_SPECS,
+  );
+  if (employeeInfoStatuses.some((s) => !s.filled)) {
+    flags.push({
+      label: 'Employee Information',
+      message: 'Employee Information looks incomplete.',
+      box: sectionBoxes.employeeInformation,
+    });
+  }
 
   if (!isPaymentInfoRowComplete(documentText, formFields, lines)) {
     flags.push({
