@@ -73,15 +73,12 @@ export const TAX_CLASSIFICATION_CHECKBOXES = [
 ];
 const CHECKBOX_MATCH_TOLERANCE = 0.015;
 
-// The SSN/EIN entry ("Part I -- Taxpayer Identification Number") is laid
-// out as two rows of individual digit boxes, not a single label+value
-// blob the way every other field on this form is -- so it never shows up
-// in formFields at all. Detected by checking whether Document AI found
-// ANY text tokens positioned inside the two digit-box rows, using only
-// their positions -- the actual matched characters are never read or
-// returned, since an SSN is far more sensitive than anything else this
-// check touches. Both boxes are checked as a single region: the W-9 only
-// requires ONE of SSN/EIN filled in, not both.
+// The SSN/EIN entry is laid out as two rows of individual digit boxes, not
+// a label+value blob like every other field, so it never shows up in
+// formFields. Detected by token *position* only inside the two digit-box
+// rows -- the matched characters are never read back, since an SSN is far
+// more sensitive than anything else this check touches. Either box alone
+// satisfies the requirement (the W-9 needs one of SSN/EIN, not both).
 export const SSN_ROW = { yMin: 0.464, yMax: 0.503, xMin: 0.68, xMax: 0.96 };
 export const EIN_ROW = { yMin: 0.526, yMax: 0.562, xMin: 0.68, xMax: 0.96 };
 
@@ -112,10 +109,8 @@ function checkTinPresent(tokens: Token[]): Flag[] {
   ];
 }
 
-// Checks whether any of line 3a's seven tax-classification checkboxes is
-// marked, by matching Document AI's raw checkbox detections against each
-// box's known position on the form -- see the header comment for why this
-// uses visualElements rather than formFields' pairing.
+// See the header comment for why this uses visualElements rather than
+// formFields' pairing.
 function checkTaxClassificationChecked(visualElements: VisualElement[]): Flag[] {
   const checkboxes = visualElements.filter((el) => el.type?.includes('checkbox'));
 
@@ -140,9 +135,8 @@ function checkTaxClassificationChecked(visualElements: VisualElement[]): Flag[] 
   ];
 }
 
-// A simple "is there any text here at all" check, for the fields where
-// presence alone is the whole rule (name, address, signature, etc) --
-// distinct from the date field below, which also validates what's there.
+// Presence-only check (name, address, signature, etc) -- unlike the date
+// field below, which also validates its content.
 function checkFieldPresent(
   documentText: string,
   formFields: FormField[],

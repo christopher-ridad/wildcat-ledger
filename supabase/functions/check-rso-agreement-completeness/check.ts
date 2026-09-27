@@ -8,26 +8,21 @@
 // terms text with nothing to fill in, so it's skipped entirely.
 //
 // Section 4 is Yes/No radio-style rows. Document AI's own checkbox
-// classifier (visualElements) only picks up 4 of the 7 rows' circles
-// reliably (confirmed against both the raw PDF and a high-resolution
-// render during the feasibility spike -- a genuine processor limitation,
-// not a resolution issue) so this never relies on it. Instead this
-// returns each row's calibrated Yes/No circle position, geometrically
-// derived from the row's Yes/No TEXT tokens (which Document AI reads
-// correctly in all seven rows) via an offset formula calibrated against
-// the four rows the classifier does agree with. The client -- which
-// already renders the page to a canvas for the visual preview -- does the
-// actual pixel-darkness read of those circles and reports which rows are
-// unanswered, since Deno has no easy image-decoding story of its own.
+// classifier only reliably picks up 4 of 7 rows (confirmed against both
+// the raw PDF and a high-res render -- a processor limitation, not
+// resolution), so this never relies on it. Instead it returns each row's
+// circle position, derived geometrically from the Yes/No text tokens
+// (read correctly in all seven rows) via an offset calibrated against the
+// four rows the classifier agrees with. The client -- already rendering
+// the page to canvas for the preview -- reads pixel darkness there, since
+// Deno has no easy image-decoding story.
 //
 // Row b ("reserved on-campus space") has a conditional: if answered Yes,
-// the subsection directly below it (reservation number, space reserved,
-// event contact person) must also be filled in. That subsection's label
-// text is fixed/known (same static form every time), so "filled in" is
-// detected the same way as the W-9's TIN check -- by comparing all text
-// found in that region against the known label text, never reading back
-// anything sensitive (none of this is sensitive, but the technique
-// generalizes and needed no page-specific redesign to reuse).
+// the subsection below it (reservation number, space reserved, event
+// contact) must also be filled in. Its label text is fixed, so "filled
+// in" is detected the same way as the W-9's TIN check -- comparing text
+// in that region against the known label, without reading back anything
+// sensitive.
 import {
   type Box,
   boxFrom,

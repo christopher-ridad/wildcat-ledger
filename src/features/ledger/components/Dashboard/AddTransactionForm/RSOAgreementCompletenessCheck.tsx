@@ -112,20 +112,16 @@ interface RSOAgreementCompletenessCheckProps {
 }
 
 // Renders both pages of the uploaded RSO Agreement with red boxes over
-// anything the check-rso-agreement-completeness Edge Function flags as
-// possibly incomplete. Unlike the W-9 check, flags here are section-level
-// ("Section 1 not filled out") rather than per-field, matching the
-// requested UX.
+// anything the check-rso-agreement-completeness Edge Function flags.
+// Unlike the W-9 check, flags are section-level ("Section 1 not filled
+// out") rather than per-field.
 //
-// Section 4's seven Yes/No rows are a special case: Document AI's own
-// checkbox detection only reliably covers 4 of the 7 rows (a confirmed
-// processor limitation, not a resolution issue -- see the Edge Function's
-// header comment), so the server instead returns each row's calibrated
-// circle position and this component reads the actual pixel darkness of
-// each one via canvas.getImageData() to determine which side (if either)
-// is filled in. Row b's conditional subsection is checked the same way
-// the server checks everything else non-visual: text presence in a known
-// region.
+// Section 4's seven Yes/No rows are a special case: the server returns
+// each row's calibrated circle position (see its own header comment for
+// why), and this component reads the actual pixel darkness of each one
+// via canvas.getImageData() to determine which side is filled in. Row b's
+// conditional subsection is checked server-side the same way as
+// everything else non-visual: text presence in a known region.
 export const RSOAgreementCompletenessCheck = ({
   file,
   onBlockingChange,
