@@ -53,96 +53,110 @@ Deno.test('checkSpecialPayForm - fully filled document has no flags', () => {
 });
 
 Deno.test(
-  'checkSpecialPayForm - blank University ID flags Employee & Payment Information',
+  'checkSpecialPayForm - blank University ID flags Employee Information, not Payment Information',
   () => {
     const { doc, formFields, lines, visualElements } = fullyFilledDoc();
     formFields[0] = doc.field('University ID Number:', '', ARBITRARY_BOX);
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(flags.length, 1);
-    assertEquals(flags[0].label, 'Employee & Payment Information');
-    assertEquals(flags[0].box, SECTION_BOXES.employeeAndPaymentInformation);
+    assertEquals(flags[0].label, 'Employee Information');
+    assertEquals(flags[0].box, SECTION_BOXES.employeeInformation);
   },
 );
 
-Deno.test('checkSpecialPayForm - blank HR Department ID is flagged', () => {
-  const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-  formFields[1] = doc.field('HR Department ID:', '', ARBITRARY_BOX);
-  const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-  assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
-    true,
-  );
-});
+Deno.test(
+  'checkSpecialPayForm - blank HR Department ID flags Employee Information',
+  () => {
+    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    formFields[1] = doc.field('HR Department ID:', '', ARBITRARY_BOX);
+    const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
+    assertEquals(
+      flags.some((f) => f.label === 'Employee Information'),
+      true,
+    );
+  },
+);
 
-Deno.test('checkSpecialPayForm - blank Department Name is flagged', () => {
-  const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-  formFields[2] = doc.field('Department Name:', '', ARBITRARY_BOX);
-  const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-  assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
-    true,
-  );
-});
+Deno.test(
+  'checkSpecialPayForm - blank Department Name flags Employee Information',
+  () => {
+    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    formFields[2] = doc.field('Department Name:', '', ARBITRARY_BOX);
+    const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
+    assertEquals(
+      flags.some((f) => f.label === 'Employee Information'),
+      true,
+    );
+  },
+);
 
-Deno.test('checkSpecialPayForm - blank Last Name is flagged', () => {
+Deno.test('checkSpecialPayForm - blank Last Name flags Employee Information', () => {
   const { doc, formFields, lines, visualElements } = fullyFilledDoc();
   formFields[3] = doc.field('Last Name:', '', ARBITRARY_BOX);
   const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
   assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
+    flags.some((f) => f.label === 'Employee Information'),
     true,
   );
 });
 
-Deno.test('checkSpecialPayForm - blank First Name is flagged', () => {
+Deno.test('checkSpecialPayForm - blank First Name flags Employee Information', () => {
   const { doc, formFields, lines, visualElements } = fullyFilledDoc();
   formFields[4] = doc.field('First Name:', '', ARBITRARY_BOX);
   const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
   assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
+    flags.some((f) => f.label === 'Employee Information'),
     true,
   );
 });
 
-Deno.test('checkSpecialPayForm - blank Period of Service Begin Date is flagged', () => {
-  const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-  formFields[5] = doc.field('Period of Service Begin Date:', '', ARBITRARY_BOX);
-  const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-  assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
-    true,
-  );
-});
+Deno.test(
+  'checkSpecialPayForm - blank Period of Service Begin Date flags Payment Information, not Employee Information',
+  () => {
+    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    formFields[5] = doc.field('Period of Service Begin Date:', '', ARBITRARY_BOX);
+    const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
+    assertEquals(flags.length, 1);
+    assertEquals(flags[0].label, 'Payment Information');
+    assertEquals(flags[0].box, SECTION_BOXES.paymentInformation);
+  },
+);
 
-Deno.test('checkSpecialPayForm - blank Period of Service End Date is flagged', () => {
-  const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-  formFields[6] = doc.field('Period of Service End Date:', '', ARBITRARY_BOX);
-  const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-  assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
-    true,
-  );
-});
+Deno.test(
+  'checkSpecialPayForm - blank Period of Service End Date flags Payment Information',
+  () => {
+    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    formFields[6] = doc.field('Period of Service End Date:', '', ARBITRARY_BOX);
+    const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
+    assertEquals(
+      flags.some((f) => f.label === 'Payment Information'),
+      true,
+    );
+  },
+);
 
-Deno.test('checkSpecialPayForm - blank Earnings Amount is flagged', () => {
+Deno.test('checkSpecialPayForm - blank Earnings Amount flags Payment Information', () => {
   const { doc, formFields, lines, visualElements } = fullyFilledDoc();
   formFields[7] = doc.field('Earnings Amount:', '', ARBITRARY_BOX);
   const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
   assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
+    flags.some((f) => f.label === 'Payment Information'),
     true,
   );
 });
 
-Deno.test('checkSpecialPayForm - blank Hours of Work per Week is flagged', () => {
-  const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-  formFields[8] = doc.field('Hours of Work per Week:', '', ARBITRARY_BOX);
-  const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-  assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
-    true,
-  );
-});
+Deno.test(
+  'checkSpecialPayForm - blank Hours of Work per Week flags Payment Information',
+  () => {
+    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    formFields[8] = doc.field('Hours of Work per Week:', '', ARBITRARY_BOX);
+    const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
+    assertEquals(
+      flags.some((f) => f.label === 'Payment Information'),
+      true,
+    );
+  },
+);
 
 Deno.test('checkSpecialPayForm - field name matching is case-insensitive', () => {
   const { doc, formFields, lines, visualElements } = fullyFilledDoc();
@@ -156,7 +170,11 @@ Deno.test(
     const { doc, lines, visualElements } = fullyFilledDoc();
     const flags = checkSpecialPayForm(doc.text, [], lines, visualElements);
     assertEquals(
-      flags.some((f) => f.label === 'Employee & Payment Information'),
+      flags.some((f) => f.label === 'Employee Information'),
+      true,
+    );
+    assertEquals(
+      flags.some((f) => f.label === 'Payment Information'),
       true,
     );
   },
@@ -164,17 +182,16 @@ Deno.test(
 
 // Funding: no row has all five required cells filled -- Percent is blank
 // on the only row present.
-Deno.test('checkSpecialPayForm - incomplete funding row flags the section', () => {
+Deno.test('checkSpecialPayForm - incomplete funding row flags Funding only', () => {
   const { doc, formFields, lines, visualElements } = fullyFilledDoc();
   lines[0] = doc.line(
     'Fund: 100 FN Dept: 5678 Project: A123 Activity: 1 Chartfield1:  Account: 60111 Percent: ',
     boxFrom(0.05, 0.9, FUND_ROW_Y, FUND_ROW_Y + 0.01),
   );
   const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-  assertEquals(
-    flags.some((f) => f.label === 'Employee & Payment Information'),
-    true,
-  );
+  assertEquals(flags.length, 1);
+  assertEquals(flags[0].label, 'Funding');
+  assertEquals(flags[0].box, SECTION_BOXES.funding);
 });
 
 // A second, blank funding row alongside a fully filled first row is still
@@ -214,7 +231,7 @@ Deno.test(
 );
 
 Deno.test(
-  'checkSpecialPayForm - no checkmark glyph anywhere in Nature of Service flags the section',
+  'checkSpecialPayForm - no checkmark glyph anywhere in Nature of Service flags Nature of Service only',
   () => {
     const { doc, formFields, lines, visualElements } = fullyFilledDoc();
     const withoutCheckmark = lines.filter((l) => l !== lines[2]);
@@ -224,10 +241,9 @@ Deno.test(
       withoutCheckmark,
       visualElements,
     );
-    assertEquals(
-      flags.some((f) => f.label === 'Employee & Payment Information'),
-      true,
-    );
+    assertEquals(flags.length, 1);
+    assertEquals(flags[0].label, 'Nature of Service');
+    assertEquals(flags[0].box, SECTION_BOXES.natureOfService);
   },
 );
 
@@ -254,14 +270,14 @@ Deno.test(
     lines[2] = doc.line('☑', boxFrom(0.55, 0.6, 0.9, 0.91));
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(
-      flags.some((f) => f.label === 'Employee & Payment Information'),
+      flags.some((f) => f.label === 'Nature of Service'),
       true,
     );
   },
 );
 
 Deno.test(
-  "checkSpecialPayForm - only one filled Employee's Signature line flags Employee Certification",
+  "checkSpecialPayForm - only one filled Employee's Signature line flags Employee Certification only",
   () => {
     const { doc, formFields, lines, visualElements } = fullyFilledDoc();
     lines[5] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59));
@@ -287,16 +303,35 @@ Deno.test(
 );
 
 Deno.test(
-  'checkSpecialPayForm - both sections incomplete produces two separate flags',
+  'checkSpecialPayForm - multiple incomplete sections each produce their own separate flag',
   () => {
     const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    formFields[0] = doc.field('University ID Number:', '', ARBITRARY_BOX);
-    lines[5] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59));
+    formFields[0] = doc.field('University ID Number:', '', ARBITRARY_BOX); // Employee Information
+    formFields[5] = doc.field('Period of Service Begin Date:', '', ARBITRARY_BOX); // Payment Information
+    lines[5] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59)); // Employee Certification
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
-    assertEquals(flags.length, 2);
+    assertEquals(flags.length, 3);
     assertEquals(
       flags.map((f) => f.label).sort(),
-      ['Employee & Payment Information', 'Employee Certification'].sort(),
+      ['Employee Certification', 'Employee Information', 'Payment Information'].sort(),
+    );
+  },
+);
+
+Deno.test(
+  'checkSpecialPayForm - all five sections incomplete produces five separate flags',
+  () => {
+    const doc = new FixtureDoc();
+    const flags = checkSpecialPayForm(doc.text, [], [], []);
+    assertEquals(
+      flags.map((f) => f.label).sort(),
+      [
+        'Employee Certification',
+        'Employee Information',
+        'Funding',
+        'Nature of Service',
+        'Payment Information',
+      ].sort(),
     );
   },
 );

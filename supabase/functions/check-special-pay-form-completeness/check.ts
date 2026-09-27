@@ -8,9 +8,7 @@
 // there is no live test behind any of the choices below yet. Field-name
 // matchers, the funding-row/Nature of Service/signature-count logic, and
 // SECTION_BOXES are all a first-pass best effort read off the blank
-// template PDF plus a reference image Christopher marked up showing which
-// two regions should be flagged (Employee Information through Nature of
-// Service as one box, Employee Certification as a second), the same
+// template PDF plus a reference image Christopher marked up, the same
 // starting point Contracted Services and Conflict of Interest each began
 // from before a real upload corrected several wrong assumptions (see
 // those two check.ts files' own header comments for what changed and
@@ -20,7 +18,13 @@
 // check against.
 //
 // Per Christopher, the minimum fields for this form to be considered
-// complete:
+// complete, and the five flags they should be grouped into -- one per
+// printed section of the form, each with its own box, rather than one
+// combined box spanning several sections (an earlier version of this
+// grouped Employee Information through Nature of Service into a single
+// flag; Christopher's reference image draws one continuous outline across
+// those sections, but the intent is five independent flags so that, say,
+// a missing Funding row only boxes Funding, not the whole region):
 //   - Employee Information: University ID Number, HR Department ID,
 //     Department Name, Last Name, First Name.
 //   - Payment Information: Period of Service Begin/End Date, Earnings
@@ -37,11 +41,6 @@
 //     distinguishing label text between the two, so this counts how many
 //     of the (however many are found) have same-line content rather than
 //     trying to match each individually.
-//
-// Grouped into the same two flags the reference image marks: "Employee &
-// Payment Information" (everything through Nature of Service) and
-// "Employee Certification," the same section-grouping pattern Contracted
-// Services and Conflict of Interest use.
 import {
   Box,
   boxFrom,
@@ -57,14 +56,21 @@ import {
 } from '../_shared/documentAi.ts';
 
 export const SECTION_BOXES: Record<
-  'employeeAndPaymentInformation' | 'employeeCertification',
+  | 'employeeInformation'
+  | 'paymentInformation'
+  | 'funding'
+  | 'natureOfService'
+  | 'employeeCertification',
   Box
 > = {
-  employeeAndPaymentInformation: boxFrom(0.04, 0.97, 0.08, 0.5),
-  employeeCertification: boxFrom(0.04, 0.97, 0.5, 0.62),
+  employeeInformation: boxFrom(0.04, 0.97, 0.08, 0.155),
+  paymentInformation: boxFrom(0.04, 0.97, 0.155, 0.235),
+  funding: boxFrom(0.04, 0.97, 0.235, 0.315),
+  natureOfService: boxFrom(0.04, 0.97, 0.315, 0.5),
+  employeeCertification: boxFrom(0.04, 0.97, 0.5, 0.615),
 };
 
-const EMPLOYEE_PAYMENT_SPECS: RobustFieldSpec[] = [
+const EMPLOYEE_INFO_SPECS: RobustFieldSpec[] = [
   {
     matchFieldName: (n) => n.includes('university id number'),
     lineLabel: 'university id number',
@@ -100,6 +106,9 @@ const EMPLOYEE_PAYMENT_SPECS: RobustFieldSpec[] = [
     label: 'First Name',
     message: 'First Name looks blank.',
   },
+];
+
+const PAYMENT_INFO_SPECS: RobustFieldSpec[] = [
   {
     matchFieldName: (n) => n.includes('period of service begin date'),
     lineLabel: 'period of service begin date',
@@ -129,6 +138,20 @@ const EMPLOYEE_PAYMENT_SPECS: RobustFieldSpec[] = [
     message: 'Hours of Work per Week looks blank.',
   },
 ];
+
+function checkSection(
+  documentText: string,
+  formFields: FormField[],
+  lines: Line[],
+  specs: RobustFieldSpec[],
+  box: Box,
+  sectionLabel: string,
+  sectionMessage: string,
+): PresenceFlag[] {
+  const statuses = findLabeledFieldStatuses(documentText, formFields, lines, specs);
+  if (statuses.every((s) => s.filled)) return [];
+  return [{ label: sectionLabel, message: sectionMessage, box }];
+}
 
 // The Funding table's two rows repeat the same five labels. Rather than
 // assume whether Document AI prints a whole row as one OCR'd line or as
@@ -263,36 +286,50 @@ export function checkSpecialPayForm(
   lines: Line[],
   visualElements: VisualElement[],
 ): PresenceFlag[] {
-  const flags: PresenceFlag[] = [];
+  const flags: PresenceFlag[] = [
+    ...checkSection(
+      documentText,
+      formFields,
+      lines,
+      EMPLOYEE_INFO_SPECS,
+      SECTION_BOXES.employeeInformation,
+      'Employee Information',
+      'Employee Information looks incomplete.',
+    ),
+    ...checkSection(
+      documentText,
+      formFields,
+      lines,
+      PAYMENT_INFO_SPECS,
+      SECTION_BOXES.paymentInformation,
+      'Payment Information',
+      'Payment Information looks incomplete.',
+    ),
+  ];
 
-  const employeePaymentStatuses = findLabeledFieldStatuses(
-    documentText,
-    formFields,
-    lines,
-    EMPLOYEE_PAYMENT_SPECS,
-  );
-  const fundingComplete = isAnyFundingRowComplete(documentText, lines);
-  const natureOfServiceChecked = isAnyNatureOfServiceChecked(
-    documentText,
-    lines,
-    visualElements,
-  );
-  if (
-    employeePaymentStatuses.some((s) => !s.filled) ||
-    !fundingComplete ||
-    !natureOfServiceChecked
-  ) {
+  if (!isAnyFundingRowComplete(documentText, lines)) {
     flags.push({
-      label: 'Employee & Payment Information',
-      message: 'Employee & Payment Information looks incomplete.',
-      box: SECTION_BOXES.employeeAndPaymentInformation,
+      label: 'Funding',
+      message:
+        'Funding looks incomplete -- at least one row needs Fund, FN Dept, Project, Activity, and Percent all filled in.',
+      box: SECTION_BOXES.funding,
+    });
+  }
+
+  if (!isAnyNatureOfServiceChecked(documentText, lines, visualElements)) {
+    flags.push({
+      label: 'Nature of Service',
+      message:
+        'Nature of Service looks incomplete -- select at least one job title checkbox.',
+      box: SECTION_BOXES.natureOfService,
     });
   }
 
   if (countFilledEmployeeSignatures(documentText, lines) < 2) {
     flags.push({
       label: 'Employee Certification',
-      message: 'Employee Certification looks incomplete.',
+      message:
+        "Employee Certification looks incomplete -- both Employee's Signature lines need to be filled in.",
       box: SECTION_BOXES.employeeCertification,
     });
   }
