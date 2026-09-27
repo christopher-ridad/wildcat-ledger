@@ -2,13 +2,24 @@ import { assertEquals } from 'jsr:@std/assert@1';
 
 import { boxFrom } from '../_shared/documentAi.ts';
 import { FixtureDoc } from '../_shared/testFixtures.ts';
-import { checkSpecialPayForm, SECTION_BOXES } from './check.ts';
+import { checkSpecialPayForm, computeSectionBoxes } from './check.ts';
 
 const ARBITRARY_BOX = boxFrom(0, 0.1, 0, 0.1);
-const NATURE_OF_SERVICE_HEADING_Y = 0.4;
-const EMPLOYEE_CERT_HEADING_Y = 0.5;
-const NATURE_OF_SERVICE_BOX = boxFrom(0.55, 0.6, 0.42, 0.43);
-const FUND_ROW_Y = 0.3;
+
+// Section headings, in the order they print on the page -- each section's
+// box is computed from its own heading down to the next one (see
+// computeSectionBoxes in check.ts), so every test needs all six present
+// even when it only cares about one section.
+const HEADING_Y = {
+  employeeInformation: 0.08,
+  paymentInformation: 0.16,
+  funding: 0.24,
+  natureOfService: 0.32,
+  employeeCertification: 0.5,
+  approvals: 0.6,
+};
+const NATURE_OF_SERVICE_BOX = boxFrom(0.55, 0.6, 0.34, 0.35);
+const FUND_ROW_Y = 0.26;
 
 function fullyFilledDoc() {
   const doc = new FixtureDoc();
@@ -23,28 +34,66 @@ function fullyFilledDoc() {
     doc.field('Earnings Amount:', '$500', ARBITRARY_BOX),
     doc.field('Hours of Work per Week:', '10', ARBITRARY_BOX),
   ];
+
+  const headingLine = (heading: keyof typeof HEADING_Y, text: string) =>
+    doc.line(text, boxFrom(0.05, 0.3, HEADING_Y[heading], HEADING_Y[heading] + 0.01));
+
+  const employeeInformationHeading = headingLine(
+    'employeeInformation',
+    'Employee Information',
+  );
+  const paymentInformationHeading = headingLine(
+    'paymentInformation',
+    'Payment Information',
+  );
+  const fundingHeading = headingLine('funding', 'Funding');
+  // Funding row: all five required cells on one combined printed line,
+  // plus the two not required (Chartfield1, Account) -- matches the
+  // template's own single-row layout as best guessed without a real
+  // sample.
+  const fundRow = doc.line(
+    'Fund: 100 FN Dept: 5678 Project: A123 Activity: 1 Chartfield1:  Account: 60111 Percent: 100',
+    boxFrom(0.05, 0.9, FUND_ROW_Y, FUND_ROW_Y + 0.01),
+  );
+  const natureOfServiceHeading = headingLine('natureOfService', 'Nature of Service');
+  const checkmark = doc.line('☑', NATURE_OF_SERVICE_BOX);
+  const employeeCertificationHeading = headingLine(
+    'employeeCertification',
+    'Employee Certification',
+  );
+  const signature1 = doc.line(
+    "Employee's Signature: Jane Doe",
+    boxFrom(0.05, 0.6, 0.52, 0.53),
+  );
+  const signature2 = doc.line(
+    "Employee's Signature: Jane Doe",
+    boxFrom(0.05, 0.6, 0.58, 0.59),
+  );
+  const approvalsHeading = headingLine('approvals', 'Approvals');
+
   const lines = [
-    // Funding row: all five required cells on one combined printed line,
-    // plus the two not required (Chartfield1, Account) -- matches the
-    // template's own single-row layout as best guessed without a real
-    // sample.
-    doc.line(
-      'Fund: 100 FN Dept: 5678 Project: A123 Activity: 1 Chartfield1:  Account: 60111 Percent: 100',
-      boxFrom(0.05, 0.9, FUND_ROW_Y, FUND_ROW_Y + 0.01),
-    ),
-    doc.line(
-      'Nature of Service',
-      boxFrom(0.05, 0.3, NATURE_OF_SERVICE_HEADING_Y, NATURE_OF_SERVICE_HEADING_Y + 0.01),
-    ),
-    doc.line('☑', NATURE_OF_SERVICE_BOX),
-    doc.line(
-      'Employee Certification',
-      boxFrom(0.05, 0.3, EMPLOYEE_CERT_HEADING_Y, EMPLOYEE_CERT_HEADING_Y + 0.01),
-    ),
-    doc.line("Employee's Signature: Jane Doe", boxFrom(0.05, 0.6, 0.52, 0.53)),
-    doc.line("Employee's Signature: Jane Doe", boxFrom(0.05, 0.6, 0.58, 0.59)),
+    employeeInformationHeading,
+    paymentInformationHeading,
+    fundingHeading,
+    fundRow,
+    natureOfServiceHeading,
+    checkmark,
+    employeeCertificationHeading,
+    signature1,
+    signature2,
+    approvalsHeading,
   ];
-  return { doc, formFields, lines, visualElements: [] };
+
+  return {
+    doc,
+    formFields,
+    lines,
+    visualElements: [],
+    fundRow,
+    checkmark,
+    signature1,
+    signature2,
+  };
 }
 
 Deno.test('checkSpecialPayForm - fully filled document has no flags', () => {
@@ -60,7 +109,7 @@ Deno.test(
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(flags.length, 1);
     assertEquals(flags[0].label, 'Employee Information');
-    assertEquals(flags[0].box, SECTION_BOXES.employeeInformation);
+    assertEquals(flags[0].box, computeSectionBoxes(doc.text, lines).employeeInformation);
   },
 );
 
@@ -118,7 +167,7 @@ Deno.test(
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(flags.length, 1);
     assertEquals(flags[0].label, 'Payment Information');
-    assertEquals(flags[0].box, SECTION_BOXES.paymentInformation);
+    assertEquals(flags[0].box, computeSectionBoxes(doc.text, lines).paymentInformation);
   },
 );
 
@@ -183,15 +232,16 @@ Deno.test(
 // Funding: no row has all five required cells filled -- Percent is blank
 // on the only row present.
 Deno.test('checkSpecialPayForm - incomplete funding row flags Funding only', () => {
-  const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-  lines[0] = doc.line(
+  const { doc, formFields, lines, visualElements, fundRow } = fullyFilledDoc();
+  const idx = lines.indexOf(fundRow);
+  lines[idx] = doc.line(
     'Fund: 100 FN Dept: 5678 Project: A123 Activity: 1 Chartfield1:  Account: 60111 Percent: ',
     boxFrom(0.05, 0.9, FUND_ROW_Y, FUND_ROW_Y + 0.01),
   );
   const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
   assertEquals(flags.length, 1);
   assertEquals(flags[0].label, 'Funding');
-  assertEquals(flags[0].box, SECTION_BOXES.funding);
+  assertEquals(flags[0].box, computeSectionBoxes(doc.text, lines).funding);
 });
 
 // A second, blank funding row alongside a fully filled first row is still
@@ -216,10 +266,14 @@ Deno.test(
 Deno.test(
   'checkSpecialPayForm - funding row split across separate lines is still recognized as complete',
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    lines[0] = doc.line('Fund: 100', boxFrom(0.05, 0.2, FUND_ROW_Y, FUND_ROW_Y + 0.005));
+    const { doc, formFields, lines, visualElements, fundRow } = fullyFilledDoc();
+    const idx = lines.indexOf(fundRow);
+    lines[idx] = doc.line(
+      'Fund: 100',
+      boxFrom(0.05, 0.2, FUND_ROW_Y, FUND_ROW_Y + 0.005),
+    );
     lines.splice(
-      1,
+      idx + 1,
       0,
       doc.line('FN Dept: 5678', boxFrom(0.2, 0.35, FUND_ROW_Y, FUND_ROW_Y + 0.005)),
       doc.line('Project: A123', boxFrom(0.35, 0.5, FUND_ROW_Y, FUND_ROW_Y + 0.005)),
@@ -233,8 +287,8 @@ Deno.test(
 Deno.test(
   'checkSpecialPayForm - no checkmark glyph anywhere in Nature of Service flags Nature of Service only',
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    const withoutCheckmark = lines.filter((l) => l !== lines[2]);
+    const { doc, formFields, lines, visualElements, checkmark } = fullyFilledDoc();
+    const withoutCheckmark = lines.filter((l) => l !== checkmark);
     const flags = checkSpecialPayForm(
       doc.text,
       formFields,
@@ -243,15 +297,18 @@ Deno.test(
     );
     assertEquals(flags.length, 1);
     assertEquals(flags[0].label, 'Nature of Service');
-    assertEquals(flags[0].box, SECTION_BOXES.natureOfService);
+    assertEquals(
+      flags[0].box,
+      computeSectionBoxes(doc.text, withoutCheckmark).natureOfService,
+    );
   },
 );
 
 Deno.test(
   'checkSpecialPayForm - a filled_checkbox visualElement inside Nature of Service also counts',
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    const withoutCheckmark = lines.filter((l) => l !== lines[2]);
+    const { doc, formFields, lines, visualElements, checkmark } = fullyFilledDoc();
+    const withoutCheckmark = lines.filter((l) => l !== checkmark);
     const withVisualElement = [
       ...visualElements,
       doc.visualElement('filled_checkbox', NATURE_OF_SERVICE_BOX),
@@ -266,8 +323,9 @@ Deno.test(
 Deno.test(
   'checkSpecialPayForm - a checkmark outside the Nature of Service region does not count',
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    lines[2] = doc.line('☑', boxFrom(0.55, 0.6, 0.9, 0.91));
+    const { doc, formFields, lines, visualElements, checkmark } = fullyFilledDoc();
+    const idx = lines.indexOf(checkmark);
+    lines[idx] = doc.line('☑', boxFrom(0.55, 0.6, 0.9, 0.91));
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(
       flags.some((f) => f.label === 'Nature of Service'),
@@ -279,21 +337,32 @@ Deno.test(
 Deno.test(
   "checkSpecialPayForm - only one filled Employee's Signature line flags Employee Certification only",
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    lines[5] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59));
+    const { doc, formFields, lines, visualElements, signature2 } = fullyFilledDoc();
+    const idx = lines.indexOf(signature2);
+    lines[idx] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59));
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(flags.length, 1);
     assertEquals(flags[0].label, 'Employee Certification');
-    assertEquals(flags[0].box, SECTION_BOXES.employeeCertification);
+    assertEquals(
+      flags[0].box,
+      computeSectionBoxes(doc.text, lines).employeeCertification,
+    );
   },
 );
 
 Deno.test(
   "checkSpecialPayForm - both Employee's Signature lines blank flags Employee Certification",
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
-    lines[4] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.52, 0.53));
-    lines[5] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59));
+    const { doc, formFields, lines, visualElements, signature1, signature2 } =
+      fullyFilledDoc();
+    lines[lines.indexOf(signature1)] = doc.line(
+      "Employee's Signature: ",
+      boxFrom(0.05, 0.6, 0.52, 0.53),
+    );
+    lines[lines.indexOf(signature2)] = doc.line(
+      "Employee's Signature: ",
+      boxFrom(0.05, 0.6, 0.58, 0.59),
+    );
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(
       flags.some((f) => f.label === 'Employee Certification'),
@@ -305,10 +374,13 @@ Deno.test(
 Deno.test(
   'checkSpecialPayForm - multiple incomplete sections each produce their own separate flag',
   () => {
-    const { doc, formFields, lines, visualElements } = fullyFilledDoc();
+    const { doc, formFields, lines, visualElements, signature2 } = fullyFilledDoc();
     formFields[0] = doc.field('University ID Number:', '', ARBITRARY_BOX); // Employee Information
     formFields[5] = doc.field('Period of Service Begin Date:', '', ARBITRARY_BOX); // Payment Information
-    lines[5] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59)); // Employee Certification
+    lines[lines.indexOf(signature2)] = doc.line(
+      "Employee's Signature: ",
+      boxFrom(0.05, 0.6, 0.58, 0.59),
+    ); // Employee Certification
     const flags = checkSpecialPayForm(doc.text, formFields, lines, visualElements);
     assertEquals(flags.length, 3);
     assertEquals(
@@ -333,5 +405,52 @@ Deno.test(
         'Payment Information',
       ].sort(),
     );
+  },
+);
+
+// Regression test: a real upload had an extra "Do you anticipate
+// submitting another Special Pay request..." Yes/No question wedged into
+// Payment Information (a newer form revision than the blank template this
+// was first built against), which shifts every section below it further
+// down the page than a fixed y-fraction guess would expect. Boxes are
+// computed from each section's own heading position, not a fixed guess,
+// so a page laid out with extra vertical space here should still box each
+// section correctly rather than drifting onto the wrong one.
+Deno.test(
+  'checkSpecialPayForm - a section pushed further down the page than the fixed-fraction guess is still boxed correctly',
+  () => {
+    const doc = new FixtureDoc();
+    // Deliberately far outside FALLBACK_SECTION_BOXES' fractions for
+    // Funding (0.235-0.315) and Nature of Service (0.315-0.5) -- if boxes
+    // were still coming from the fixed guess instead of these real
+    // heading positions, this test would fail.
+    const fundingHeadingY = 0.6;
+    const natureOfServiceHeadingY = 0.7;
+    const lines = [
+      doc.line('Employee Information', boxFrom(0.05, 0.3, 0.08, 0.09)),
+      doc.line('Payment Information', boxFrom(0.05, 0.3, 0.16, 0.17)),
+      doc.line('Funding', boxFrom(0.05, 0.3, fundingHeadingY, fundingHeadingY + 0.01)),
+      doc.line(
+        'Nature of Service',
+        boxFrom(0.05, 0.3, natureOfServiceHeadingY, natureOfServiceHeadingY + 0.01),
+      ),
+      doc.line('Employee Certification', boxFrom(0.05, 0.3, 0.8, 0.81)),
+      doc.line('Approvals', boxFrom(0.05, 0.3, 0.9, 0.91)),
+    ];
+    const boxes = computeSectionBoxes(doc.text, lines);
+    assertEquals(boxes.funding.normalizedVertices[0].y, fundingHeadingY - 0.015);
+    assertEquals(boxes.funding.normalizedVertices[2].y, natureOfServiceHeadingY - 0.015);
+  },
+);
+
+// Falls back to the fixed-fraction guess when a heading genuinely can't be
+// found at all (a non-standard copy of the form, a bad scan) rather than
+// leaving a flag with no usable box.
+Deno.test(
+  'checkSpecialPayForm - falls back to a fixed box when a heading is entirely missing',
+  () => {
+    const doc = new FixtureDoc();
+    const boxes = computeSectionBoxes(doc.text, []);
+    assertEquals(boxes.funding.normalizedVertices[0].y, 0.235);
   },
 );

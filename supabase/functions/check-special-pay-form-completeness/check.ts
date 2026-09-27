@@ -3,19 +3,21 @@
 // fixtures instead of only ever being exercised by a real, billed Document
 // AI call.
 //
-// Unlike Contracted Services and Conflict of Interest, this has NOT yet
-// been run against a real Document AI response for a filled example --
-// there is no live test behind any of the choices below yet. Field-name
-// matchers, the funding-row/Nature of Service/signature-count logic, and
-// SECTION_BOXES are all a first-pass best effort read off the blank
-// template PDF plus a reference image Christopher marked up, the same
-// starting point Contracted Services and Conflict of Interest each began
-// from before a real upload corrected several wrong assumptions (see
-// those two check.ts files' own header comments for what changed and
-// why). Expect the same here once this gets its first live test --
-// particularly SECTION_BOXES' fractions, and the funding-row/signature
-// logic below, none of which had any real Document AI position data to
-// check against.
+// A real filled example (Christopher, September 2026) confirmed the boxes
+// need to be computed from the page's own printed section headings rather
+// than fixed y-fractions: that upload's Payment Information has an extra
+// "Do you anticipate submitting another Special Pay request..." Yes/No
+// question not present on the blank template this was first built
+// against, which shifts every section below it down and made fixed
+// fractions land on the wrong section entirely (Funding's box landing over
+// Payment Information, etc). computeSectionBoxes below finds each
+// section's own heading line and the next section's, and boxes the space
+// between them -- self-correcting for a page that's laid out a bit
+// differently than expected, with a fixed-fraction fallback
+// (FALLBACK_SECTION_BOXES) only for the rare case a heading can't be found
+// at all. Per Christopher, that same real upload's flags themselves
+// (which sections were and weren't incomplete) were correct -- box
+// placement was the only actual bug.
 //
 // Per Christopher, the minimum fields for this form to be considered
 // complete, and the five flags they should be grouped into -- one per
@@ -55,20 +57,74 @@ import {
   VisualElement,
 } from '../_shared/documentAi.ts';
 
-export const SECTION_BOXES: Record<
+type SectionKey =
   | 'employeeInformation'
   | 'paymentInformation'
   | 'funding'
   | 'natureOfService'
-  | 'employeeCertification',
-  Box
-> = {
+  | 'employeeCertification';
+
+// Only used when a section's own heading, or the next section's, can't be
+// found on the page at all -- the same rough visual estimate this started
+// from, kept as a last resort rather than leaving a flag with no box.
+export const FALLBACK_SECTION_BOXES: Record<SectionKey, Box> = {
   employeeInformation: boxFrom(0.04, 0.97, 0.08, 0.155),
   paymentInformation: boxFrom(0.04, 0.97, 0.155, 0.235),
   funding: boxFrom(0.04, 0.97, 0.235, 0.315),
   natureOfService: boxFrom(0.04, 0.97, 0.315, 0.5),
   employeeCertification: boxFrom(0.04, 0.97, 0.5, 0.615),
 };
+
+// Each entry's box spans from its own heading down to the next entry's
+// heading -- "Approvals" is only ever used as Employee Certification's
+// lower bound, never boxed itself (that section has no required fields).
+const SECTION_HEADINGS: { key: SectionKey; heading: string }[] = [
+  { key: 'employeeInformation', heading: 'employee information' },
+  { key: 'paymentInformation', heading: 'payment information' },
+  { key: 'funding', heading: 'funding' },
+  { key: 'natureOfService', heading: 'nature of service' },
+  { key: 'employeeCertification', heading: 'employee certification' },
+];
+const END_HEADING = 'approvals';
+
+// How far above a heading line's own vertical center its box should start
+// -- enough to include the heading text itself, not just the fields below
+// it.
+const HEADING_BOX_PADDING = 0.015;
+
+function findHeadingY(
+  documentText: string,
+  lines: Line[],
+  heading: string,
+): number | undefined {
+  return centerOf(
+    lines.find((l) =>
+      normalizeHomoglyphs(
+        extractText(documentText, l.layout?.textAnchor).toLowerCase(),
+      ).includes(heading),
+    )?.layout?.boundingPoly,
+  )?.y;
+}
+
+export function computeSectionBoxes(
+  documentText: string,
+  lines: Line[],
+): Record<SectionKey, Box> {
+  const headingYs = [...SECTION_HEADINGS.map((s) => s.heading), END_HEADING].map(
+    (heading) => findHeadingY(documentText, lines, heading),
+  );
+
+  const boxes = {} as Record<SectionKey, Box>;
+  SECTION_HEADINGS.forEach((section, i) => {
+    const top = headingYs[i];
+    const bottom = headingYs[i + 1];
+    boxes[section.key] =
+      top !== undefined && bottom !== undefined && bottom > top
+        ? boxFrom(0.04, 0.97, top - HEADING_BOX_PADDING, bottom - HEADING_BOX_PADDING)
+        : FALLBACK_SECTION_BOXES[section.key];
+  });
+  return boxes;
+}
 
 const EMPLOYEE_INFO_SPECS: RobustFieldSpec[] = [
   {
@@ -222,20 +278,8 @@ function isAnyNatureOfServiceChecked(
   lines: Line[],
   visualElements: VisualElement[],
 ): boolean {
-  const startY = centerOf(
-    lines.find((l) =>
-      normalizeHomoglyphs(
-        extractText(documentText, l.layout?.textAnchor).toLowerCase(),
-      ).includes('nature of service'),
-    )?.layout?.boundingPoly,
-  )?.y;
-  const endY = centerOf(
-    lines.find((l) =>
-      normalizeHomoglyphs(
-        extractText(documentText, l.layout?.textAnchor).toLowerCase(),
-      ).includes('employee certification'),
-    )?.layout?.boundingPoly,
-  )?.y;
+  const startY = findHeadingY(documentText, lines, 'nature of service');
+  const endY = findHeadingY(documentText, lines, 'employee certification');
   // Couldn't even locate the section -- treat as unanswered rather than
   // silently passing.
   if (startY === undefined || endY === undefined) return false;
@@ -286,13 +330,15 @@ export function checkSpecialPayForm(
   lines: Line[],
   visualElements: VisualElement[],
 ): PresenceFlag[] {
+  const sectionBoxes = computeSectionBoxes(documentText, lines);
+
   const flags: PresenceFlag[] = [
     ...checkSection(
       documentText,
       formFields,
       lines,
       EMPLOYEE_INFO_SPECS,
-      SECTION_BOXES.employeeInformation,
+      sectionBoxes.employeeInformation,
       'Employee Information',
       'Employee Information looks incomplete.',
     ),
@@ -301,7 +347,7 @@ export function checkSpecialPayForm(
       formFields,
       lines,
       PAYMENT_INFO_SPECS,
-      SECTION_BOXES.paymentInformation,
+      sectionBoxes.paymentInformation,
       'Payment Information',
       'Payment Information looks incomplete.',
     ),
@@ -312,7 +358,7 @@ export function checkSpecialPayForm(
       label: 'Funding',
       message:
         'Funding looks incomplete -- at least one row needs Fund, FN Dept, Project, Activity, and Percent all filled in.',
-      box: SECTION_BOXES.funding,
+      box: sectionBoxes.funding,
     });
   }
 
@@ -321,7 +367,7 @@ export function checkSpecialPayForm(
       label: 'Nature of Service',
       message:
         'Nature of Service looks incomplete -- select at least one job title checkbox.',
-      box: SECTION_BOXES.natureOfService,
+      box: sectionBoxes.natureOfService,
     });
   }
 
@@ -330,7 +376,7 @@ export function checkSpecialPayForm(
       label: 'Employee Certification',
       message:
         "Employee Certification looks incomplete -- both Employee's Signature lines need to be filled in.",
-      box: SECTION_BOXES.employeeCertification,
+      box: sectionBoxes.employeeCertification,
     });
   }
 

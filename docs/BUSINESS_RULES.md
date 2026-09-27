@@ -102,16 +102,25 @@ Signature:" lines -- one for the grant-account certification, one for the DCFS a
 immediately below it). Special Pay Form's five sections sit close together on the page and its
 reference image draws one continuous outline across the first four, but each is still its own
 independent flag with its own box, so a single missing section (Funding, say) only boxes that
-section, not the whole region. Each section has its own fixed box (`SECTION_BOXES`), the same way RSO
-Agreement's do. Where RSO Agreement's were captured from a real Document AI feasibility spike, the
-other three's boxes each started as a visual estimate read off a reference image Christopher marked
-up directly on the blank template -- and Conflict of Interest's needed a real correction once tested
-live: Selected/Directed By's actual content sits at y ~0.68-0.75, not the ~0.49-0.6 first guessed, and
-Vendor Information's box didn't reach far enough down to cover the Yes/No table's third row. Both now
-use the real Y-positions a live Document AI response confirmed. Special Pay Form hasn't had its first
-live test yet, so its five boxes -- and its funding-row, Nature of Service, and two-signature logic --
-are still that same kind of unconfirmed visual estimate, the same starting point Contracted Services
-and Conflict of Interest each began from.
+section, not the whole region. Contracted Services and Conflict of Interest each use a fixed box per
+section (`SECTION_BOXES`), the same way RSO Agreement's do, captured (RSO Agreement) or estimated
+(the other two) from a specific rendering of that form. Special Pay Form's five boxes are computed
+per-document instead (`computeSectionBoxes`), from wherever its own section headings and the next
+section's actually land on that specific page, rather than a fixed guess -- a real upload showed a
+newer revision of the form with an extra "Do you anticipate submitting another Special Pay
+request..." Yes/No question wedged into Payment Information that isn't on the blank template this
+was first built against, shifting every section below it down and making a fixed-fraction guess land
+on the wrong section entirely (Funding's box landing over Payment Information, etc). A fixed-fraction
+guess (`FALLBACK_SECTION_BOXES`, the same visual estimate this started from) is still used per-section
+if that section's own heading, or the next one's, can't be found on the page at all. Separately,
+Conflict of Interest's fixed boxes needed a real correction once tested live: Selected/Directed By's
+actual content sits at y ~0.68-0.75, not the ~0.49-0.6 first guessed, and Vendor Information's box
+didn't reach far enough down to cover the Yes/No table's third row -- both now use the real
+Y-positions a live Document AI response confirmed. Special Pay Form's field-name matchers and
+funding-row/Nature-of-Service/two-signature logic are still an unconfirmed guess; per Christopher, its
+first live test's flags (which sections were and weren't incomplete) were already correct, so unlike
+Contracted Services and Conflict of Interest, box placement was the only bug that test actually
+surfaced.
 
 Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
 one of these newer three forms ever looks wrong on a real upload:
