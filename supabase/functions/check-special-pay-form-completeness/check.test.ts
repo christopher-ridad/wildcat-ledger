@@ -454,3 +454,156 @@ Deno.test(
     assertEquals(boxes.funding.normalizedVertices[0].y, 0.235);
   },
 );
+
+// Regression coverage for the real bug: a genuinely fillable PDF pairs
+// each Funding cell as its own formField (name "Fund:", value "731",
+// etc), all five landing within a few thousandths of each other in y --
+// not present in `lines` as a combined "Fund: ... Percent: ..." row at
+// all. An earlier version only ever checked lines and would have wrongly
+// flagged this as incomplete.
+Deno.test(
+  'checkSpecialPayForm - a funding row present only in formFields (not lines) is recognized as complete',
+  () => {
+    const { doc, formFields, lines, visualElements, fundRow } = fullyFilledDoc();
+    const withoutFundRowLine = lines.filter((l) => l !== fundRow);
+    const fundingFormFields = [
+      ...formFields,
+      doc.field('Fund:', '731', boxFrom(0, 0.1, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+      doc.field('FN Dept:', '2106100', boxFrom(0.1, 0.2, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+      doc.field(
+        'Project:',
+        '70019963',
+        boxFrom(0.2, 0.3, FUND_ROW_Y, FUND_ROW_Y + 0.001),
+      ),
+      doc.field('Activity:', '01', boxFrom(0.3, 0.4, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+      doc.field('Percent:', '100', boxFrom(0.4, 0.5, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+    ];
+    assertEquals(
+      checkSpecialPayForm(
+        doc.text,
+        fundingFormFields,
+        withoutFundRowLine,
+        visualElements,
+      ),
+      [],
+    );
+  },
+);
+
+Deno.test(
+  'checkSpecialPayForm - a funding row in formFields missing one cell still flags Funding',
+  () => {
+    const { doc, formFields, lines, visualElements, fundRow } = fullyFilledDoc();
+    const withoutFundRowLine = lines.filter((l) => l !== fundRow);
+    const fundingFormFields = [
+      ...formFields,
+      doc.field('Fund:', '731', boxFrom(0, 0.1, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+      doc.field('FN Dept:', '2106100', boxFrom(0.1, 0.2, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+      doc.field(
+        'Project:',
+        '70019963',
+        boxFrom(0.2, 0.3, FUND_ROW_Y, FUND_ROW_Y + 0.001),
+      ),
+      doc.field('Activity:', '01', boxFrom(0.3, 0.4, FUND_ROW_Y, FUND_ROW_Y + 0.001)),
+      // Percent left unpaired entirely.
+    ];
+    const flags = checkSpecialPayForm(
+      doc.text,
+      fundingFormFields,
+      withoutFundRowLine,
+      visualElements,
+    );
+    assertEquals(
+      flags.some((f) => f.label === 'Funding'),
+      true,
+    );
+  },
+);
+
+// Regression coverage for the real bug: a checked box paired as its own
+// formField, with the check glyph as the *value* ("Honorarium (106243)"
+// paired with "☑") -- not present in lines or visualElements at all. An
+// earlier version only checked those two and would have wrongly flagged
+// this as incomplete.
+Deno.test(
+  'checkSpecialPayForm - a checked box present only as a formField value is recognized',
+  () => {
+    const { doc, formFields, lines, visualElements, checkmark } = fullyFilledDoc();
+    const withoutCheckmarkLine = lines.filter((l) => l !== checkmark);
+    const withCheckedFormField = [
+      ...formFields,
+      doc.field('Honorarium (106243)', '☑', NATURE_OF_SERVICE_BOX),
+    ];
+    assertEquals(
+      checkSpecialPayForm(
+        doc.text,
+        withCheckedFormField,
+        withoutCheckmarkLine,
+        visualElements,
+      ),
+      [],
+    );
+  },
+);
+
+// Regression coverage for the real bug: both "Employee's Signature:"
+// fields pair as their own formField, with the handwritten signature
+// OCR'd -- imperfectly, but non-empty -- as the value (a real upload saw
+// "The be" and "There" for two different actual signatures). An earlier
+// version only checked lines and would have wrongly flagged this
+// incomplete.
+Deno.test(
+  "checkSpecialPayForm - two Employee's Signature formFields with garbled but non-empty OCR values are recognized",
+  () => {
+    const { doc, formFields, lines, visualElements, signature1, signature2 } =
+      fullyFilledDoc();
+    const withoutSignatureLines = lines.filter(
+      (l) => l !== signature1 && l !== signature2,
+    );
+    const signatureFormFields = [
+      ...formFields,
+      doc.field("Employee's Signature:", 'The be', boxFrom(0.05, 0.6, 0.52, 0.53)),
+      doc.field("Employee's Signature:", 'There', boxFrom(0.05, 0.6, 0.58, 0.59)),
+    ];
+    assertEquals(
+      checkSpecialPayForm(
+        doc.text,
+        signatureFormFields,
+        withoutSignatureLines,
+        visualElements,
+      ),
+      [],
+    );
+  },
+);
+
+// The same physical signature detected via both formFields and a raw
+// line (both sources describe the same location) should only count once
+// -- two formFields-plus-lines pairs at the SAME two locations must still
+// only reach a count of 2, not 4, and one location detected twice must
+// not be mistaken for two distinct signatures.
+Deno.test(
+  'checkSpecialPayForm - the same signature found in both formFields and lines is not double-counted',
+  () => {
+    const { doc, formFields, lines, visualElements, signature2 } = fullyFilledDoc();
+    // signature1 (from fullyFilledDoc) is already present as a line at
+    // y=0.52-0.53; add a formField for that exact same location. Only
+    // one of the two required signatures is genuinely present elsewhere.
+    const idx = lines.indexOf(signature2);
+    lines[idx] = doc.line("Employee's Signature: ", boxFrom(0.05, 0.6, 0.58, 0.59)); // blank
+    const duplicatedFormFields = [
+      ...formFields,
+      doc.field("Employee's Signature:", 'Jane Doe', boxFrom(0.05, 0.6, 0.52, 0.53)),
+    ];
+    const flags = checkSpecialPayForm(
+      doc.text,
+      duplicatedFormFields,
+      lines,
+      visualElements,
+    );
+    assertEquals(
+      flags.some((f) => f.label === 'Employee Certification'),
+      true,
+    );
+  },
+);

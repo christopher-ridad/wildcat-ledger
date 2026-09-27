@@ -116,11 +116,23 @@ if that section's own heading, or the next one's, can't be found on the page at 
 Conflict of Interest's fixed boxes needed a real correction once tested live: Selected/Directed By's
 actual content sits at y ~0.68-0.75, not the ~0.49-0.6 first guessed, and Vendor Information's box
 didn't reach far enough down to cover the Yes/No table's third row -- both now use the real
-Y-positions a live Document AI response confirmed. Special Pay Form's field-name matchers and
-funding-row/Nature-of-Service/two-signature logic are still an unconfirmed guess; per Christopher, its
-first live test's flags (which sections were and weren't incomplete) were already correct, so unlike
-Contracted Services and Conflict of Interest, box placement was the only bug that test actually
-surfaced.
+Y-positions a live Document AI response confirmed.
+
+Special Pay Form's first live test got the box-placement fix above right, but its second (a genuinely
+fillable PDF, filled in via its own form fields rather than scanned/handwritten) found real bugs in
+the funding-row and two-signature logic themselves: both originally only ever scanned raw OCR lines,
+on the unconfirmed assumption that a printed row/repeated label wouldn't pair into `formFields` the
+way Contracted Services' Name and Address didn't. Wrong for this document -- its actual response
+showed every Funding cell (Fund, FN Dept, Project, Activity, Percent) and both "Employee's Signature:"
+fields cleanly paired in `formFields` with real values (a signature even OCRs as garbled text -- "The
+be", "There" -- rather than nothing, since Document AI attempts to read cursive handwriting as text).
+Both now check `formFields` first, the same formFields-then-line-scan-fallback order every other field
+on this page already uses via `findLabeledFieldStatuses`, falling back to the original line-scan logic
+only when `formFields` doesn't have these paired at all. Nature of Service got the same treatment
+pre-emptively, even though it wasn't independently confirmed broken by that upload -- its checked box
+came through as a `formFields` value ("Honorarium (106243)" paired with "☑"), which the original
+visualElements/line-glyph-only search would have missed entirely had that been the checkbox's only
+representation.
 
 Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
 one of these newer three forms ever looks wrong on a real upload:
