@@ -134,6 +134,13 @@ came through as a `formFields` value ("Honorarium (106243)" paired with "☑"), 
 visualElements/line-glyph-only search would have missed entirely had that been the checkbox's only
 representation.
 
+With that fixed, a follow-up upload with both Employee Information and Payment Information genuinely
+incomplete showed their two boxes reading as one merged rectangle -- `computeSectionBoxes` had a box's
+bottom edge and the next section's top edge landing on the exact same y (both `nextHeadingY -
+HEADING_BOX_PADDING`), so two adjacent flagged sections touched with no visible gap between them.
+`SECTION_BOX_GAP` now shaves a little extra off a box's bottom edge so adjacent sections stay visually
+distinct even when both fire at once.
+
 Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
 one of these newer three forms ever looks wrong on a real upload:
 

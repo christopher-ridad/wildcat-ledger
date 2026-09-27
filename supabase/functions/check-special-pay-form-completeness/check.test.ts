@@ -439,7 +439,33 @@ Deno.test(
     ];
     const boxes = computeSectionBoxes(doc.text, lines);
     assertEquals(boxes.funding.normalizedVertices[0].y, fundingHeadingY - 0.015);
-    assertEquals(boxes.funding.normalizedVertices[2].y, natureOfServiceHeadingY - 0.015);
+    assertEquals(
+      boxes.funding.normalizedVertices[2].y,
+      natureOfServiceHeadingY - 0.015 - 0.01,
+    );
+  },
+);
+
+// Regression test: an earlier version computed a box's bottom edge and the
+// next section's top edge to the exact same y, so two sections flagged at
+// once (a real upload: Employee Information and Payment Information) had
+// their boxes touch with no gap and read as one merged rectangle.
+Deno.test(
+  'checkSpecialPayForm - two adjacent sections both incomplete get visually separate boxes',
+  () => {
+    const doc = new FixtureDoc();
+    const lines = [
+      doc.line('Employee Information', boxFrom(0.05, 0.3, 0.08, 0.09)),
+      doc.line('Payment Information', boxFrom(0.05, 0.3, 0.16, 0.17)),
+      doc.line('Funding', boxFrom(0.05, 0.3, 0.24, 0.25)),
+      doc.line('Nature of Service', boxFrom(0.05, 0.3, 0.32, 0.33)),
+      doc.line('Employee Certification', boxFrom(0.05, 0.3, 0.5, 0.51)),
+      doc.line('Approvals', boxFrom(0.05, 0.3, 0.6, 0.61)),
+    ];
+    const boxes = computeSectionBoxes(doc.text, lines);
+    const employeeInformationBottom = boxes.employeeInformation.normalizedVertices[2].y;
+    const paymentInformationTop = boxes.paymentInformation.normalizedVertices[0].y;
+    assertEquals(employeeInformationBottom < paymentInformationTop, true);
   },
 );
 

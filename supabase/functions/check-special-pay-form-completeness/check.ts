@@ -39,6 +39,16 @@
 // formField value ("Honorarium (106243)" paired with "☑"), which its
 // original visualElements/line-glyph-only search would have missed
 // entirely if that had been the checkbox's only representation.
+//
+// After that fix, a real upload with both Employee Information and
+// Payment Information genuinely incomplete showed their two boxes reading
+// as one merged rectangle -- computeSectionBoxes had a box's bottom edge
+// and the next section's top edge landing on the exact same y (both
+// `nextHeadingY - HEADING_BOX_PADDING`), so two adjacent flagged sections
+// touched with no visible gap. SECTION_BOX_GAP now shaves a little extra
+// off a box's bottom edge so adjacent boxes stay visually distinct even
+// when both fire at once.
+//
 // Per Christopher, the minimum fields for this form to be considered
 // complete, and the five flags they should be grouped into -- one per
 // printed section of the form, each with its own box, rather than one
@@ -87,11 +97,14 @@ type SectionKey =
 // Only used when a section's own heading, or the next section's, can't be
 // found on the page at all -- the same rough visual estimate this started
 // from, kept as a last resort rather than leaving a flag with no box.
+// Each entry ends a little short of the next one's start (see
+// SECTION_BOX_GAP below) so two adjacent flagged sections don't touch and
+// read as one merged rectangle.
 export const FALLBACK_SECTION_BOXES: Record<SectionKey, Box> = {
-  employeeInformation: boxFrom(0.04, 0.97, 0.08, 0.155),
-  paymentInformation: boxFrom(0.04, 0.97, 0.155, 0.235),
-  funding: boxFrom(0.04, 0.97, 0.235, 0.315),
-  natureOfService: boxFrom(0.04, 0.97, 0.315, 0.5),
+  employeeInformation: boxFrom(0.04, 0.97, 0.08, 0.145),
+  paymentInformation: boxFrom(0.04, 0.97, 0.155, 0.225),
+  funding: boxFrom(0.04, 0.97, 0.235, 0.305),
+  natureOfService: boxFrom(0.04, 0.97, 0.315, 0.49),
   employeeCertification: boxFrom(0.04, 0.97, 0.5, 0.615),
 };
 
@@ -111,6 +124,14 @@ const END_HEADING = 'approvals';
 // -- enough to include the heading text itself, not just the fields below
 // it.
 const HEADING_BOX_PADDING = 0.015;
+
+// Extra vertical gap subtracted from a box's bottom edge (on top of the
+// next section's own HEADING_BOX_PADDING) so two adjacent sections, both
+// flagged at once, don't touch and read as one merged rectangle -- an
+// earlier version had both edges land on exactly the same y, which did
+// exactly that for Employee Information and Payment Information on a
+// real upload.
+const SECTION_BOX_GAP = 0.01;
 
 function findHeadingY(
   documentText: string,
@@ -140,7 +161,12 @@ export function computeSectionBoxes(
     const bottom = headingYs[i + 1];
     boxes[section.key] =
       top !== undefined && bottom !== undefined && bottom > top
-        ? boxFrom(0.04, 0.97, top - HEADING_BOX_PADDING, bottom - HEADING_BOX_PADDING)
+        ? boxFrom(
+            0.04,
+            0.97,
+            top - HEADING_BOX_PADDING,
+            bottom - HEADING_BOX_PADDING - SECTION_BOX_GAP,
+          )
         : FALLBACK_SECTION_BOXES[section.key];
   });
   return boxes;
