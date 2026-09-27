@@ -7,6 +7,7 @@ import {
   FormField,
   Line,
   serveDocumentCheck,
+  VisualElement,
 } from '../_shared/documentAi.ts';
 import { checkSpecialPayForm } from './check.ts';
 
@@ -14,6 +15,7 @@ serveDocumentCheck((text, pages) => {
   const page = (pages[0] ?? {}) as DocumentAiPage;
   const formFields: FormField[] = page.formFields ?? [];
   const lines: Line[] = page.lines ?? [];
+  const visualElements: VisualElement[] = page.visualElements ?? [];
 
-  return { flags: checkSpecialPayForm(text, formFields, lines) };
+  return { flags: checkSpecialPayForm(text, formFields, lines, visualElements) };
 });

@@ -89,19 +89,25 @@ confidence, informed by real correctly-filled examples of the Contracted Service
 Interest Forms (which is also what caught fields these checks originally required but a real
 complete submission actually leaves blank -- see each check's own header comment).
 
-Contracted Services and Conflict of Interest both group their flags by the form's own printed
-sections rather than one flag per field, the same way RSO Agreement's flags are grouped by its
-numbered sections -- Contracted Services into "Contractor Information" and "Contractor's
+Contracted Services, Conflict of Interest, and Special Pay Form all group their flags by the form's
+own printed sections rather than one flag per field, the same way RSO Agreement's flags are grouped
+by its numbered sections -- Contracted Services into "Contractor Information" and "Contractor's
 Acknowledgement," Conflict of Interest into "Vendor Information" (the vendor name, plus its three
 Yes/No questions, each needing some mark, Yes or No, it doesn't matter which) and "Selected/Directed
-By" (the "Individual(s) who selected or directed the vendor" name, signature, and date). Each
-section has its own fixed box (`SECTION_BOXES`), the same way RSO Agreement's do. Where RSO
-Agreement's were captured from a real Document AI feasibility spike, Contracted Services' and
-Conflict of Interest's two boxes each started as a visual estimate read off a reference image
-Christopher marked up directly on the blank template -- and Conflict of Interest's needed a real
-correction once tested live: Selected/Directed By's actual content sits at y ~0.68-0.75, not the
-~0.49-0.6 first guessed, and Vendor Information's box didn't reach far enough down to cover the
-Yes/No table's third row. Both now use the real Y-positions a live Document AI response confirmed.
+By" (the "Individual(s) who selected or directed the vendor" name, signature, and date), and Special
+Pay Form into "Employee & Payment Information" (Employee Information, Payment Information, at least
+one fully filled Funding row, and at least one checked Nature of Service checkbox) and "Employee
+Certification" (both "Employee's Signature:" lines -- one for the grant-account certification, one
+for the DCFS acknowledgement immediately below it). Each section has its own fixed box
+(`SECTION_BOXES`), the same way RSO Agreement's do. Where RSO Agreement's were captured from a real
+Document AI feasibility spike, the other three's boxes each started as a visual estimate read off a
+reference image Christopher marked up directly on the blank template -- and Conflict of Interest's
+needed a real correction once tested live: Selected/Directed By's actual content sits at y ~0.68-0.75,
+not the ~0.49-0.6 first guessed, and Vendor Information's box didn't reach far enough down to cover
+the Yes/No table's third row. Both now use the real Y-positions a live Document AI response
+confirmed. Special Pay Form hasn't had its first live test yet, so its boxes -- and its funding-row,
+Nature of Service, and two-signature logic -- are still that same kind of unconfirmed visual
+estimate, the same starting point Contracted Services and Conflict of Interest each began from.
 
 Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
 one of these newer three forms ever looks wrong on a real upload:
@@ -136,7 +142,17 @@ one of these newer three forms ever looks wrong on a real upload:
 
 Only the first two are confirmed necessary for Contracted Services specifically; the rest are applied
 to Conflict of Interest and Special Pay Form too, since all three forms run through the same
-processor -- Special Pay Form's in particular is still a precaution, not independently confirmed.
+processor -- for Special Pay Form specifically, none of this is independently confirmed yet, since
+it hasn't had a real live test. Special Pay Form's Funding-row check also doesn't assume whether
+Document AI prints a whole row (Fund/FN Dept/Project/Activity/Percent) as one combined OCR'd line or
+several separate ones -- it combines every line within a generous band of a row's own vertical
+position into one blob first, then looks for each label inside that, so it isn't sensitive either way
+once tested. Its Nature of Service check doesn't try to identify which of the ~17 job-title checkboxes
+is checked, only whether anything is, within the region bounded by the "Nature of Service" and
+"Employee Certification" headings -- checking both a Document AI `visualElement` of type
+`filled_checkbox` (the way W-9's tax-classification checkboxes work) and the same checkmark-glyph
+search Conflict of Interest uses, since it isn't yet known which of the two this form's checkboxes
+will actually come through as.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,
