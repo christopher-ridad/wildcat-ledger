@@ -95,11 +95,13 @@ numbered sections -- Contracted Services into "Contractor Information" and "Cont
 Acknowledgement," Conflict of Interest into "Vendor Information" (the vendor name, plus its three
 Yes/No questions, each needing some mark, Yes or No, it doesn't matter which) and "Selected/Directed
 By" (the "Individual(s) who selected or directed the vendor" name, signature, and date). Each
-section has its own fixed box (`SECTION_BOXES`), the same way RSO Agreement's do -- but where RSO
-Agreement's were captured from a real Document AI feasibility spike, these were read by eye off a
-reference image Christopher marked up directly on each blank template showing exactly where each box
-should land, no live Document AI sample involved -- worth a nudge in whatever direction one looks off
-once actually seen against a real render.
+section has its own fixed box (`SECTION_BOXES`), the same way RSO Agreement's do. Where RSO
+Agreement's were captured from a real Document AI feasibility spike, Contracted Services' and
+Conflict of Interest's two boxes each started as a visual estimate read off a reference image
+Christopher marked up directly on the blank template -- and Conflict of Interest's needed a real
+correction once tested live: Selected/Directed By's actual content sits at y ~0.68-0.75, not the
+~0.49-0.6 first guessed, and Vendor Information's box didn't reach far enough down to cover the
+Yes/No table's third row. Both now use the real Y-positions a live Document AI response confirmed.
 
 Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
 one of these newer three forms ever looks wrong on a real upload:
@@ -126,8 +128,11 @@ one of these newer three forms ever looks wrong on a real upload:
   (`☑`, BALLOT BOX WITH CHECK) on its own line. Conflict of Interest's Yes/No questions now
   search for that glyph within each question's own vertical span, with no horizontal constraint at
   all -- the original column-position guess never had any real data behind it and was very likely
-  the actual cause of every row misfiring, not the row-finding logic itself (which real data
-  confirmed was already correct).
+  the actual cause of two of the three rows misfiring, not the row-finding logic itself (which real
+  data confirmed was already correct). The third row's checkmark is a confirmed complete OCR
+  miss on that same real upload -- absent from lines, tokens, and visualElements alike, so there's
+  no signal in Document AI's output for this check to key off of. Not a bug; a genuine limitation
+  worth knowing is possible on any given upload.
 
 Only the first two are confirmed necessary for Contracted Services specifically; the rest are applied
 to Conflict of Interest and Special Pay Form too, since all three forms run through the same

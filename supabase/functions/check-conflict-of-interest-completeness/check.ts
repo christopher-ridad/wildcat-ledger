@@ -35,10 +35,24 @@
 //     the row's own vertical span, with no horizontal (column) constraint
 //     at all -- the column-position guess never had any real Document AI
 //     data behind it and was very likely part of why this kept failing.
-//     Real data confirmed this for two of the three rows on that upload;
-//     the third's checkmark didn't show up as this glyph at all, a
-//     possible genuine OCR gap rather than a position bug -- worth a
-//     specific follow-up if row 1 specifically still misfires.
+//     Real data confirmed this for two of the three rows on that upload.
+//     The third row's checkmark is a CONFIRMED complete OCR miss, not a
+//     bug here -- it doesn't appear anywhere in that same real response's
+//     lines, tokens, or visualElements. There is no signal in Document
+//     AI's output for this check to key off of for that specific mark;
+//     it's a genuine limitation, not something fixable by adjusting this
+//     logic further.
+//   - Both SECTION_BOXES entries, and Signature/Date's yRange, were
+//     initially read by eye off a reference image (no real Document AI
+//     sample) and were wrong: Selected/Directed By's real content sits at
+//     y ~0.68-0.75, not the ~0.49-0.6 first guessed, which meant
+//     Signature/Date's yRange filter was excluding the real occurrences
+//     entirely and finding nothing -- flagging that section as incomplete
+//     even when genuinely filled in. Vendor Information's box similarly
+//     didn't reach far enough down to cover the Yes/No table's third row
+//     (real data: row 3 runs to y ~0.55, the box stopped at 0.44). Both
+//     now use the real Y-positions a live Document AI response confirmed,
+//     not a visual estimate.
 //
 // Per Christopher (with a reference image marked up directly on the blank
 // template, the same way Contracted Services' two sections were): flags
@@ -49,19 +63,13 @@
 // the vendor" name line, its signature, and its date -- signature and date
 // newly checked, not just the name, per Christopher). Both boxes are fixed
 // (SECTION_BOXES), the same pattern Contracted Services' two sections and
-// RSO Agreement's numbered sections use -- read by eye off the reference
-// image, not a measured position (no real Document AI sample calibrating
-// one), so expect these to need a nudge once seen against a real render.
+// RSO Agreement's numbered sections use.
 //
 // Signature/Date are disambiguated from the form's other two identical
 // Signature/Date pairs (the NUPortal submitter's, and the conditional COI
 // Manager's) by vertical position (yRange, matching Selected/Directed By's
 // own box), the same technique RSO Agreement's own Section 3/5 fields use
-// -- there's no other distinguishing text on any of the three. Unlike
-// Vendor Name, this one wasn't confirmed broken on a real upload (per
-// Christopher, this section already reads correctly), so its 'sameLine'
-// value location is left as-is rather than changed to match Vendor Name's
-// fix on a guess.
+// -- there's no other distinguishing text on any of the three.
 //
 // Still deliberately NOT checked: the Comments column (free text, no
 // static label to check against) and the conditional COI Manager sign-off
@@ -79,10 +87,15 @@ import {
   RobustFieldSpec,
 } from '../_shared/documentAi.ts';
 
-const SELECTED_BY_Y_RANGE = { yMin: 0.49, yMax: 0.6 };
+// Real y-positions confirmed live: the label at 0.676, its name value at
+// 0.697, its Signature line at 0.745, its Date line at 0.752.
+const SELECTED_BY_Y_RANGE = { yMin: 0.66, yMax: 0.76 };
 
 export const SECTION_BOXES: Record<'vendorInformation' | 'selectedDirectedBy', Box> = {
-  vendorInformation: boxFrom(0.04, 0.97, 0.185, 0.44),
+  // Real y-positions confirmed live: "Proposed Vendor Name:" at 0.300,
+  // the Yes/No table's header at 0.347, and its third row running through
+  // 0.55.
+  vendorInformation: boxFrom(0.04, 0.97, 0.19, 0.56),
   selectedDirectedBy: boxFrom(
     0.04,
     0.97,
