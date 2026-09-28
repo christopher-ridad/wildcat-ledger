@@ -75,13 +75,6 @@ module.exports = [
       react: {
         version: 'detect',
       },
-
-      'import/resolver': {
-        node: {
-          paths: ['src'],
-          extensions: ['.js', '.jsx', '.ts', '.tsx'],
-        },
-      },
     },
 
     rules: {
