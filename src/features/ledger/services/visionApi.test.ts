@@ -107,4 +107,40 @@ describe('callVisionApi', () => {
       callVisionApi('images', { requests: [] }, 'my-key', 'fallback message'),
     ).rejects.toThrow('fallback message');
   });
+
+  test('passes an AbortSignal to fetch so a stalled request can be timed out', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ responses: [] }),
+    });
+    vi.stubGlobal('fetch', mockFetch);
+
+    await callVisionApi('images', { requests: [] }, 'my-key', 'fallback');
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  // Regression test: an earlier version had no timeout at all, so a
+  // stalled network request (flaky connection, a proxy that silently
+  // drops the connection) left the caller's "Scanning…" state stuck
+  // forever with no way to recover short of refreshing the page.
+  test('surfaces a clear message when the request times out', async () => {
+    const timeoutError = new DOMException('The signal timed out', 'TimeoutError');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(timeoutError));
+
+    await expect(
+      callVisionApi('images', { requests: [] }, 'my-key', 'fallback'),
+    ).rejects.toThrow('timed out');
+  });
+
+  test('re-throws a non-timeout fetch failure unchanged', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network unreachable')));
+
+    await expect(
+      callVisionApi('images', { requests: [] }, 'my-key', 'fallback'),
+    ).rejects.toThrow('network unreachable');
+  });
 });
