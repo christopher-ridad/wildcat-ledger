@@ -23,12 +23,20 @@ export function useTasksData(activeOrganizationId: string | null) {
       return;
     }
 
+    // Guards against a stale response from a previous org's fetch landing
+    // after the user has already switched to a different one -- unlike
+    // useOrganizationsData's per-org state, financialTasks/Requirements
+    // aren't keyed by org_id, so an unguarded late write here would
+    // silently show the wrong org's tasks.
+    let cancelled = false;
+
     const loadFinancialTasks = async () => {
       const { data } = await supabase
         .from('financial_tasks')
         .select('*')
         .eq('org_id', activeOrganizationId)
         .order('due_date', { ascending: true });
+      if (cancelled) return;
       setFinancialTasks((data ?? []).map(rowToFinancialTask));
     };
 
@@ -38,6 +46,7 @@ export function useTasksData(activeOrganizationId: string | null) {
         .select('*')
         .eq('org_id', activeOrganizationId)
         .order('created_at', { ascending: true });
+      if (cancelled) return;
       setFinancialTaskRequirements((data ?? []).map(rowToFinancialTaskRequirement));
     };
 
@@ -69,6 +78,7 @@ export function useTasksData(activeOrganizationId: string | null) {
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [activeOrganizationId]);
