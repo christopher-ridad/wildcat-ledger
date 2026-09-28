@@ -3,7 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../../../../config/supabase';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
-import { Box, drawFlagBoxes, MAX_DOCUMENT_CHECK_FILE_BYTES } from './documentCheckCanvas';
+import {
+  Box,
+  drawFlagBoxes,
+  loadPdf,
+  MAX_DOCUMENT_CHECK_FILE_BYTES,
+  renderPage,
+} from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
 
 interface CompletenessFlag {
@@ -85,7 +91,7 @@ export const GenericCompletenessCheck = ({
           return;
         }
 
-        const dims = await renderPage(pdf, canvas);
+        const dims = await renderPage(pdf, 1, canvas);
         if (cancelled) return;
 
         const fileBase64 = await fileToBase64(file);
@@ -174,33 +180,3 @@ export const GenericCompletenessCheck = ({
     </div>
   );
 };
-
-// pdfjs-dist is only ever needed for these checks, so it's dynamically
-// imported to keep it out of the Dashboard's main bundle -- same reasoning
-// as W9CompletenessCheck's loadPdf. Only page 1 is ever rendered/checked,
-// regardless of how many pages the upload has (see each doc's maxPages
-// comment above for why that's still a meaningful cap).
-async function loadPdf(file: File) {
-  const pdfjsLib = await import('pdfjs-dist');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
-
-  const buffer = await file.arrayBuffer();
-  return pdfjsLib.getDocument({ data: buffer }).promise;
-}
-
-async function renderPage(
-  pdf: Awaited<ReturnType<typeof loadPdf>>,
-  canvas: HTMLCanvasElement,
-) {
-  const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 1.5 });
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas 2D context unavailable');
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  return { width: viewport.width, height: viewport.height };
-}
