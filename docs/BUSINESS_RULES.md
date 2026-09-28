@@ -85,14 +85,117 @@ example of that exact form -- including reading checkbox darkness directly off t
 W-9's tax classification and the RSO Agreement's Section 4, which a plain text-field read can't
 reliably catch. The newer three (Contracted Services, Conflict of Interest, Special Pay Form) are
 narrower: each only checks whatever fields have a label unique enough on the page to match with
-confidence, informed by a real correctly-filled example of the Contracted Services and Conflict of
-Interest Forms (which is also what caught two fields these checks originally required but a real
-complete submission actually leaves blank -- see each check's own header comment). The Conflict of
-Interest Form's three Yes/No questions are checked too -- each needs some mark, Yes or No, or it's
-flagged unanswered -- located by the question's own printed text rather than a fixed position, but
-using a column-position estimate that (unlike the W-9/RSO checkbox reading) was never calibrated
-against a real Document AI response, so it's the one piece of any of these five checks most likely
-to need adjusting once it's actually run against a live upload.
+confidence, informed by real correctly-filled examples of the Contracted Services and Conflict of
+Interest Forms (which is also what caught fields these checks originally required but a real
+complete submission actually leaves blank -- see each check's own header comment).
+
+Contracted Services, Conflict of Interest, and Special Pay Form all group their flags by the form's
+own printed sections rather than one flag per field, the same way RSO Agreement's flags are grouped
+by its numbered sections -- Contracted Services into "Contractor Information" and "Contractor's
+Acknowledgement," Conflict of Interest into "Vendor Information" (the vendor name, plus its three
+Yes/No questions, each needing some mark, Yes or No, it doesn't matter which) and "Selected/Directed
+By" (the "Individual(s) who selected or directed the vendor" name, signature, and date), and Special
+Pay Form into five independent flags -- "Employee Information," "Payment Information," "Funding" (at
+least one of the table's two rows fully filled), "Nature of Service" (at least one of its ~17
+job-title checkboxes, doesn't matter which), and "Employee Certification" (both "Employee's
+Signature:" lines -- one for the grant-account certification, one for the DCFS acknowledgement
+immediately below it). Special Pay Form's five sections sit close together on the page and its
+reference image draws one continuous outline across the first four, but each is still its own
+independent flag with its own box, so a single missing section (Funding, say) only boxes that
+section, not the whole region. Contracted Services and Conflict of Interest each use a fixed box per
+section (`SECTION_BOXES`), the same way RSO Agreement's do, captured (RSO Agreement) or estimated
+(the other two) from a specific rendering of that form. Special Pay Form's five boxes are computed
+per-document instead (`computeSectionBoxes`), from wherever its own section headings and the next
+section's actually land on that specific page, rather than a fixed guess -- a real upload showed a
+newer revision of the form with an extra "Do you anticipate submitting another Special Pay
+request..." Yes/No question wedged into Payment Information that isn't on the blank template this
+was first built against, shifting every section below it down and making a fixed-fraction guess land
+on the wrong section entirely (Funding's box landing over Payment Information, etc). A fixed-fraction
+guess (`FALLBACK_SECTION_BOXES`, the same visual estimate this started from) is still used per-section
+if that section's own heading, or the next one's, can't be found on the page at all. Separately,
+Conflict of Interest's fixed boxes needed a real correction once tested live: Selected/Directed By's
+actual content sits at y ~0.68-0.75, not the ~0.49-0.6 first guessed, and Vendor Information's box
+didn't reach far enough down to cover the Yes/No table's third row -- both now use the real
+Y-positions a live Document AI response confirmed.
+
+Special Pay Form's first live test got the box-placement fix above right, but its second (a genuinely
+fillable PDF, filled in via its own form fields rather than scanned/handwritten) found real bugs in
+the funding-row and two-signature logic themselves: both originally only ever scanned raw OCR lines,
+on the unconfirmed assumption that a printed row/repeated label wouldn't pair into `formFields` the
+way Contracted Services' Name and Address didn't. Wrong for this document -- its actual response
+showed every Funding cell (Fund, FN Dept, Project, Activity, Percent) and both "Employee's Signature:"
+fields cleanly paired in `formFields` with real values (a signature even OCRs as garbled text -- "The
+be", "There" -- rather than nothing, since Document AI attempts to read cursive handwriting as text).
+Both now check `formFields` first, the same formFields-then-line-scan-fallback order every other field
+on this page already uses via `findLabeledFieldStatuses`, falling back to the original line-scan logic
+only when `formFields` doesn't have these paired at all. Nature of Service got the same treatment
+pre-emptively, even though it wasn't independently confirmed broken by that upload -- its checked box
+came through as a `formFields` value ("Honorarium (106243)" paired with "☑"), which the original
+visualElements/line-glyph-only search would have missed entirely had that been the checkbox's only
+representation.
+
+With that fixed, a follow-up upload with both Employee Information and Payment Information genuinely
+incomplete showed their two boxes reading as one merged rectangle -- `computeSectionBoxes` had a box's
+bottom edge and the next section's top edge landing on the exact same y (both `nextHeadingY -
+HEADING_BOX_PADDING`), so two adjacent flagged sections touched with no visible gap between them.
+`SECTION_BOX_GAP` now shaves a little extra off a box's bottom edge so adjacent sections stay visually
+distinct even when both fire at once.
+
+Testing the blank template itself then surfaced a real detection bug: Payment Information's flag never
+fired at all, even with every field genuinely blank. Its four labels sit crammed onto one printed row
+("Period of Service Begin Date: Period of Service End Date: Earnings Amount: Hours of Work per
+Week:", confirmed straight off the blank template's own extracted text), and the original per-field
+`RobustFieldSpec`s' plain `sameLine` matcher took everything after a label to the end of the line as
+its "value" -- on a blank row, that's just the next label's own text, not a real value. Fixed by
+generalizing Funding's row-parsing helpers (`isAnyRowCompleteFromFormFields` /
+`isAnyRowCompleteFromLines`) to take a label list, and using them for Payment Information too: both
+stop a label's value at the next known label rather than reading to the end of the line, so an empty
+cell can't be mistaken for filled just because more labels follow it on the same row.
+
+Live tests of the deployed checks surfaced a few Document AI quirks worth knowing about if a check on
+one of these newer three forms ever looks wrong on a real upload:
+
+- Its generic Form Parser doesn't reliably pair every label with its value the way it does on the
+  W-9 (Contracted Services' Name and Address Line 1 never showed up paired at all, despite being
+  filled in) -- handled by `checkLabeledFieldsRobust` falling back to scanning the page's raw text
+  lines directly when a field never gets paired.
+- It can occasionally misread a Latin letter as its Greek lookalike in some fonts ("To:" came back
+  as "Το:", Greek Tau + omicron) -- handled by `normalizeHomoglyphs`.
+- A long question that wraps across several printed lines can have its line break fall between two
+  words of whatever text is being searched for, so a match needs to be a single word, not a phrase --
+  discovered when Conflict of Interest's three Yes/No questions, anchored by two-word phrases, came
+  back as "couldn't locate this question" on a real upload despite the questions being clearly
+  printed on the page.
+- A printed label and its handwritten value often OCR as two separate lines rather than one combined
+  "Label: value" line -- Conflict of Interest's "Proposed Vendor Name:" is its own line, with the
+  handwritten name a distinct line immediately after it (sitting slightly above the blank it's
+  written on, so its line's own vertical center can even read as a touch _above_ the label's).
+  Checked the same way Contracted Services' Additional Description of Services is: the label's field
+  looks at the next OCR'd line, not the same one.
+- A handwritten checkmark isn't nothing, and isn't something that needs pixel-level column-position
+  guessing either -- a real Document AI response confirmed it OCRs as an actual Unicode glyph
+  (`☑`, BALLOT BOX WITH CHECK) on its own line. Conflict of Interest's Yes/No questions now
+  search for that glyph within each question's own vertical span, with no horizontal constraint at
+  all -- the original column-position guess never had any real data behind it and was very likely
+  the actual cause of two of the three rows misfiring, not the row-finding logic itself (which real
+  data confirmed was already correct). The third row's checkmark is a confirmed complete OCR
+  miss on that same real upload -- absent from lines, tokens, and visualElements alike, so there's
+  no signal in Document AI's output for this check to key off of. Not a bug; a genuine limitation
+  worth knowing is possible on any given upload.
+
+Only the first two are confirmed necessary for Contracted Services specifically; the rest are applied
+to Conflict of Interest and Special Pay Form too, since all three forms run through the same
+processor -- for Special Pay Form specifically, none of this is independently confirmed yet, since
+it hasn't had a real live test. Special Pay Form's Funding-row check also doesn't assume whether
+Document AI prints a whole row (Fund/FN Dept/Project/Activity/Percent) as one combined OCR'd line or
+several separate ones -- it combines every line within a generous band of a row's own vertical
+position into one blob first, then looks for each label inside that, so it isn't sensitive either way
+once tested. Its Nature of Service check doesn't try to identify which of the ~17 job-title checkboxes
+is checked, only whether anything is, within the region bounded by the "Nature of Service" and
+"Employee Certification" headings -- checking both a Document AI `visualElement` of type
+`filled_checkbox` (the way W-9's tax-classification checkboxes work) and the same checkmark-glyph
+search Conflict of Interest uses, since it isn't yet known which of the two this form's checkboxes
+will actually come through as.
 
 **Technical implementation:** each check is a Supabase Edge Function (`check-w9-completeness`,
 `check-rso-agreement-completeness`, `check-contracted-services-completeness`,

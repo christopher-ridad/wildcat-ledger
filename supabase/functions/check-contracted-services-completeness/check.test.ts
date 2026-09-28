@@ -2,31 +2,45 @@ import { assertEquals } from 'jsr:@std/assert@1';
 
 import { boxFrom } from '../_shared/documentAi.ts';
 import { FixtureDoc } from '../_shared/testFixtures.ts';
-import { checkContractedServices } from './check.ts';
+import { checkContractedServices, SECTION_BOXES } from './check.ts';
 
 const ARBITRARY_BOX = boxFrom(0, 0.1, 0, 0.1);
 
 // A fully, validly filled Contracted Services Form -- the baseline every
-// other test perturbs one field of. Shape matches a real correctly-filled
-// example (Requestor/Department deliberately absent -- see check.ts's
-// header comment for why).
+// other test perturbs one line of. Modeled on lines, not formFields: a
+// real upload confirmed Document AI doesn't reliably pair every one of
+// these into formFields on this form (Name and Address Line 1 never
+// appeared in formFields at all despite being filled in) -- see check.ts's
+// header comment. Includes the "Contractor's Acknowledgement" section
+// heading between the description box and the signature line, matching
+// the real form's own layout -- needed to properly exercise the
+// nextLineBoilerplate guard below.
 function fullyFilledDoc() {
   const doc = new FixtureDoc();
-  const formFields = [
-    doc.field('Name:', 'Acme Consulting', ARBITRARY_BOX),
-    doc.field('Address Line 1:', '123 Main St', ARBITRARY_BOX),
-    doc.field('City, State  Zip:', 'Evanston, IL 60201', ARBITRARY_BOX),
-    doc.field('From:', '1/1/2026', ARBITRARY_BOX),
-    doc.field('To:', '1/31/2026', ARBITRARY_BOX),
-    doc.field('or Flat Fee:', '$500', ARBITRARY_BOX),
-    doc.field('Contractor Signature:', 'A. Consultant', ARBITRARY_BOX),
+  const lines = [
+    doc.line('Name: Acme Consulting', ARBITRARY_BOX),
+    doc.line('Address Line 1: 123 Main St', ARBITRARY_BOX),
+    doc.line('City, State  Zip: Evanston, IL 60201', ARBITRARY_BOX),
+    doc.line('From: 1/1/2026', ARBITRARY_BOX),
+    // Matches a real upload, where Document AI OCR'd "To:" as "Το:"
+    // (Greek Tau + omicron) instead of Latin "To:".
+    doc.line('Το: 1/31/2026', ARBITRARY_BOX),
+    doc.line('or Flat Fee: $500', ARBITRARY_BOX),
+    doc.line(
+      'Additional Description of Services (for sponsored project, also describe the benefit to the award):',
+      ARBITRARY_BOX,
+    ),
+    doc.line('Some real description text', ARBITRARY_BOX),
+    doc.line("Contractor's Acknowledgement", ARBITRARY_BOX),
+    doc.line('Contractor Signature: A. Consultant', ARBITRARY_BOX),
+    doc.line('Date: 9/2/2026', ARBITRARY_BOX),
   ];
-  return { doc, formFields };
+  return { doc, formFields: [], lines };
 }
 
 Deno.test('checkContractedServices - fully filled document has no flags', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  assertEquals(checkContractedServices(doc.text, formFields), []);
+  const { doc, formFields, lines } = fullyFilledDoc();
+  assertEquals(checkContractedServices(doc.text, formFields, lines), []);
 });
 
 // Regression test: a real correctly-filled example left Requestor and
@@ -36,97 +50,202 @@ Deno.test('checkContractedServices - fully filled document has no flags', () => 
 Deno.test(
   'checkContractedServices - Requestor and Department absent entirely is not flagged',
   () => {
-    const { doc, formFields } = fullyFilledDoc();
-    assertEquals(checkContractedServices(doc.text, formFields), []);
+    const { doc, formFields, lines } = fullyFilledDoc();
+    assertEquals(checkContractedServices(doc.text, formFields, lines), []);
   },
 );
 
 Deno.test(
-  'checkContractedServices - blank contractor Name is flagged with its own box',
+  'checkContractedServices - one blank Contractor Information field flags the whole section, not the individual field',
   () => {
-    const { doc, formFields } = fullyFilledDoc();
-    formFields[0] = doc.field('Name:', '', ARBITRARY_BOX);
-    const flags = checkContractedServices(doc.text, formFields);
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[0] = doc.line('Name: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
     assertEquals(flags.length, 1);
-    assertEquals(flags[0].label, 'Contractor Name');
-    assertEquals(flags[0].box, ARBITRARY_BOX);
+    assertEquals(flags[0].label, 'Contractor Information');
+    assertEquals(flags[0].message, 'Contractor Information looks incomplete.');
   },
 );
 
 Deno.test(
-  'checkContractedServices - contractor Name missing entirely has a null box',
+  "checkContractedServices - the Contractor Information box is the section's fixed, hand-marked-up position",
   () => {
-    const { doc, formFields } = fullyFilledDoc();
-    formFields.shift();
-    const flags = checkContractedServices(doc.text, formFields);
-    assertEquals(flags.length, 1);
-    assertEquals(flags[0].label, 'Contractor Name');
-    assertEquals(flags[0].box, null);
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[0] = doc.line('Name: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(flags[0].box, SECTION_BOXES.contractorInformation);
   },
 );
 
-Deno.test('checkContractedServices - blank Address is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[1] = doc.field('Address Line 1:', '', ARBITRARY_BOX);
-  const flags = checkContractedServices(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'Address'),
-    true,
-  );
+Deno.test(
+  'checkContractedServices - blank Address (within Contractor Information) is flagged',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[1] = doc.line('Address Line 1: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === 'Contractor Information'),
+      true,
+    );
+  },
+);
+
+Deno.test(
+  'checkContractedServices - blank City/State/Zip (within Contractor Information) is flagged',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[2] = doc.line('City, State  Zip: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === 'Contractor Information'),
+      true,
+    );
+  },
+);
+
+Deno.test(
+  'checkContractedServices - blank Period of Service From (within Contractor Information) is flagged',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[3] = doc.line('From: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === 'Contractor Information'),
+      true,
+    );
+  },
+);
+
+Deno.test(
+  'checkContractedServices - blank Period of Service To (OCR\'d as Greek "Το:") is flagged',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[4] = doc.line('Το: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === 'Contractor Information'),
+      true,
+    );
+  },
+);
+
+Deno.test(
+  'checkContractedServices - filled Period of Service To is recognized despite the Greek OCR',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    assertEquals(checkContractedServices(doc.text, formFields, lines), []);
+  },
+);
+
+Deno.test(
+  'checkContractedServices - blank Rate of Pay (within Contractor Information) is flagged',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[5] = doc.line('or Flat Fee: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === 'Contractor Information'),
+      true,
+    );
+  },
+);
+
+// Regression test: the label line itself has trailing static text ("...
+// also describe the benefit to the award):"), and the next real printed
+// content on the page -- when the description box is genuinely blank --
+// is the "Contractor's Acknowledgement" section heading, not user-entered
+// text. Both would look like a filled-in value without the
+// nextLineBoilerplate guard.
+Deno.test(
+  'checkContractedServices - blank Description (label immediately followed by the Acknowledgement heading) flags Contractor Information',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines.splice(7, 1); // drop the description's own content line
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === 'Contractor Information'),
+      true,
+    );
+  },
+);
+
+Deno.test('checkContractedServices - a filled Description is not flagged', () => {
+  const { doc, formFields, lines } = fullyFilledDoc();
+  assertEquals(checkContractedServices(doc.text, formFields, lines), []);
 });
 
-Deno.test('checkContractedServices - blank City/State/Zip is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[2] = doc.field('City, State  Zip:', '', ARBITRARY_BOX);
-  const flags = checkContractedServices(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'City/State/Zip'),
-    true,
-  );
-});
+Deno.test(
+  'checkContractedServices - blank Contractor Signature flags the Acknowledgement section, not Contractor Information',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[9] = doc.line('Contractor Signature: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(flags.length, 1);
+    assertEquals(flags[0].label, "Contractor's Acknowledgement");
+    assertEquals(flags[0].message, "Contractor's Acknowledgement looks incomplete.");
+  },
+);
 
-Deno.test('checkContractedServices - blank Period of Service From is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[3] = doc.field('From:', '', ARBITRARY_BOX);
-  const flags = checkContractedServices(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'Period of Service (From)'),
-    true,
-  );
-});
+Deno.test(
+  'checkContractedServices - blank signature Date flags the Acknowledgement section',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[10] = doc.line('Date: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(
+      flags.some((f) => f.label === "Contractor's Acknowledgement"),
+      true,
+    );
+  },
+);
 
-Deno.test('checkContractedServices - blank Period of Service To is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[4] = doc.field('To:', '', ARBITRARY_BOX);
-  const flags = checkContractedServices(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'Period of Service (To)'),
-    true,
-  );
-});
+Deno.test(
+  "checkContractedServices - the Acknowledgement box is the section's fixed, hand-marked-up position",
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[9] = doc.line('Contractor Signature: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(flags[0].box, SECTION_BOXES.acknowledgement);
+  },
+);
 
-Deno.test('checkContractedServices - blank Rate of Pay is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[5] = doc.field('or Flat Fee:', '', ARBITRARY_BOX);
-  const flags = checkContractedServices(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'Rate of Pay'),
-    true,
-  );
-});
+Deno.test(
+  'checkContractedServices - both sections incomplete produces two separate flags',
+  () => {
+    const { doc, formFields, lines } = fullyFilledDoc();
+    lines[0] = doc.line('Name: ', ARBITRARY_BOX);
+    lines[9] = doc.line('Contractor Signature: ', ARBITRARY_BOX);
+    const flags = checkContractedServices(doc.text, formFields, lines);
+    assertEquals(flags.length, 2);
+    assertEquals(
+      flags.map((f) => f.label).sort(),
+      ["Contractor's Acknowledgement", 'Contractor Information'].sort(),
+    );
+  },
+);
 
-Deno.test('checkContractedServices - blank Contractor Signature is flagged', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[6] = doc.field('Contractor Signature:', '', ARBITRARY_BOX);
-  const flags = checkContractedServices(doc.text, formFields);
-  assertEquals(
-    flags.some((f) => f.label === 'Contractor Signature'),
-    true,
-  );
-});
+Deno.test(
+  "checkContractedServices - Document AI's own formFields pairing is enough on its own, with no matching line needed",
+  () => {
+    const doc = new FixtureDoc();
+    // Matches what a real upload actually returned for this field --
+    // formFields pairing works for Contractor Signature, unlike Name and
+    // Address Line 1. No lines at all here, to prove this path doesn't
+    // depend on the line fallback.
+    const formFields = [
+      doc.field('Contractor Signature: ', 'A. Consultant', ARBITRARY_BOX),
+      doc.field('Date: ', '9/2/2026', ARBITRARY_BOX),
+    ];
+    const flags = checkContractedServices(doc.text, formFields, []);
+    assertEquals(
+      flags.some((f) => f.label === "Contractor's Acknowledgement"),
+      false,
+    );
+  },
+);
 
-Deno.test('checkContractedServices - field name matching is case-insensitive', () => {
-  const { doc, formFields } = fullyFilledDoc();
-  formFields[0] = doc.field('NAME:', 'Acme Consulting', ARBITRARY_BOX);
-  assertEquals(checkContractedServices(doc.text, formFields), []);
+Deno.test('checkContractedServices - line matching is case-insensitive', () => {
+  const { doc, formFields, lines } = fullyFilledDoc();
+  lines[0] = doc.line('NAME: Acme Consulting', ARBITRARY_BOX);
+  assertEquals(checkContractedServices(doc.text, formFields, lines), []);
 });

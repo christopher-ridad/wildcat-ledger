@@ -7,7 +7,6 @@ import {
   FormField,
   Line,
   serveDocumentCheck,
-  Token,
 } from '../_shared/documentAi.ts';
 import { checkConflictOfInterest } from './check.ts';
 
@@ -15,7 +14,6 @@ serveDocumentCheck((text, pages) => {
   const page = (pages[0] ?? {}) as DocumentAiPage;
   const formFields: FormField[] = page.formFields ?? [];
   const lines: Line[] = page.lines ?? [];
-  const tokens: Token[] = page.tokens ?? [];
 
-  return { flags: checkConflictOfInterest(text, formFields, lines, tokens) };
+  return { flags: checkConflictOfInterest(text, formFields, lines) };
 });

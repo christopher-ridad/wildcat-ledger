@@ -25,18 +25,13 @@ interface GenericCompletenessCheckProps {
 }
 
 // A single-page, field-presence-only sibling of W9CompletenessCheck and
-// RSOAgreementCompletenessCheck for the remaining checked document types
-// (Contracted Services Form, Conflict of Interest Form, Special Pay Form).
-// Those two earlier checks each needed bespoke client-side logic -- reading
-// checkbox darkness directly off pixels, disambiguating duplicate field
-// labels by page position -- calibrated against real Document AI output
-// from a feasibility spike. The forms this component covers don't get that
-// same treatment: each one only checks a handful of uniquely-labeled text
-// fields (see each check-*-completeness/check.ts's own header comment for
-// exactly which, and why some visible fields on the form are deliberately
-// left unchecked -- ambiguous or repeated labels, checkbox grids, etc that
-// would need the same kind of calibration this component's siblings had
-// and this didn't). Still genuinely useful, just narrower in scope.
+// RSOAgreementCompletenessCheck for the remaining document types
+// (Contracted Services, Conflict of Interest, Special Pay Form). Those two
+// needed bespoke client-side logic (pixel-darkness reads, position-based
+// field disambiguation) calibrated against a feasibility spike; these
+// forms only check a handful of uniquely-labeled text fields, so one
+// generic component suffices (see each check-*-completeness/check.ts for
+// exactly which fields, and why others are left unchecked).
 export const GenericCompletenessCheck = ({
   file,
   onBlockingChange,
