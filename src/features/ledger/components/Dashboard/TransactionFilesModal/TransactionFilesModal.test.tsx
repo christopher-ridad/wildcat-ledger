@@ -270,5 +270,46 @@ describe('TransactionFilesModal', () => {
 
       expect(await screen.findByText('Network unavailable')).toBeInTheDocument();
     });
+
+    // Regression test: pending state used to be a single shared
+    // requesting/error pair, so one document's request finishing cleared
+    // the "sending" indicator for a *different* still-in-flight document
+    // too, silently re-enabling its button mid-request.
+    test("requesting two different documents concurrently tracks each one's pending state independently", async () => {
+      vi.spyOn(window, 'open').mockImplementation(() => null);
+      let resolveW9: (token: string) => void = () => {};
+      const w9Promise = new Promise<string>((resolve) => {
+        resolveW9 = resolve;
+      });
+      const requestTransactionDocument = vi
+        .fn()
+        .mockImplementation((_txnId: string, key: string) =>
+          key === 'w9' ? w9Promise : Promise.resolve('contract-token'),
+        );
+      renderModal(
+        buildMockTransaction({ type: 'Payment Request', budgetLine: 'Operating' }),
+        vi.fn(),
+        { requestTransactionDocument },
+      );
+
+      fireEvent.click(screen.getByText('Request via Email'));
+      fireEvent.click(screen.getByText('Send for Signature'));
+
+      await vi.waitFor(() =>
+        expect(requestTransactionDocument).toHaveBeenCalledWith(
+          expect.any(String),
+          'contract',
+        ),
+      );
+      // The contract request has resolved; the still-pending W-9 request's
+      // button must stay disabled and showing "Sending…" regardless.
+      await vi.waitFor(() =>
+        expect(screen.getByText('Send for Signature')).toBeInTheDocument(),
+      );
+      expect(screen.getByRole('button', { name: 'Sending…' })).toBeDisabled();
+
+      resolveW9('w9-token');
+      expect(await screen.findByText('Request via Email')).toBeInTheDocument();
+    });
   });
 });
