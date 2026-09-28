@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { supabase } from '../../../../../config/supabase';
+import {
+  checkDocumentCompleteness,
+  CompletenessFlag,
+} from '../../../services/documentCompletenessCheck';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
 import {
-  Box,
   drawFlagBoxes,
   loadPdf,
   MAX_DOCUMENT_CHECK_FILE_BYTES,
@@ -12,12 +14,6 @@ import {
   renderPage,
 } from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
-
-interface CompletenessFlag {
-  label: string;
-  message: string;
-  box: Box | null;
-}
 
 const GENERIC_ERROR_MESSAGE =
   "Couldn't run the automatic check — you can still submit as normal.";
@@ -90,14 +86,13 @@ export const W9CompletenessCheck = ({
         if (cancelled) return;
 
         const fileBase64 = await fileToBase64(file);
-        const { data, error } = await supabase.functions.invoke('check-w9-completeness', {
-          body: { fileBase64 },
-          signal: controller.signal,
-        });
+        const detectedFlags = await checkDocumentCompleteness(
+          'check-w9-completeness',
+          fileBase64,
+          controller.signal,
+        );
         if (cancelled) return;
-        if (error) throw error;
 
-        const detectedFlags: CompletenessFlag[] = data?.flags ?? [];
         setFlags(detectedFlags);
         drawFlagBoxes(canvas, detectedFlags, dims);
         setStatus('done');

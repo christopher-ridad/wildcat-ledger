@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { supabase } from '../../../../../config/supabase';
+import { invokeDocumentCheck } from '../../../services/documentCompletenessCheck';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
 import {
@@ -175,17 +175,13 @@ export const RSOAgreementCompletenessCheck = ({
         if (cancelled) return;
 
         const fileBase64 = await fileToBase64(file);
-        const { data, error } = await supabase.functions.invoke(
+        const result = await invokeDocumentCheck<RsoCheckResult>(
           'check-rso-agreement-completeness',
-          {
-            body: { fileBase64 },
-            signal: controller.signal,
-          },
+          fileBase64,
+          controller.signal,
         );
         if (cancelled) return;
-        if (error) throw error;
 
-        const result = data as RsoCheckResult;
         const dimsByPage = [dims1, dims2];
         const ctx2 = canvas2.getContext('2d');
 
