@@ -7,7 +7,13 @@ import {
   rowToPendingChange,
   rowToTransaction,
 } from '../services/dbMapping';
-import { AuditEntry, BudgetLine, Organization, PendingChange } from '../types';
+import {
+  AuditEntry,
+  BudgetLine,
+  Organization,
+  PendingChange,
+  Transaction,
+} from '../types';
 
 // Shared by the three org-scoped Realtime-backed loaders below (transactions,
 // audit_log, pending_changes), which otherwise repeated this same
@@ -87,15 +93,20 @@ export function useOrganizationsData(userEmail: string | null) {
         return;
       }
 
-      const orgs: Organization[] = await Promise.all(
-        orgRows.map(async (row) => {
-          const transactions = await fetchOrgRows(
-            'transactions',
-            row.id,
-            rowToTransaction,
-          );
-          return rowToOrganization(row, transactions);
-        }),
+      // One query for every org's transactions -- RLS ("members can read
+      // transactions") already scopes this to orgs the user belongs to --
+      // rather than one query per org, which turned into a real N+1 for
+      // anyone who's a member of more than one.
+      const { data: txnRows } = await supabase.from('transactions').select('*');
+      const transactionsByOrgId = new Map<string, Transaction[]>();
+      for (const row of txnRows ?? []) {
+        const list = transactionsByOrgId.get(row.org_id) ?? [];
+        list.push(rowToTransaction(row));
+        transactionsByOrgId.set(row.org_id, list);
+      }
+
+      const orgs: Organization[] = orgRows.map((row) =>
+        rowToOrganization(row, transactionsByOrgId.get(row.id) ?? []),
       );
 
       if (!cancelled) {
