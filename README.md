@@ -15,6 +15,7 @@ Most Northwestern student orgs were tracking budgets across scattered spreadshee
 - **Audited approval workflow** with full transaction and audit history
 - **Debit card reconciliation** to match spending against statements
 - **Token-scoped receipt uploads** for unauthenticated contributors submitting reimbursements
+- **Automatic document completeness checks** for the five required SOFO forms (W-9, RSO Agreement, Contracted Services, Conflict of Interest, Special Pay Request), flagging likely-blank fields before submission
 
 ## Architecture
 
@@ -23,6 +24,7 @@ Most Northwestern student orgs were tracking budgets across scattered spreadshee
 - **Permissions:** enforced via Postgres Row-Level Security policies rather than application-layer checks, so access control holds even if a client request bypasses the UI
 - **Audit trail:** every transaction and approval action is logged, giving orgs a full history of who did what and when
 - **Receipt & budget-document scanning:** Google Cloud Vision OCR pre-fills a receipt's title/amount, or a budget-allocation document's line amounts, on upload — always reviewable and editable, never blocking manual entry if a scan fails
+- **Document completeness checks:** Google Cloud Document AI runs server-side (via Supabase Edge Functions, `supabase/functions/check-*-completeness`) against each of the five required SOFO forms, flagging fields that look blank with a red box on the rendered page — advisory only, requires an explicit acknowledgment to proceed rather than blocking, and fails open (not at all) if the check itself errors
 - **Testing:** Vitest for unit/integration coverage, Playwright for end-to-end flows (including automated WCAG accessibility scans via axe-core), both run in CI before merges
 
 ## Tech Stack
