@@ -1,6 +1,23 @@
-import { describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { documentPath } from './storage';
+import { supabase } from '../../../config/supabase';
+import {
+  documentPath,
+  removeTransactionDocuments,
+  transactionDocumentPaths,
+} from './storage';
+
+vi.mock('../../../config/supabase', () => ({
+  supabase: {
+    functions: { invoke: vi.fn() },
+  },
+}));
+
+const mockInvoke = vi.mocked(supabase.functions.invoke);
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('documentPath', () => {
   test('builds a path scoped to the org and transaction, prefixed and timestamped', () => {
@@ -29,5 +46,69 @@ describe('documentPath', () => {
     const path = documentPath('org-2', 'txn-9', file, 'exemption-form');
 
     expect(path.startsWith('clubs/org-2/transactions/txn-9/exemption-form_')).toBe(true);
+  });
+});
+
+describe('transactionDocumentPaths', () => {
+  test('collects every populated document url field', () => {
+    const paths = transactionDocumentPaths({
+      receiptFileUrl: 'clubs/org-1/transactions/t1/receipt.pdf',
+      contractFileUrl: undefined,
+      w9FileUrl: 'clubs/org-1/transactions/t1/w9.pdf',
+      contractedServicesFileUrl: undefined,
+      conflictOfInterestFileUrl: undefined,
+      specialPayFormUrl: undefined,
+      exemptionFormUrl: undefined,
+    });
+
+    expect(paths).toEqual([
+      'clubs/org-1/transactions/t1/receipt.pdf',
+      'clubs/org-1/transactions/t1/w9.pdf',
+    ]);
+  });
+
+  test('returns an empty array when no documents were uploaded', () => {
+    const paths = transactionDocumentPaths({
+      receiptFileUrl: undefined,
+      contractFileUrl: undefined,
+      w9FileUrl: undefined,
+      contractedServicesFileUrl: undefined,
+      conflictOfInterestFileUrl: undefined,
+      specialPayFormUrl: undefined,
+      exemptionFormUrl: undefined,
+    });
+
+    expect(paths).toEqual([]);
+  });
+});
+
+describe('removeTransactionDocuments', () => {
+  test('invokes the delete-transaction-documents function with the org and paths', async () => {
+    mockInvoke.mockResolvedValue({ data: null, error: null } as never);
+
+    await removeTransactionDocuments('org-1', [
+      'clubs/org-1/transactions/t1/receipt.pdf',
+    ]);
+
+    expect(mockInvoke).toHaveBeenCalledWith('delete-transaction-documents', {
+      body: { orgId: 'org-1', paths: ['clubs/org-1/transactions/t1/receipt.pdf'] },
+    });
+  });
+
+  test('does nothing when there are no paths to remove', async () => {
+    await removeTransactionDocuments('org-1', []);
+
+    expect(mockInvoke).not.toHaveBeenCalled();
+  });
+
+  test('throws when the function call fails', async () => {
+    mockInvoke.mockResolvedValue({
+      data: null,
+      error: new Error('unauthorized'),
+    } as never);
+
+    await expect(
+      removeTransactionDocuments('org-1', ['clubs/org-1/transactions/t1/receipt.pdf']),
+    ).rejects.toThrow('unauthorized');
   });
 });

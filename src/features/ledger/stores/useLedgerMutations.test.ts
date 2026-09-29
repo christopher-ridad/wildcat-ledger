@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { supabase } from '../../../config/supabase';
-import { documentPath, uploadDocument } from '../services/storage';
+import {
+  documentPath,
+  removeTransactionDocuments,
+  uploadDocument,
+} from '../services/storage';
+import { PendingChange } from '../types';
 import { useLedgerMutations } from './useLedgerMutations';
 
 vi.mock('../../../config/supabase', () => ({
@@ -14,12 +19,37 @@ vi.mock('../../../config/supabase', () => ({
 vi.mock('../services/storage', () => ({
   documentPath: vi.fn(),
   uploadDocument: vi.fn(),
+  removeTransactionDocuments: vi.fn(),
+  transactionDocumentPaths: vi.fn((t: Record<string, unknown>) =>
+    [
+      t.receiptFileUrl,
+      t.contractFileUrl,
+      t.w9FileUrl,
+      t.contractedServicesFileUrl,
+      t.conflictOfInterestFileUrl,
+      t.specialPayFormUrl,
+      t.exemptionFormUrl,
+    ].filter(Boolean),
+  ),
 }));
 
 const mockRpc = vi.mocked(supabase.rpc);
 const mockFrom = vi.mocked(supabase.from);
 const mockDocumentPath = vi.mocked(documentPath);
 const mockUploadDocument = vi.mocked(uploadDocument);
+const mockRemoveTransactionDocuments = vi.mocked(removeTransactionDocuments);
+
+const buildPendingChange = (overrides: Partial<PendingChange> = {}): PendingChange => ({
+  id: 'pending-1',
+  type: 'delete',
+  transactionId: 'txn-1',
+  transactionTitle: 'A transaction',
+  requestedBy: 'someone@u.northwestern.edu',
+  requestedAt: 0,
+  before: { title: 'A transaction' } as PendingChange['before'],
+  after: null,
+  ...overrides,
+});
 
 // Sets up the supabase.from(table).update(patch).eq(col, val) chain used by
 // updateActiveOrganization/uploadExemptionForm, and returns the
@@ -174,6 +204,61 @@ describe('pending change resolution', () => {
       p_pending_id: 'pending-1',
       p_approved: true,
     });
+  });
+
+  // Regression test: approving a delete used to only remove the transactions
+  // row -- its uploaded documents (receipts, W9s, ...) stayed in Storage
+  // forever with nothing left pointing at them.
+  test("approving a delete removes the deleted transaction's documents from storage", async () => {
+    mockRpc.mockResolvedValue({ error: null } as never);
+    const pending = buildPendingChange({
+      before: {
+        title: 'A transaction',
+        receiptFileUrl: 'clubs/org-1/transactions/txn-1/receipt_1_r.pdf',
+        w9FileUrl: 'clubs/org-1/transactions/txn-1/w9_1_w9.pdf',
+      } as PendingChange['before'],
+    });
+    const { approvePendingChange } = useLedgerMutations('org-1', 'sofoApprover', [
+      pending,
+    ]);
+
+    await approvePendingChange('pending-1');
+
+    expect(mockRemoveTransactionDocuments).toHaveBeenCalledWith('org-1', [
+      'clubs/org-1/transactions/txn-1/receipt_1_r.pdf',
+      'clubs/org-1/transactions/txn-1/w9_1_w9.pdf',
+    ]);
+  });
+
+  test('approving an edit does not attempt any storage cleanup', async () => {
+    mockRpc.mockResolvedValue({ error: null } as never);
+    const pending = buildPendingChange({ type: 'edit' });
+    const { approvePendingChange } = useLedgerMutations('org-1', 'sofoApprover', [
+      pending,
+    ]);
+
+    await approvePendingChange('pending-1');
+
+    expect(mockRemoveTransactionDocuments).not.toHaveBeenCalled();
+  });
+
+  // A failed cleanup must not surface as a failed approval -- the DB-side
+  // approval already succeeded and is the source of truth; the caller just
+  // ends up with an orphaned file to clean up another time.
+  test('a storage cleanup failure does not reject approvePendingChange', async () => {
+    mockRpc.mockResolvedValue({ error: null } as never);
+    mockRemoveTransactionDocuments.mockRejectedValueOnce(new Error('storage down'));
+    const pending = buildPendingChange({
+      before: {
+        title: 'A transaction',
+        receiptFileUrl: 'clubs/org-1/transactions/txn-1/receipt_1_r.pdf',
+      } as PendingChange['before'],
+    });
+    const { approvePendingChange } = useLedgerMutations('org-1', 'sofoApprover', [
+      pending,
+    ]);
+
+    await expect(approvePendingChange('pending-1')).resolves.toBeUndefined();
   });
 
   test('rejectPendingChange calls resolve_pending_change_with_audit with p_approved false', async () => {
