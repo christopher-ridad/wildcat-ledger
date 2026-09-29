@@ -207,4 +207,70 @@ describe('useOrganizationsData', () => {
 
     expect(result.current.activeOrganizationId).toBe('org-from-storage');
   });
+
+  // Regression test: transactions for every org used to be fetched one
+  // query at a time (one per org), an N+1 pattern for anyone in more than
+  // one organization. Confirms the initial load queries `transactions`
+  // exactly once regardless of org count, and still buckets each org's
+  // rows correctly by org_id.
+  test("fetches every org's transactions in a single query and buckets them by org_id", async () => {
+    mockSuccessfulLoad({
+      organizations: {
+        data: [
+          {
+            id: 'org-1',
+            name: 'Wildcat Club',
+            sofo_approvers: ['treasurer@example.com'],
+            officers: [],
+            budget_allocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 },
+            is_budget_lines_set: true,
+            last_reconciliation_date: null,
+            debit_card_project_id: null,
+            debit_card_account_number: null,
+            debit_card_last_four: null,
+            debit_card_icn: null,
+            debit_card_load_balance: null,
+          },
+          {
+            id: 'org-2',
+            name: 'Second Club',
+            sofo_approvers: ['treasurer@example.com'],
+            officers: [],
+            budget_allocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 0 },
+            is_budget_lines_set: true,
+            last_reconciliation_date: null,
+            debit_card_project_id: null,
+            debit_card_account_number: null,
+            debit_card_last_four: null,
+            debit_card_icn: null,
+            debit_card_load_balance: null,
+          },
+        ],
+        error: null,
+      },
+      transactions: {
+        data: [
+          { id: 'txn-1', org_id: 'org-1', title: 'Org 1 purchase' },
+          { id: 'txn-2', org_id: 'org-2', title: 'Org 2 purchase' },
+        ],
+      },
+    });
+
+    const { result } = renderHook(() => useOrganizationsData('treasurer@example.com'));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const transactionsCalls = mockFrom.mock.calls.filter(
+      ([table]) => table === 'transactions',
+    );
+    expect(transactionsCalls.length).toBe(1);
+
+    const org1 = result.current.organizations.find((o) => o.id === 'org-1');
+    const org2 = result.current.organizations.find((o) => o.id === 'org-2');
+    expect(org1?.transactions).toEqual([
+      expect.objectContaining({ id: 'txn-1', title: 'Org 1 purchase' }),
+    ]);
+    expect(org2?.transactions).toEqual([
+      expect.objectContaining({ id: 'txn-2', title: 'Org 2 purchase' }),
+    ]);
+  });
 });

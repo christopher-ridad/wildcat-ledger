@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { supabase } from '../../../../../config/supabase';
+import {
+  checkDocumentCompleteness,
+  CompletenessFlag,
+} from '../../../services/documentCompletenessCheck';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
 import {
-  Box,
   drawFlagBoxes,
+  loadPdf,
   MAX_DOCUMENT_CHECK_FILE_BYTES,
   MAX_W9_PAGES,
+  renderPage,
 } from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
-
-interface CompletenessFlag {
-  label: string;
-  message: string;
-  box: Box | null;
-}
 
 const GENERIC_ERROR_MESSAGE =
   "Couldn't run the automatic check — you can still submit as normal.";
@@ -84,18 +82,17 @@ export const W9CompletenessCheck = ({
           return;
         }
 
-        const dims = await renderPage(pdf, canvas);
+        const dims = await renderPage(pdf, 1, canvas);
         if (cancelled) return;
 
         const fileBase64 = await fileToBase64(file);
-        const { data, error } = await supabase.functions.invoke('check-w9-completeness', {
-          body: { fileBase64 },
-          signal: controller.signal,
-        });
+        const detectedFlags = await checkDocumentCompleteness(
+          'check-w9-completeness',
+          fileBase64,
+          controller.signal,
+        );
         if (cancelled) return;
-        if (error) throw error;
 
-        const detectedFlags: CompletenessFlag[] = data?.flags ?? [];
         setFlags(detectedFlags);
         drawFlagBoxes(canvas, detectedFlags, dims);
         setStatus('done');
@@ -172,34 +169,3 @@ export const W9CompletenessCheck = ({
     </div>
   );
 };
-
-// pdfjs-dist is a genuinely heavy library (a few hundred KB) that's only
-// ever needed for this one check -- dynamically imported so it lands in
-// its own chunk instead of bloating the Dashboard's main bundle for every
-// visit, regardless of whether anyone ever uploads a W-9. Split into
-// load/render so the page count is known (and can be rejected) before
-// ever rendering anything.
-async function loadPdf(file: File) {
-  const pdfjsLib = await import('pdfjs-dist');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
-
-  const buffer = await file.arrayBuffer();
-  return pdfjsLib.getDocument({ data: buffer }).promise;
-}
-
-async function renderPage(
-  pdf: Awaited<ReturnType<typeof loadPdf>>,
-  canvas: HTMLCanvasElement,
-) {
-  const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 1.5 });
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas 2D context unavailable');
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  return { width: viewport.width, height: viewport.height };
-}

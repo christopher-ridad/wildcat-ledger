@@ -35,18 +35,21 @@ vi.mock('../QuarterBoard', () => ({
   QuarterBoard: ({
     tasks,
     onEdit,
+    onDelete,
     headerActions,
   }: {
     tasks: { id: string; title: string }[];
     onEdit: (task: { id: string; title: string }) => void;
+    onDelete: (task: { id: string; title: string }) => void;
     headerActions?: ReactNode;
   }) => (
     <div data-testid="quarter-board">
       {headerActions}
       {tasks.map((task) => (
-        <button key={task.id} onClick={() => onEdit(task)}>
-          Edit {task.title}
-        </button>
+        <div key={task.id}>
+          <button onClick={() => onEdit(task)}>Edit {task.title}</button>
+          <button onClick={() => onDelete(task)}>Delete {task.title}</button>
+        </div>
       ))}
     </div>
   ),
@@ -157,5 +160,42 @@ describe('TimelineBoard', () => {
         dueDate: '2026-09-01',
       }),
     );
+  });
+
+  // Regression test: deleting a task used to fire immediately on click, with
+  // no confirmation -- unlike every other destructive action in the app
+  // (e.g. transaction deletion), which requires an explicit confirm step.
+  test('clicking Delete asks for confirmation before calling deleteFinancialTask', async () => {
+    const deleteFinancialTask = vi.fn().mockResolvedValue(undefined);
+    mockUseTasks.mockReturnValue({
+      ...baseTasks,
+      deleteFinancialTask,
+      financialTasks: [buildMockFinancialTask({ id: 't1', title: 'Submit Contract' })],
+    } as never);
+    render(<TimelineBoard />);
+
+    fireEvent.click(screen.getByText('Delete Submit Contract'));
+    expect(deleteFinancialTask).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog')).toHaveTextContent('Delete Task');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(deleteFinancialTask).toHaveBeenCalledWith('t1'));
+  });
+
+  test('cancelling the delete confirmation does not call deleteFinancialTask', () => {
+    const deleteFinancialTask = vi.fn().mockResolvedValue(undefined);
+    mockUseTasks.mockReturnValue({
+      ...baseTasks,
+      deleteFinancialTask,
+      financialTasks: [buildMockFinancialTask({ id: 't1', title: 'Submit Contract' })],
+    } as never);
+    render(<TimelineBoard />);
+
+    fireEvent.click(screen.getByText('Delete Submit Contract'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(deleteFinancialTask).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

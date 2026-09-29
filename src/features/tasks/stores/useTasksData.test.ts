@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { supabase } from '../../../config/supabase';
@@ -163,5 +163,92 @@ describe('useTasksData', () => {
     rerender({ orgId: null });
     expect(result.current.financialTasks).toEqual([]);
     expect(result.current.financialTaskRequirements).toEqual([]);
+  });
+
+  // Regression test: a stale response from a previous org's fetch resolving
+  // after the user has already switched orgs must not overwrite the newer
+  // org's data -- financialTasks isn't keyed by org_id, so nothing else
+  // guards against this.
+  test('a slow org-1 response resolving after switching to org-2 does not clobber org-2 data', async () => {
+    let resolveOrg1: (value: { data: unknown }) => void;
+    const org1Pending = new Promise<{ data: unknown }>((resolve) => {
+      resolveOrg1 = resolve;
+    });
+
+    let call = 0;
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'financial_tasks') {
+        call += 1;
+        if (call === 1) {
+          // org-1's query never resolves until we trigger it below.
+          const builder = {
+            select: vi.fn(() => builder),
+            eq: vi.fn(() => builder),
+            order: vi.fn(() => builder),
+            then: (resolve: (value: { data: unknown }) => void) =>
+              org1Pending.then(resolve),
+          };
+          return builder as never;
+        }
+        return createQueryBuilder({
+          data: [
+            {
+              id: 'task-org2',
+              org_id: 'org-2',
+              title: 'Org 2 task',
+              description: null,
+              due_date: '2026-09-20',
+              assignee_emails: [],
+              completed_at: null,
+              created_by: 'treasurer@example.com',
+              created_at: '2026-08-01T00:00:00.000Z',
+              payment_type: null,
+              is_individual_vendor: false,
+            },
+          ],
+        }) as never;
+      }
+      return createQueryBuilder({ data: [] }) as never;
+    });
+
+    const { result, rerender } = renderHook(({ orgId }) => useTasksData(orgId), {
+      initialProps: { orgId: 'org-1' as string | null },
+    });
+
+    rerender({ orgId: 'org-2' });
+    await waitFor(() =>
+      expect(result.current.financialTasks).toEqual([
+        expect.objectContaining({ id: 'task-org2' }),
+      ]),
+    );
+
+    // org-1's stale response finally resolves, after the switch. Flush it
+    // fully (including the .map()/setState microtasks inside the hook)
+    // before asserting, wrapped in act() since this update happens outside
+    // any test-triggered event.
+    await act(async () => {
+      resolveOrg1!({
+        data: [
+          {
+            id: 'task-org1',
+            org_id: 'org-1',
+            title: 'Org 1 task',
+            description: null,
+            due_date: '2026-09-10',
+            assignee_emails: [],
+            completed_at: null,
+            created_by: 'treasurer@example.com',
+            created_at: '2026-08-01T00:00:00.000Z',
+            payment_type: null,
+            is_individual_vendor: false,
+          },
+        ],
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(result.current.financialTasks).toEqual([
+      expect.objectContaining({ id: 'task-org2' }),
+    ]);
   });
 });

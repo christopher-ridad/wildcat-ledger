@@ -163,11 +163,10 @@ export interface PresenceFlag {
 // lookalike in certain fonts/sizes -- confirmed on a real Contracted
 // Services Form upload, where "To:" was read back as "Το:" (Greek
 // capital Tau + lowercase omicron, not Latin T + o). Applied to
-// already-lowercased text before any label comparison, in every check
-// that uses checkLabeledFieldsRobust below, so a match isn't thrown off
-// by this. Greek letters lowercase predictably via .toLowerCase() the
-// same way Latin ones do, so this only needs to handle the lowercase
-// forms.
+// already-lowercased text before any label comparison in
+// findLabeledFieldStatuses below, so a match isn't thrown off by this.
+// Greek letters lowercase predictably via .toLowerCase() the same way
+// Latin ones do, so this only needs to handle the lowercase forms.
 export function normalizeHomoglyphs(lowercased: string): string {
   return lowercased.replace(/τ/g, 't').replace(/ο/g, 'o');
 }
@@ -233,16 +232,16 @@ function withinYRange(box: Box | undefined, yRange?: { yMin: number; yMax: numbe
   return !!center && center.y >= yRange.yMin && center.y <= yRange.yMax;
 }
 
-// The actual per-field lookup checkLabeledFieldsRobust and section-grouped
-// checks both build on: tries Document AI's formFields pairing first, and
-// falls back to scanning the page's raw OCR'd lines directly when
-// formFields doesn't pair the field at all -- these forms' fields aren't
-// reliably paired into formFields the way the W-9's are (confirmed on a
-// real Contracted Services Form upload, where Name and Address Line 1
-// never appeared in formFields at all despite being filled in). Returns a
-// status for every spec, not just the unfilled ones, so a caller that
-// wants to group several fields under one section-level flag has each
-// member's own box to work with even when it turned out to be filled.
+// What every section-grouped completeness check builds on: tries Document
+// AI's formFields pairing first, and falls back to scanning the page's raw
+// OCR'd lines directly when formFields doesn't pair the field at all --
+// these forms' fields aren't reliably paired into formFields the way the
+// W-9's are (confirmed on a real Contracted Services Form upload, where
+// Name and Address Line 1 never appeared in formFields at all despite
+// being filled in). Returns a status for every spec, not just the
+// unfilled ones, so a caller that wants to group several fields under one
+// section-level flag has each member's own box to work with even when it
+// turned out to be filled.
 export function findLabeledFieldStatuses(
   documentText: string,
   formFields: FormField[],
@@ -274,7 +273,17 @@ export function findLabeledFieldStatuses(
       if (!withinYRange(lines[i].layout?.boundingPoly, spec.yRange)) continue;
 
       box = box ?? lines[i].layout?.boundingPoly ?? null;
-      const sameLineAfter = lineText.slice(idx + spec.lineLabel.length).trim();
+      // Some specs' lineLabel includes its own trailing colon ('name:'),
+      // others don't ('address line 1', matched against a printed "Address
+      // Line 1:") -- for the latter, slicing right after the label leaves
+      // the colon itself in the remainder ("Address Line 1: ".slice(...) ===
+      // ": "), which survives .trim() as a lone ":" and reads as a non-empty
+      // value even when the field is genuinely blank. Stripping a leading
+      // colon (and the whitespace around it) makes this correct either way.
+      const sameLineAfter = lineText
+        .slice(idx + spec.lineLabel.length)
+        .trim()
+        .replace(/^:\s*/, '');
       const nextLineTextRaw = lines[i + 1]
         ? extractText(documentText, lines[i + 1].layout?.textAnchor).trim()
         : '';
@@ -292,26 +301,6 @@ export function findLabeledFieldStatuses(
 
     return { spec, filled, box };
   });
-}
-
-// A "does this labeled field have any text in it" check for the simpler
-// completeness checks (Contracted Services, Conflict of Interest, Special
-// Pay Form) -- one flag per unfilled field. See findLabeledFieldStatuses
-// above for what this builds on; use that directly instead when several
-// fields need grouping under one section-level flag.
-export function checkLabeledFieldsRobust(
-  documentText: string,
-  formFields: FormField[],
-  lines: Line[],
-  specs: RobustFieldSpec[],
-): PresenceFlag[] {
-  return findLabeledFieldStatuses(documentText, formFields, lines, specs)
-    .filter((status) => !status.filled)
-    .map((status) => ({
-      label: status.spec.label,
-      message: status.spec.message,
-      box: status.box,
-    }));
 }
 
 export const corsHeaders = {

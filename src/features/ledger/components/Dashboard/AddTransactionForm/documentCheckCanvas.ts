@@ -1,6 +1,9 @@
-// Shared by every "document completeness check" component (W9CompletenessCheck,
+// Shared by every "document completeness check" component
+// (GenericCompletenessCheck, W9CompletenessCheck,
 // RSOAgreementCompletenessCheck) -- Document AI's normalized-coordinate box
-// shape and the logic to draw one onto whichever canvas rendered that page.
+// shape, the logic to draw one onto whichever canvas rendered that page,
+// and the pdfjs-dist loading/rendering each component was otherwise
+// duplicating byte-for-byte.
 export interface Box {
   normalizedVertices: { x: number; y: number }[];
 }
@@ -57,4 +60,40 @@ export function drawFlagBoxes(
     const h = Math.max(...ys) - y;
     ctx.strokeRect(x - 4, y - 4, w + 8, h + 8);
   }
+}
+
+// pdfjs-dist is a genuinely heavy library (a few hundred KB) that's only
+// ever needed for these checks -- dynamically imported so it lands in its
+// own chunk instead of bloating the Dashboard's main bundle for every
+// visit, regardless of whether anyone ever uploads one of these documents.
+// Split into load/render so a page count can be read (and rejected, via
+// each caller's own MAX_*_PAGES) before ever rendering anything. Sharing
+// one dynamic import call site here (rather than one per component, as
+// each used to have its own) also sidesteps a real concurrency issue where
+// two simultaneous dynamic imports of the same module can race during
+// tests.
+export async function loadPdf(file: File) {
+  const pdfjsLib = await import('pdfjs-dist');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
+  ).toString();
+
+  const buffer = await file.arrayBuffer();
+  return pdfjsLib.getDocument({ data: buffer }).promise;
+}
+
+export async function renderPage(
+  pdf: Awaited<ReturnType<typeof loadPdf>>,
+  pageNumber: number,
+  canvas: HTMLCanvasElement,
+) {
+  const page = await pdf.getPage(pageNumber);
+  const viewport = page.getViewport({ scale: 1.5 });
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas 2D context unavailable');
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  return { width: viewport.width, height: viewport.height };
 }

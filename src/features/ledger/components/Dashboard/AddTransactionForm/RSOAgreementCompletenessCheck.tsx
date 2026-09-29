@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { supabase } from '../../../../../config/supabase';
+import { invokeDocumentCheck } from '../../../services/documentCompletenessCheck';
 import { fileToBase64 } from '../../../services/visionApi';
 import styles from './AddTransactionForm.module.css';
 import {
   Box,
   drawFlagBoxes,
+  loadPdf,
   MAX_DOCUMENT_CHECK_FILE_BYTES,
   MAX_RSO_PAGES,
+  renderPage,
 } from './documentCheckCanvas';
 import { DocumentCheckStatus } from './DocumentCheckStatus';
 
@@ -173,17 +175,13 @@ export const RSOAgreementCompletenessCheck = ({
         if (cancelled) return;
 
         const fileBase64 = await fileToBase64(file);
-        const { data, error } = await supabase.functions.invoke(
+        const result = await invokeDocumentCheck<RsoCheckResult>(
           'check-rso-agreement-completeness',
-          {
-            body: { fileBase64 },
-            signal: controller.signal,
-          },
+          fileBase64,
+          controller.signal,
         );
         if (cancelled) return;
-        if (error) throw error;
 
-        const result = data as RsoCheckResult;
         const dimsByPage = [dims1, dims2];
         const ctx2 = canvas2.getContext('2d');
 
@@ -285,39 +283,6 @@ export const RSOAgreementCompletenessCheck = ({
     </div>
   );
 };
-
-// pdfjs-dist is only ever needed for this check, so it's dynamically
-// imported to keep it out of the Dashboard's main bundle -- same
-// reasoning as W9CompletenessCheck's renderPdfPage. The agreement is
-// parsed once and both pages are rendered from that one document (rather
-// than re-parsing the file per page) -- this also sidesteps a real
-// concurrency issue where two simultaneous dynamic imports of the same
-// module can race during tests.
-async function loadPdf(file: File) {
-  const pdfjsLib = await import('pdfjs-dist');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
-
-  const buffer = await file.arrayBuffer();
-  return pdfjsLib.getDocument({ data: buffer }).promise;
-}
-
-async function renderPage(
-  pdf: Awaited<ReturnType<typeof loadPdf>>,
-  pageNumber: number,
-  canvas: HTMLCanvasElement,
-) {
-  const page = await pdf.getPage(pageNumber);
-  const viewport = page.getViewport({ scale: 1.5 });
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas 2D context unavailable');
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-  return { width: viewport.width, height: viewport.height };
-}
 
 // A checked circle has noticeably more dark ink than an unchecked one
 // (which still shows the printed circle outline) -- calibrated during the

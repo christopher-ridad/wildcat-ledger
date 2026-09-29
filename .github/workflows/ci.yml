@@ -33,6 +33,21 @@ jobs:
       - name: Unit & component tests
         run: npx vitest run
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # supabase/functions is a separate Deno project (its own deno.json/
+      # deno.lock) -- npx vitest run above never touches it. This was never
+      # wired up before, and it silently let a real bug ship: several
+      # Document AI completeness-check fields (Contracted Services' Address/
+      # City-State-Zip/Rate of Pay/Signature) stopped being flagged when
+      # left blank, with nothing catching it since these tests just never
+      # ran anywhere.
+      - name: Edge Function tests
+        run: deno test
+        working-directory: supabase/functions
+
       - name: Write test summary
         if: always()
         run: |

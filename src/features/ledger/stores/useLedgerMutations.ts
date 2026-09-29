@@ -1,9 +1,15 @@
 import { supabase } from '../../../config/supabase';
-import { documentPath, uploadDocument } from '../services/storage';
+import {
+  documentPath,
+  removeTransactionDocuments,
+  transactionDocumentPaths,
+  uploadDocument,
+} from '../services/storage';
 import {
   BudgetAllocations,
   DebitCardSettings,
   PaymentStatus,
+  PendingChange,
   Transaction,
   UserRole,
 } from '../types';
@@ -14,10 +20,12 @@ import {
 // these mutations, and the derived selectors it exposes. Takes
 // activeOrganizationId/userRole as params rather than reading them from
 // context directly, since those are themselves derived in LedgerContext.tsx
-// from useOrganizationsData's output.
+// from useOrganizationsData's output. pendingChanges is only needed to look
+// up a delete's document paths at approval time (see approvePendingChange).
 export function useLedgerMutations(
   activeOrganizationId: string | null,
   userRole: UserRole | null,
+  pendingChanges: PendingChange[] = [],
 ) {
   const generateTransactionId = (): string => {
     if (!activeOrganizationId) throw new Error('No active organization');
@@ -100,11 +108,29 @@ export function useLedgerMutations(
       p_status: status,
     });
 
-  const approvePendingChange = async (pendingId: string) =>
-    callOrgRpc('resolve_pending_change_with_audit', {
+  const approvePendingChange = async (pendingId: string) => {
+    const pending = pendingChanges.find((p) => p.id === pendingId);
+    await callOrgRpc('resolve_pending_change_with_audit', {
       p_pending_id: pendingId,
       p_approved: true,
     });
+
+    // Best-effort: the transaction row is already gone at this point (the
+    // RPC above is the source of truth and already succeeded), so a failure
+    // here just leaves an orphaned file for next time rather than blocking
+    // or rolling back an approval that already went through.
+    if (pending?.type === 'delete' && activeOrganizationId) {
+      const paths = transactionDocumentPaths(pending.before);
+      try {
+        await removeTransactionDocuments(activeOrganizationId, paths);
+      } catch (err) {
+        console.error(
+          'Failed to remove deleted transaction documents from storage:',
+          err,
+        );
+      }
+    }
+  };
 
   const rejectPendingChange = async (pendingId: string) =>
     callOrgRpc('resolve_pending_change_with_audit', {

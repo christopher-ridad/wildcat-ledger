@@ -62,8 +62,9 @@ be picked just to run the check, and is discarded afterwards instead of uploaded
 Receipts can't be kept out of the app, since Debit Card reconciliation and reloads depend on them.
 
 Choosing not to store a copy is only offered for a document that doesn't already have one stored.
-Nothing in the app deletes uploaded files from storage, so offering it for an uploaded document would
-only hide the link, not remove the file.
+Toggling it doesn't itself delete an uploaded file, so offering it for a document that's already
+uploaded would only hide the link, not remove the file. (The one thing that does remove a document
+from storage is deleting the transaction it belongs to — see [File storage](#for-developers-a-few-architectural-choices).)
 
 **Technical implementation:** each document has a `*_not_stored` column on `transactions`, which
 `getMissingDocuments()` and `update_payment_status_with_audit` both treat as present (see migration
@@ -393,7 +394,10 @@ here because they explain why the code is shaped this way.
   database transaction, never as separate steps that could partially fail.
 - **File storage.** Transactions store Supabase Storage _paths_, not signed URLs, because URLs
   expire and paths don't. A signed, temporary URL is generated on the fly whenever a file actually
-  needs to be viewed or downloaded.
+  needs to be viewed or downloaded. Deleting a transaction (i.e. a delete request being approved)
+  also removes its documents from storage, via the `delete-transaction-documents` Edge Function —
+  needed because `storage.objects` has no client-facing delete policy, so only the service role can
+  actually remove a file.
 - **Anonymous document uploads.** The emailed upload link works for someone with no account in the
   app, using a single-use token that's generated when the link is sent. The anonymous visitor can
   only read the one thing they need, the transaction's title, to confirm the link is valid. They

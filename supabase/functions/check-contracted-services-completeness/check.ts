@@ -58,7 +58,11 @@ const CONTRACTOR_INFO_SPECS: RobustFieldSpec[] = [
   },
   {
     matchFieldName: (n) => n.includes('city') && n.includes('zip'),
-    lineLabel: 'city, state',
+    // The label itself prints "City, State  Zip:" as one combined run (note
+    // the real double space before "Zip", confirmed off a live upload) --
+    // 'city, state' alone left "Zip:" itself in the post-label remainder,
+    // which read as a non-empty value even on a genuinely blank line.
+    lineLabel: 'city, state  zip',
     valueLocation: 'sameLine',
     label: 'City/State/Zip',
     message: "The contractor's city, state, and ZIP look blank.",

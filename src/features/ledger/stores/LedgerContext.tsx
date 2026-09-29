@@ -59,7 +59,7 @@ export const LedgerProvider = ({ children }: { children: React.ReactNode }) => {
   const pendingChangeForTransaction = (transactionId: string) =>
     pendingChangesByTransactionId.get(transactionId);
 
-  const mutations = useLedgerMutations(activeOrganizationId, userRole);
+  const mutations = useLedgerMutations(activeOrganizationId, userRole, pendingChanges);
 
   const value: LedgerContextValue = {
     auditLog,

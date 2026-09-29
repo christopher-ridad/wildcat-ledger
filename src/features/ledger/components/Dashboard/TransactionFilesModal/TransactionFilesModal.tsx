@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { getErrorMessage } from '../../../../../utils/errors';
+import { useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { getSignedFileUrl } from '../../../services/storage';
 import { Transaction } from '../../../types';
@@ -109,45 +109,45 @@ export const TransactionFilesModal = ({
   const missingDocs = getMissingDocuments(transaction);
   const notStoredDocs = getNotStoredDocuments(transaction);
   const [justRequested, setJustRequested] = useState<Set<string>>(new Set());
-  const [requesting, setRequesting] = useState<string | null>(null);
-  const [requestError, setRequestError] = useState<string | null>(null);
+  // Keyed by doc.key, not a single shared pending/error pair -- requesting
+  // two different documents in quick succession would otherwise have the
+  // first one's `finally` clear the second one's still-in-flight pending
+  // state, silently re-enabling its button mid-request.
+  const requestAction = useAsyncActionMap();
 
   const isRequested = (key: string) =>
     justRequested.has(key) || !!transaction.uploadTokens?.[key];
 
-  const handleRequest = async (doc: DocumentRequirement) => {
-    setRequesting(doc.key);
-    setRequestError(null);
-    try {
-      const token = await requestTransactionDocument(transaction.id, doc.key);
-      const uploadUrl = `${window.location.origin}/upload-document?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${doc.key}&token=${token}`;
-      const isSignature = doc.requestBehavior === 'prepareFirst';
-      // The blank-template link is only useful to a recipient filling the
-      // form out themselves for the first time -- for a signature request,
-      // they're receiving the org's already-filled-in copy, not a blank one.
-      const templateLine =
-        doc.templatePath && !isSignature
-          ? `\n\nYou can download a blank ${doc.label} here:\n${window.location.origin}${doc.templatePath}`
-          : '';
-      const subject = encodeURIComponent(
-        `${isSignature ? 'Signature Request' : 'Document Request'}: ${doc.label} for "${transaction.title}"`,
-      );
-      const body = encodeURIComponent(
-        isSignature
-          ? `Hi,\n\nPlease review, sign, and return the attached ${doc.label} for "${transaction.title}". You can upload the signed copy here:\n\n${uploadUrl}\n\n(Don't forget to attach your filled-in copy to this email before sending!)\n\nThank you!`
-          : `Hi,\n\nPlease upload the ${doc.label} for "${transaction.title}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
-      );
-      window.open(
-        `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,
-        '_blank',
-      );
-      setJustRequested((prev) => new Set(prev).add(doc.key));
-    } catch (err) {
-      setRequestError(getErrorMessage(err, 'Failed to send the document request.'));
-    } finally {
-      setRequesting(null);
-    }
-  };
+  const handleRequest = (doc: DocumentRequirement) =>
+    requestAction.run(
+      doc.key,
+      async () => {
+        const token = await requestTransactionDocument(transaction.id, doc.key);
+        const uploadUrl = `${window.location.origin}/upload-document?transactionId=${transaction.id}&orgId=${encodeURIComponent(activeOrganizationId ?? '')}&fileType=${doc.key}&token=${token}`;
+        const isSignature = doc.requestBehavior === 'prepareFirst';
+        // The blank-template link is only useful to a recipient filling the
+        // form out themselves for the first time -- for a signature request,
+        // they're receiving the org's already-filled-in copy, not a blank one.
+        const templateLine =
+          doc.templatePath && !isSignature
+            ? `\n\nYou can download a blank ${doc.label} here:\n${window.location.origin}${doc.templatePath}`
+            : '';
+        const subject = encodeURIComponent(
+          `${isSignature ? 'Signature Request' : 'Document Request'}: ${doc.label} for "${transaction.title}"`,
+        );
+        const body = encodeURIComponent(
+          isSignature
+            ? `Hi,\n\nPlease review, sign, and return the attached ${doc.label} for "${transaction.title}". You can upload the signed copy here:\n\n${uploadUrl}\n\n(Don't forget to attach your filled-in copy to this email before sending!)\n\nThank you!`
+            : `Hi,\n\nPlease upload the ${doc.label} for "${transaction.title}" using this link:\n\n${uploadUrl}${templateLine}\n\nThank you!`,
+        );
+        window.open(
+          `https://mail.google.com/mail/?view=cm&fs=1&su=${subject}&body=${body}`,
+          '_blank',
+        );
+        setJustRequested((prev) => new Set(prev).add(doc.key));
+      },
+      'Failed to send the document request.',
+    );
 
   return (
     <Modal
@@ -160,11 +160,6 @@ export const TransactionFilesModal = ({
       {missingDocs.length > 0 && (
         <div className={styles['wl-missing-docs-section']}>
           <h3 className={styles['wl-files-section-title']}>Missing</h3>
-          {requestError && (
-            <div className="wl-form-error" role="alert">
-              {requestError}
-            </div>
-          )}
           <ul className={styles['wl-missing-docs-list']}>
             {missingDocs.map((doc) => (
               <li key={doc.key} className={styles['wl-missing-doc-item']}>
@@ -197,16 +192,21 @@ export const TransactionFilesModal = ({
                     <button
                       type="button"
                       className={styles['wl-btn-request-doc']}
-                      disabled={requesting === doc.key}
+                      disabled={requestAction.pending(doc.key)}
                       onClick={() => handleRequest(doc)}
                     >
-                      {requesting === doc.key
+                      {requestAction.pending(doc.key)
                         ? 'Sending…'
                         : REQUEST_BUTTON_LABEL[doc.requestBehavior]}
                     </button>
                     {isRequested(doc.key) && (
                       <span className={styles['wl-missing-doc-requested-note']}>
                         Requested, waiting for upload
+                      </span>
+                    )}
+                    {requestAction.error(doc.key) && (
+                      <span className="wl-form-error" role="alert">
+                        {requestAction.error(doc.key)}
                       </span>
                     )}
                   </div>
