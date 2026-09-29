@@ -78,9 +78,14 @@ test('creating, editing, completing, and deleting a task', async ({ page }) => {
   await checkbox.click();
   await expect(checkbox).toBeChecked();
 
-  // Delete.
+  // Delete: now goes through a confirmation dialog (previously instant --
+  // see TimelineBoard.tsx), matching every other destructive action in the
+  // app.
   await updatedRow.getByText(updatedTitle, { exact: true }).click();
   await updatedRow.getByRole('button', { name: `Delete ${updatedTitle}` }).click();
+  const deleteDialog = page.getByRole('dialog', { name: 'Delete Task' });
+  await expect(deleteDialog.getByText(`Delete ${updatedTitle}?`)).toBeVisible();
+  await deleteDialog.getByRole('button', { name: 'Delete' }).click();
   await expect(taskRow(page, updatedTitle)).toHaveCount(0);
 });
 
