@@ -497,10 +497,14 @@ Deno.test(
       doc.line('Approvals', boxFrom(0.05, 0.3, 0.9, 0.91)),
     ];
     const boxes = computeSectionBoxes(doc.text, lines);
-    assertEquals(boxes.funding.normalizedVertices[0].y, fundingHeadingY - 0.015);
+    // computeSectionBoxes measures from each heading line's own vertical
+    // *center* (see findHeadingY/centerOf), not the top edge of its
+    // bounding box -- each heading box above is 0.01 tall, so its center
+    // sits 0.005 below the *HeadingY constant used to build it.
+    assertEquals(boxes.funding.normalizedVertices[0].y, fundingHeadingY + 0.005 - 0.015);
     assertEquals(
       boxes.funding.normalizedVertices[2].y,
-      natureOfServiceHeadingY - 0.015 - 0.01,
+      natureOfServiceHeadingY + 0.005 - 0.015 - 0.01,
     );
   },
 );

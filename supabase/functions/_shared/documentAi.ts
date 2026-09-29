@@ -273,7 +273,17 @@ export function findLabeledFieldStatuses(
       if (!withinYRange(lines[i].layout?.boundingPoly, spec.yRange)) continue;
 
       box = box ?? lines[i].layout?.boundingPoly ?? null;
-      const sameLineAfter = lineText.slice(idx + spec.lineLabel.length).trim();
+      // Some specs' lineLabel includes its own trailing colon ('name:'),
+      // others don't ('address line 1', matched against a printed "Address
+      // Line 1:") -- for the latter, slicing right after the label leaves
+      // the colon itself in the remainder ("Address Line 1: ".slice(...) ===
+      // ": "), which survives .trim() as a lone ":" and reads as a non-empty
+      // value even when the field is genuinely blank. Stripping a leading
+      // colon (and the whitespace around it) makes this correct either way.
+      const sameLineAfter = lineText
+        .slice(idx + spec.lineLabel.length)
+        .trim()
+        .replace(/^:\s*/, '');
       const nextLineTextRaw = lines[i + 1]
         ? extractText(documentText, lines[i + 1].layout?.textAnchor).trim()
         : '';
