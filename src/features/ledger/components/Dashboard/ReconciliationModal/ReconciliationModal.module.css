@@ -49,6 +49,16 @@
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
+.wl-recon-fee-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #4b5563;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 1px 8px;
+  flex-shrink: 0;
+}
 .wl-recon-row-title {
   flex: 1;
   font-size: 0.9rem;
@@ -257,10 +267,16 @@
 .wl-recon-reload-choice {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin: 12px 0;
+  gap: 10px;
+  margin: 16px 0;
   padding: 0;
   border: none;
+}
+/* A legend sits outside the fieldset's flex layout, so the gap above
+   doesn't reach it. */
+.wl-recon-reload-choice legend {
+  margin-bottom: 12px;
+  padding: 0;
 }
 .wl-recon-reload-choice .wl-recon-reload-hint {
   margin: -4px 0 0 24px;
@@ -275,22 +291,6 @@
 }
 .wl-recon-reload-option input {
   accent-color: var(--color-primary);
-}
-.wl-amount-input-wrap {
-  position: relative;
-}
-.wl-amount-input-prefix {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-muted);
-  font-size: 0.88rem;
-  pointer-events: none;
-}
-.wl-amount-input {
-  width: 100%;
-  padding-left: 20px;
 }
 .wl-recon-reload-confirm {
   font-size: 0.88rem;

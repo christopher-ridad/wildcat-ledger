@@ -49,6 +49,10 @@ export interface Transaction {
   // conveys it. Kept for historical Payment Request rows that used the
   // Northwestern-employee checkbox.
   isNorthwesternEmployee?: boolean;
+  // Debit Card only: a SOFO service fee, which needs no receipt and goes on
+  // the reconciliation form's Service Fees line. See
+  // docs/BUSINESS_RULES.md#service-fees.
+  isServiceFee?: boolean;
   // Storage object paths (Supabase Storage, 'documents' bucket)
   receiptFileUrl?: string;
   contractFileUrl?: string;

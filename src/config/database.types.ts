@@ -342,6 +342,7 @@ export type Database = {
           is_existing_vendor: boolean | null;
           is_individual_vendor: boolean | null;
           is_northwestern_employee: boolean | null;
+          is_service_fee: boolean;
           no_receipt_acknowledged: boolean | null;
           notes: string;
           org_id: string;
@@ -385,6 +386,7 @@ export type Database = {
           is_existing_vendor?: boolean | null;
           is_individual_vendor?: boolean | null;
           is_northwestern_employee?: boolean | null;
+          is_service_fee?: boolean;
           no_receipt_acknowledged?: boolean | null;
           notes?: string;
           org_id: string;
@@ -428,6 +430,7 @@ export type Database = {
           is_existing_vendor?: boolean | null;
           is_individual_vendor?: boolean | null;
           is_northwestern_employee?: boolean | null;
+          is_service_fee?: boolean;
           no_receipt_acknowledged?: boolean | null;
           notes?: string;
           org_id?: string;
@@ -496,6 +499,7 @@ export type Database = {
           is_existing_vendor: boolean | null;
           is_individual_vendor: boolean | null;
           is_northwestern_employee: boolean | null;
+          is_service_fee: boolean;
           no_receipt_acknowledged: boolean | null;
           notes: string;
           org_id: string;

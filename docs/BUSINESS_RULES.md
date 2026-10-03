@@ -346,6 +346,17 @@ the card balance is read. "Date of Last Reconciliation" is the most recent earli
 in the app. If there isn't one, the treasurer can enter the date of a reconciliation done before
 they started using WildcatLedger, or leave it blank if the card has never been reconciled.
 
+### Service fees
+
+SOFO charges a $3.00 service fee after 3 months without card activity. It's recorded in the ledger
+when it shows up on the card history, as a Debit Card transaction marked "This is a SOFO service
+fee", so the Debit Card balance stays right. A service fee needs no receipt to be reconciled, and
+follows the same leave-out rule as any other charge. On the reconciliation form it goes under
+Service Fees rather than Authorized Charges, which the form's guide says must exclude them.
+
+**Technical implementation:** the `is_service_fee` column on `transactions` (migration `0041`);
+`reconcile_transactions_with_audit` lets a service fee through without a receipt.
+
 ### Reloads
 
 Reconciling and reloading are separate steps: a round can be reconciled without asking for a
@@ -372,9 +383,8 @@ An older request that's still Pending once a newer one exists is shown as **Supe
 be marked Paid, since SOFO won't process it and paying it would count the same money twice. It isn't
 deleted, so it stays in the audit history.
 
-A round's total is its purchases' full amounts, tax included, since that's what left the card.
-Service fees from earlier rounds aren't included, because they're only entered on the form and
-never saved.
+A round's total is the full amount of everything reconciled in it, tax and service fees included,
+since that's what left the card.
 
 **Technical implementation:** each reload Journal has a `reload_requested_at` timestamp, set by the
 database when it's created (migration `0039`; reloads from before then are dated to the end of their

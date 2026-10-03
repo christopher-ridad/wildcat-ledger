@@ -34,6 +34,7 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
   isExistingVendor: row.is_existing_vendor ?? undefined,
   existingVendorNumber: row.existing_vendor_number ?? undefined,
   isNorthwesternEmployee: row.is_northwestern_employee ?? undefined,
+  isServiceFee: row.is_service_fee,
   receiptFileUrl: row.receipt_file_url ?? undefined,
   contractFileUrl: row.contract_file_url ?? undefined,
   w9FileUrl: row.w9_file_url ?? undefined,

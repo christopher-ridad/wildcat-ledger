@@ -72,12 +72,13 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [reloadChoice, setReloadChoice] = useState<ReloadChoice | null>(null);
   const reloadAction = useAsyncAction();
   const [reloadRequested, setReloadRequested] = useState(false);
-  const [serviceFeesInput, setServiceFeesInput] = useState('0');
   // Only asked for when the app has no earlier reconciliation on record.
   const [lastReconciliationDateInput, setLastReconciliationDateInput] = useState('');
   const pdfAction = useAsyncAction();
-  // "Covered" per docs/BUSINESS_RULES.md#debit-card-reconciliation.
-  const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
+  // "Covered" per docs/BUSINESS_RULES.md#debit-card-reconciliation. A
+  // service fee has no receipt to cover.
+  const isCovered = (t: Transaction) =>
+    !!(t.receiptFileUrl || t.exemptionFormUrl || t.isServiceFee);
   // See docs/BUSINESS_RULES.md#dual-approval-workflow -- a reconciled
   // transaction can never be edited/deleted, so an outstanding request
   // needs resolving from the dashboard before reconciling.
@@ -104,7 +105,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     setReloadChoice(null);
     setReloadRequested(false);
     reloadAction.setError(null);
-    setServiceFeesInput('0');
     setLastReconciliationDateInput('');
     pdfAction.setError(null);
   }, [coveredIds, uncoveredCount]);
@@ -197,16 +197,10 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     }, 'Reconciliation failed.');
   };
 
-  // Recomputed live off current state (selected, service fees, whether a
-  // reload has actually been requested yet) rather than snapshotted once --
-  // cheap, pure, and lets the download always reflect the treasurer's
-  // latest input instead of going stale if they adjust something first.
+  // Recomputed live off current state rather than snapshotted once --
+  // cheap, pure, and always reflects the latest ledger data.
   const reconciliationFormData = activeOrganization
-    ? calculateReconciliationFormData(
-        activeOrganization,
-        [...selected],
-        parseFloat(serviceFeesInput) || 0,
-      )
+    ? calculateReconciliationFormData(activeOrganization, [...selected])
     : null;
 
   // A never-configured Load Balance defaults to 0 (see
@@ -327,6 +321,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                           {formatDate(t.date)}
                         </span>
                         <span className={styles['wl-recon-row-title']}>{t.title}</span>
+                        {t.isServiceFee && (
+                          <span className={styles['wl-recon-fee-badge']}>
+                            Service fee
+                          </span>
+                        )}
                         {t.receiptFileUrl && (
                           <span
                             className={`${styles['wl-recon-badge']} ${styles['wl-recon-badge--ok']}`}
@@ -577,25 +576,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                 Settings first.
               </div>
             )}
-            <div className="wl-form-group">
-              <label className="wl-form-label" htmlFor="service-fees">
-                Service Fees (if any)
-              </label>
-              <div className={styles['wl-amount-input-wrap']}>
-                <span className={styles['wl-amount-input-prefix']}>$</span>
-                <input
-                  id="service-fees"
-                  type="text"
-                  inputMode="decimal"
-                  className={`wl-form-input ${styles['wl-amount-input']}`}
-                  placeholder="0.00"
-                  value={serviceFeesInput}
-                  disabled={reloadRequested}
-                  onChange={(e) => setServiceFeesInput(e.target.value)}
-                />
-              </div>
-            </div>
-
             {reconciliationFormData && !reconciliationFormData.lastReconciliationDate && (
               <div className="wl-form-group">
                 <label className="wl-form-label" htmlFor="last-reconciliation-date">

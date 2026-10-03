@@ -160,6 +160,16 @@ describe('generateReconciliationPdf', () => {
     expect(text).toBe('-23.78');
   });
 
+  test('fills in the reload amount lines only when asking for a reload', async () => {
+    const reloading = await generateReconciliationPdf(baseData, 'please-reload');
+    expect(await extractTextNear(reloading, 457, 216)).toBe('163.25');
+
+    const notReloading = await generateReconciliationPdf(baseData, 'do-not-reload');
+    expect(await extractTextNear(notReloading, 457, 267.2)).toBeUndefined();
+    expect(await extractTextNear(notReloading, 461, 241.6)).toBeUndefined();
+    expect(await extractTextNear(notReloading, 457, 216)).toBeUndefined();
+  });
+
   test('produces a PDF regardless of which reload option is passed', async () => {
     await expect(
       generateReconciliationPdf(baseData, 'do-not-reload'),

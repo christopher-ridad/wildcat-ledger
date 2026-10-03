@@ -249,7 +249,7 @@ describe('ReconciliationModal', () => {
     ).toBeInTheDocument();
   });
 
-  test("the reload amount is always the form's Debit Card Reload Amount, service fees included", async () => {
+  test("a service fee reconciles without a receipt and counts toward the form's reload amount", async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
@@ -261,15 +261,22 @@ describe('ReconciliationModal', () => {
           amount: 50,
           direction: 'Outflow',
         }),
+        buildMockTransaction({
+          id: 'fee',
+          budgetLine: 'Debit Card',
+          amount: 3,
+          direction: 'Outflow',
+          isServiceFee: true,
+        }),
       ],
     });
     renderModal({ activeOrganization: org, reconcileTransactions, addTransaction });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    expect(screen.getByText('Service fee')).toBeInTheDocument();
+    expect(screen.queryByText(/No receipt on file/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (2)' }));
     await screen.findByText('Reconciliation complete!');
-    fireEvent.change(screen.getByLabelText('Service Fees (if any)'), {
-      target: { value: '3' },
-    });
+    expect(screen.queryByLabelText(/Service Fees/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Please reload $53.00'));
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
@@ -757,7 +764,6 @@ describe('ReconciliationModal', () => {
     expect(await screen.findByText(/Reload requested/)).toBeInTheDocument();
     // Locked in once requested, so the form can't disagree with the request.
     expect(screen.getByLabelText('Do not reload at this time')).toBeDisabled();
-    expect(screen.getByLabelText('Service Fees (if any)')).toBeDisabled();
   });
 
   test('shows an error message when the reload request fails', async () => {

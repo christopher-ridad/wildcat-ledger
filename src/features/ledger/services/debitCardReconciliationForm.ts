@@ -54,7 +54,6 @@ const salesTax = (t: Transaction) => t.taxAmount ?? 0;
 export function calculateReconciliationFormData(
   organization: Organization,
   selectedTransactionIds: string[],
-  serviceFees: number,
 ): ReconciliationFormData {
   const selectedIds = new Set(selectedTransactionIds);
   const transactions = organization.transactions;
@@ -68,8 +67,12 @@ export function calculateReconciliationFormData(
 
   // "Do not include any reimbursements or service fees" (page 2 guide).
   const authorizedCharges = selectedTxns
-    .filter((t) => t.direction === 'Outflow')
+    .filter((t) => t.direction === 'Outflow' && !t.isServiceFee)
     .reduce((sum, t) => sum + t.amount - salesTax(t), 0);
+
+  const serviceFees = selectedTxns
+    .filter((t) => t.isServiceFee)
+    .reduce((sum, t) => sum + t.amount, 0);
 
   const reconciliationSubtotal = authorizedCharges + serviceFees + totalReimbursed;
 

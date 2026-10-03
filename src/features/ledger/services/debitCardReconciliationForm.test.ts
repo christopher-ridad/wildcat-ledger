@@ -22,7 +22,7 @@ describe('calculateReconciliationFormData', () => {
       budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 50 },
     });
 
-    const data = calculateReconciliationFormData(org, ['t1', 't2'], 0);
+    const data = calculateReconciliationFormData(org, ['t1', 't2']);
 
     expect(data.authorizedCharges).toBe(50);
     expect(data.serviceFees).toBe(0);
@@ -40,15 +40,43 @@ describe('calculateReconciliationFormData', () => {
     expect(data.reloadAmount).toBe(50);
   });
 
-  test('includes service fees in the subtotal and reload amount', () => {
+  test('puts service fees on their own line, not under authorized charges', () => {
     const purchase = buildMockTransaction({ id: 't1', amount: 50, direction: 'Outflow' });
-    const org = buildMockOrganization({ transactions: [purchase] });
+    const fee = buildMockTransaction({
+      id: 'fee',
+      amount: 3,
+      direction: 'Outflow',
+      isServiceFee: true,
+    });
+    const org = buildMockOrganization({
+      transactions: [purchase, fee],
+      debitCardSettings: { loadBalance: 100 },
+      budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 47 },
+    });
 
-    const data = calculateReconciliationFormData(org, ['t1'], 3);
+    const data = calculateReconciliationFormData(org, ['t1', 'fee']);
 
+    expect(data.authorizedCharges).toBe(50);
     expect(data.serviceFees).toBe(3);
     expect(data.reconciliationSubtotal).toBe(53);
+    expect(data.totalExpenditures).toBe(53);
     expect(data.reloadAmount).toBe(53);
+  });
+
+  test('a service fee left out of this round counts as a pending transaction', () => {
+    const purchase = buildMockTransaction({ id: 't1', amount: 50, date: '2026-09-01' });
+    const fee = buildMockTransaction({
+      id: 'fee',
+      amount: 3,
+      date: '2026-09-30',
+      isServiceFee: true,
+    });
+    const org = buildMockOrganization({ transactions: [purchase, fee] });
+
+    const data = calculateReconciliationFormData(org, ['t1']);
+
+    expect(data.serviceFees).toBe(0);
+    expect(data.pendingTransactions).toBe(3);
   });
 
   test('collects reimbursed tax from the selected transactions into an itemized list and total', () => {
@@ -71,7 +99,7 @@ describe('calculateReconciliationFormData', () => {
     const untaxed = buildMockTransaction({ id: 't3', amount: 10, taxAmount: 0 });
     const org = buildMockOrganization({ transactions: [taxed1, taxed2, untaxed] });
 
-    const data = calculateReconciliationFormData(org, ['t1', 't2', 't3'], 0);
+    const data = calculateReconciliationFormData(org, ['t1', 't2', 't3']);
 
     expect(data.reimbursements).toEqual([
       { date: '2026-03-01', description: 'Coffee Shop', amount: 2.5 },
@@ -98,7 +126,7 @@ describe('calculateReconciliationFormData', () => {
       budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 80 },
     });
 
-    const data = calculateReconciliationFormData(org, ['t1'], 0);
+    const data = calculateReconciliationFormData(org, ['t1']);
 
     expect(data.authorizedCharges).toBe(15);
     expect(data.totalReimbursed).toBe(5);
@@ -115,7 +143,7 @@ describe('calculateReconciliationFormData', () => {
     });
     const org = buildMockOrganization({ transactions: [purchase] });
 
-    const data = calculateReconciliationFormData(org, ['t1'], 0);
+    const data = calculateReconciliationFormData(org, ['t1']);
 
     expect(data.authorizedCharges).toBe(15);
     expect(data.reimbursements).toEqual([]);
@@ -135,7 +163,7 @@ describe('calculateReconciliationFormData', () => {
     });
     const org = buildMockOrganization({ transactions: [priorRound, thisRound] });
 
-    const data = calculateReconciliationFormData(org, ['current'], 0);
+    const data = calculateReconciliationFormData(org, ['current']);
 
     expect(data.authorizedCharges).toBe(10);
     expect(data.completedReconciliationsPendingReload).toBe(40);
@@ -158,7 +186,6 @@ describe('calculateReconciliationFormData', () => {
       calculateReconciliationFormData(
         buildMockOrganization({ transactions: [...transactions, thisRound] }),
         ['current'],
-        0,
       ).completedReconciliationsPendingReload;
 
     test('counts every prior round in full when nothing has been reloaded', () => {
@@ -213,7 +240,7 @@ describe('calculateReconciliationFormData', () => {
     const excluded = buildMockTransaction({ id: 't2', amount: 15, reconciledAt: null });
     const org = buildMockOrganization({ transactions: [inBatch, excluded] });
 
-    const data = calculateReconciliationFormData(org, ['t1'], 0);
+    const data = calculateReconciliationFormData(org, ['t1']);
 
     expect(data.pendingTransactions).toBe(15);
   });
@@ -228,7 +255,7 @@ describe('calculateReconciliationFormData', () => {
     });
     const org = buildMockOrganization({ transactions: [reload] });
 
-    const data = calculateReconciliationFormData(org, [], 0);
+    const data = calculateReconciliationFormData(org, []);
 
     expect(data.pendingTransactions).toBe(0);
     expect(data.completedReconciliationsPendingReload).toBe(0);
@@ -244,7 +271,7 @@ describe('calculateReconciliationFormData', () => {
       },
     });
 
-    const data = calculateReconciliationFormData(org, [], 0);
+    const data = calculateReconciliationFormData(org, []);
 
     expect(data.orgName).toBe('Ballroom Latin and Swing Team');
     expect(data.accountNumber).toBe('2000-000');
@@ -271,7 +298,7 @@ describe('calculateReconciliationFormData', () => {
       ],
     });
 
-    const data = calculateReconciliationFormData(org, ['current'], 0);
+    const data = calculateReconciliationFormData(org, ['current']);
 
     expect(data.lastReconciliationDate).toBe('2026-09-01');
   });
@@ -280,18 +307,16 @@ describe('calculateReconciliationFormData', () => {
     const org = buildMockOrganization({
       transactions: [buildMockTransaction({ id: 'current', reconciledAt: null })],
     });
-    expect(
-      calculateReconciliationFormData(org, ['current'], 0).lastReconciliationDate,
-    ).toBe(undefined);
+    expect(calculateReconciliationFormData(org, ['current']).lastReconciliationDate).toBe(
+      undefined,
+    );
   });
 
   test("dates the balance as of today, in the viewer's own timezone", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-03T22:30:00'));
     const org = buildMockOrganization({ transactions: [] });
-    expect(calculateReconciliationFormData(org, [], 0).balanceAsOfDate).toBe(
-      '2026-10-03',
-    );
+    expect(calculateReconciliationFormData(org, []).balanceAsOfDate).toBe('2026-10-03');
     vi.useRealTimers();
   });
 });

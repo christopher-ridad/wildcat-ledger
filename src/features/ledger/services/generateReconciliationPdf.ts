@@ -155,9 +155,12 @@ export async function generateReconciliationPdf(
   // else above has).
   draw(page, font, 'X', reload === 'please-reload' ? 202 : 368, 300);
 
-  draw(page, font, money(data.reconciliationSubtotal), 457, 267.2);
-  draw(page, font, money(data.completedReconciliationsPendingReload), 461, 241.6);
-  draw(page, font, money(data.reloadAmount), 457, 216);
+  // The reload amount lines only apply when asking for a reload.
+  if (reload === 'please-reload') {
+    draw(page, font, money(data.reconciliationSubtotal), 457, 267.2);
+    draw(page, font, money(data.completedReconciliationsPendingReload), 461, 241.6);
+    draw(page, font, money(data.reloadAmount), 457, 216);
+  }
 
   const pdfBytes = await pdfDoc.save();
   return new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });

@@ -164,6 +164,9 @@ export const TransactionRow = ({
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>
           {t.type}
+          {t.type === 'Debit Card' && t.isServiceFee && (
+            <span className={styles['wl-td-type-detail']}>Service fee</span>
+          )}
           {t.type === 'Payment Request' && t.isExistingVendor && (
             <span className={styles['wl-td-type-detail']}>
               Existing vendor #{t.existingVendorNumber}
