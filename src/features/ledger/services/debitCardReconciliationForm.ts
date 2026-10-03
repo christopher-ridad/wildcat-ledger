@@ -39,6 +39,10 @@ export interface ReconciliationFormData {
 const isDebitCardPurchase = (t: Transaction) =>
   t.budgetLine === 'Debit Card' && t.type !== 'Journal';
 
+// IL sales tax is never an authorized charge (see the form's page 2 guide):
+// it's split out of the purchase and paid back to SOFO separately.
+const salesTax = (t: Transaction) => t.taxAmount ?? 0;
+
 // A reload is a Journal (Inflow) on the Debit Card line -- see
 // handleRequestReload in ReconciliationModal.tsx, which is the only place
 // one is ever created. Only a Paid one has actually reloaded the card.
@@ -61,14 +65,16 @@ export function calculateReconciliationFormData(
   const transactions = organization.transactions;
   const selectedTxns = transactions.filter((t) => selectedIds.has(t.id));
 
+  // Only tax already marked as paid back counts as deposited.
   const reimbursements: ReconciliationFormReimbursement[] = selectedTxns
-    .filter((t) => (t.taxAmount ?? 0) > 0)
-    .map((t) => ({ date: t.date, description: t.title, amount: t.taxAmount ?? 0 }));
+    .filter((t) => t.taxReimbursed && salesTax(t) > 0)
+    .map((t) => ({ date: t.date, description: t.title, amount: salesTax(t) }));
   const totalReimbursed = reimbursements.reduce((sum, r) => sum + r.amount, 0);
 
+  // "Do not include any reimbursements or service fees" (page 2 guide).
   const authorizedCharges = selectedTxns
     .filter((t) => t.direction === 'Outflow')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + t.amount - salesTax(t), 0);
 
   const reconciliationSubtotal = authorizedCharges + serviceFees + totalReimbursed;
 

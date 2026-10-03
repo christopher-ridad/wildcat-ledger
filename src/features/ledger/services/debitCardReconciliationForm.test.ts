@@ -50,11 +50,12 @@ describe('calculateReconciliationFormData', () => {
     expect(data.reloadAmount).toBe(53);
   });
 
-  test('collects tax reimbursements from the selected transactions into an itemized list and total', () => {
+  test('collects reimbursed tax from the selected transactions into an itemized list and total', () => {
     const taxed1 = buildMockTransaction({
       id: 't1',
       amount: 25,
       taxAmount: 2.5,
+      taxReimbursed: true,
       date: '2026-03-01',
       title: 'Coffee Shop',
     });
@@ -62,6 +63,7 @@ describe('calculateReconciliationFormData', () => {
       id: 't2',
       amount: 15,
       taxAmount: 1.1,
+      taxReimbursed: true,
       date: '2026-03-02',
       title: 'Office Supplies',
     });
@@ -75,7 +77,48 @@ describe('calculateReconciliationFormData', () => {
       { date: '2026-03-02', description: 'Office Supplies', amount: 1.1 },
     ]);
     expect(data.totalReimbursed).toBeCloseTo(3.6);
-    expect(data.reconciliationSubtotal).toBeCloseTo(50 + 3.6);
+    // Tax comes out of the authorized charges and back in as reimbursements,
+    // so the subtotal is just what was charged to the card.
+    expect(data.authorizedCharges).toBeCloseTo(50 - 3.6);
+    expect(data.reconciliationSubtotal).toBeCloseTo(50);
+  });
+
+  test('splits a taxed purchase into its authorized part and the reimbursed tax, so the totals match', () => {
+    // $20 charged, $5 of it tax, paid back to SOFO.
+    const purchase = buildMockTransaction({
+      id: 't1',
+      amount: 20,
+      taxAmount: 5,
+      taxReimbursed: true,
+    });
+    const org = buildMockOrganization({
+      transactions: [purchase],
+      debitCardSettings: { loadBalance: 100 },
+      budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 80 },
+    });
+
+    const data = calculateReconciliationFormData(org, ['t1'], 0);
+
+    expect(data.authorizedCharges).toBe(15);
+    expect(data.totalReimbursed).toBe(5);
+    expect(data.reconciliationSubtotal).toBe(20);
+    expect(data.totalExpenditures).toBe(20);
+  });
+
+  test('tax not yet marked reimbursed stays out of both authorized charges and reimbursements', () => {
+    const purchase = buildMockTransaction({
+      id: 't1',
+      amount: 20,
+      taxAmount: 5,
+      taxReimbursed: false,
+    });
+    const org = buildMockOrganization({ transactions: [purchase] });
+
+    const data = calculateReconciliationFormData(org, ['t1'], 0);
+
+    expect(data.authorizedCharges).toBe(15);
+    expect(data.reimbursements).toEqual([]);
+    expect(data.totalReimbursed).toBe(0);
   });
 
   test("excludes a prior round's already-reconciled purchases from authorizedCharges but counts them toward completedReconciliationsPendingReload", () => {
