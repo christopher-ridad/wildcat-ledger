@@ -15,7 +15,13 @@
 // SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY are provided
 // automatically to every deployed Edge Function -- no new secrets need to
 // be configured for this to work.
-import { createClient } from '@supabase/supabase-js';
+// A direct URL import, not the '@supabase/supabase-js' bare specifier from
+// deno.json's import map -- deploying without Docker uses a remote bundler
+// that only picks up this function's own files, not that shared import
+// map, and fails to resolve the bare specifier. A URL import needs no
+// import map at all, so it works the same way locally (deno test) and
+// deployed.
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 import { filterPathsForOrg } from './paths.ts';
 
