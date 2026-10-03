@@ -321,6 +321,14 @@ Form. The two are interchangeable. A purchase can't be reconciled if:
 - it owes an unresolved tax reimbursement to SOFO (see below), or
 - it has a pending edit or delete request still awaiting approval.
 
+Purchases can be left out of a reconciliation and carried to the next one, but only the most recent
+ones, as the form's guide requires ("Pending Transactions ... may only be the most recent
+purchases"). So in the reconciliation modal, unticking a purchase also unticks every newer one, and
+ticking one back in also ticks every older one. Purchases on the same date can be picked
+independently. A left-out purchase isn't part of Authorized Charges or Reimbursements Deposited;
+its full amount goes under Pending Transactions instead, so Total Expenditures and the
+Reconciliation Subtotal still match.
+
 Reconciling a purchase doesn't freeze it — a correction afterward goes through the same
 dual-approval rule any other transaction edit does (see
 [Dual-approval workflow](#dual-approval-workflow)). What reconciliation does still prevent is
@@ -332,6 +340,47 @@ confirmed.
 `reconcile_transactions_with_audit`. `request_transaction_change_with_audit` and
 `resolve_pending_change_with_audit` don't special-case a reconciled transaction — they use the same
 `transaction_edit_requires_approval` logic as any other.
+
+On the generated form, "Balance as of" is dated the day the form is generated, since that's when
+the card balance is read. "Date of Last Reconciliation" is the most recent earlier round reconciled
+in the app. If there isn't one, the treasurer can enter the date of a reconciliation done before
+they started using WildcatLedger, or leave it blank if the card has never been reconciled.
+
+### Reloads
+
+Reconciling and reloading are separate steps: a round can be reconciled without asking for a
+reload. After reconciling, the treasurer chooses "Please reload" or "Do not reload at this time",
+the form's own two checkboxes, and the reconciliation form can only be generated once they've
+chosen (and requested the reload, if they want one). The reload amount isn't editable: it's always
+the form's Debit Card Reload Amount, this round's subtotal plus any earlier rounds not yet reloaded.
+A reload starts as Pending and only counts as money back on the card once it's marked Paid (shown as
+"Reloaded").
+
+Two facts about how SOFO handles reloads drive the rest:
+
+- **A round is reloaded in full or not at all.** There are no partial reloads.
+- **SOFO only acts on the most recent reload request.** Each request asks for this round's subtotal
+  plus every earlier round not yet back on the card, so a newer request replaces any older one.
+
+So once a reload is Paid, every round reconciled before that reload was requested is back on the
+card. Any round reconciled after it is still a "Completed Reconciliation (pending reload)" on the
+next reconciliation form, whether a later request is Pending or there's no request at all. That line
+corrects Total Expenditures: until the money is back, the card balance is lower by that round's
+total.
+
+An older request that's still Pending once a newer one exists is shown as **Superseded** and can't
+be marked Paid, since SOFO won't process it and paying it would count the same money twice. It isn't
+deleted, so it stays in the audit history.
+
+A round's total is its purchases' full amounts, tax included, since that's what left the card.
+Service fees from earlier rounds aren't included, because they're only entered on the form and
+never saved.
+
+**Technical implementation:** each reload Journal has a `reload_requested_at` timestamp, set by the
+database when it's created (migration `0039`; reloads from before then are dated to the end of their
+transaction date). `utils/debitCardReloads.ts` works out which reloads are superseded and how far
+the latest Paid reload covers; `update_payment_status_with_audit` refuses to mark a superseded
+reload Paid.
 
 ## Tax exemption & SOFO reimbursement
 

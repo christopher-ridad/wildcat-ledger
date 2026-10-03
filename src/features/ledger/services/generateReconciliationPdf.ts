@@ -19,7 +19,7 @@
 
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, formatDate } from '../utils/calculations';
 import { ReconciliationFormData } from './debitCardReconciliationForm';
 
 const TEMPLATE_URL = '/forms/debit-card-reconciliation.pdf';
@@ -44,6 +44,12 @@ function signedMoney(amount: number): string {
   return amount < 0 ? `-${money(amount)}` : money(amount);
 }
 
+// YYYY-MM-DD -> M/D
+function monthDay(isoDate: string): string {
+  const [, month, day] = isoDate.split('-');
+  return `${Number(month)}/${Number(day)}`;
+}
+
 interface DrawOptions {
   size?: number;
 }
@@ -66,9 +72,12 @@ function draw(
   });
 }
 
+// The form's own two Debit Card Reload checkboxes.
+export type ReloadChoice = 'please-reload' | 'do-not-reload';
+
 export async function generateReconciliationPdf(
   data: ReconciliationFormData,
-  reload: 'please-reload' | 'do-not-reload',
+  reload: ReloadChoice,
 ): Promise<Blob> {
   const existingPdfBytes = await fetch(TEMPLATE_URL).then((res) => {
     if (!res.ok) throw new Error('Could not load the reconciliation form template.');
@@ -80,6 +89,9 @@ export async function generateReconciliationPdf(
   const page = pdfDoc.getPages()[0];
 
   draw(page, font, data.orgName, 110, 696);
+  if (data.lastReconciliationDate) {
+    draw(page, font, formatDate(data.lastReconciliationDate), 458, 696);
+  }
 
   if (data.accountNumber) {
     // Template prints "2 0 ____ ____ - ____ ____ ____" -- each "____" is
@@ -107,7 +119,7 @@ export async function generateReconciliationPdf(
 
   if (data.inventoryControlNumber) {
     const [first, second] = data.inventoryControlNumber.split('-');
-    draw(page, font, first ?? '', 201, 650.4);
+    draw(page, font, first ?? '', 205, 650.4);
     draw(page, font, second ?? '', 360, 650.4);
   }
 
@@ -128,6 +140,8 @@ export async function generateReconciliationPdf(
 
   // Activity Summary
   draw(page, font, money(data.loadBalance), 220, 438.4);
+  // The "Balance as of ______" blank only fits a month/day.
+  draw(page, font, monthDay(data.balanceAsOfDate), 144, 414, { size: 8 });
   draw(page, font, money(data.balanceAsOf), 224, 412.8);
   draw(page, font, money(data.completedReconciliationsPendingReload), 223, 388);
   draw(page, font, money(data.pendingTransactions), 224, 356.8);

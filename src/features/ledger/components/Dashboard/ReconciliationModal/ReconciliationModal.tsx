@@ -9,9 +9,10 @@ import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
 import {
   downloadReconciliationPdf,
   generateReconciliationPdf,
+  ReloadChoice,
 } from '../../../services/generateReconciliationPdf';
 import { Transaction } from '../../../types';
-import { formatCurrency, formatTimestamp } from '../../../utils/calculations';
+import { formatCurrency, formatDate, formatTimestamp } from '../../../utils/calculations';
 import {
   POLICY_EXEMPTION_FORM_URL,
   SOFO_SALES_TAX_REIMBURSEMENT_URL,
@@ -19,6 +20,7 @@ import {
 import { needsTaxReimbursement } from '../../../utils/documentRequirements';
 import { Modal } from '../Modal';
 import styles from './ReconciliationModal.module.css';
+import { setIncluded } from './reconciliationSelection';
 
 interface ReconciliationModalProps {
   isOpen: boolean;
@@ -42,10 +44,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // reconciled. Reload journals also live on the Debit Card budget line but
   // don't need reconciliation — they're tracked via their own payment
   // status instead (see TransactionRow).
-  const unreconciledTxns: Transaction[] = (activeOrganization?.transactions ?? []).filter(
-    (t) =>
-      t.budgetLine === 'Debit Card' && t.type !== 'Journal' && t.reconciledAt == null,
-  );
+  // Newest first, matching the order purchases can be left out in (see
+  // setIncluded).
+  const unreconciledTxns: Transaction[] = (activeOrganization?.transactions ?? [])
+    .filter(
+      (t) =>
+        t.budgetLine === 'Debit Card' && t.type !== 'Journal' && t.reconciledAt == null,
+    )
+    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const confirmAction = useAsyncAction();
@@ -63,10 +69,12 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [snapshotTxnsWithReceipts, setSnapshotTxnsWithReceipts] = useState<Transaction[]>(
     [],
   );
-  const [reloadAmountInput, setReloadAmountInput] = useState('');
+  const [reloadChoice, setReloadChoice] = useState<ReloadChoice | null>(null);
   const reloadAction = useAsyncAction();
   const [reloadRequested, setReloadRequested] = useState(false);
   const [serviceFeesInput, setServiceFeesInput] = useState('0');
+  // Only asked for when the app has no earlier reconciliation on record.
+  const [lastReconciliationDateInput, setLastReconciliationDateInput] = useState('');
   const pdfAction = useAsyncAction();
   // "Covered" per docs/BUSINESS_RULES.md#debit-card-reconciliation.
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
@@ -93,10 +101,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     reimburseAction.reset();
     setStep('review');
     setReconSummary(null);
-    setReloadAmountInput('');
+    setReloadChoice(null);
     setReloadRequested(false);
     reloadAction.setError(null);
     setServiceFeesInput('0');
+    setLastReconciliationDateInput('');
     pdfAction.setError(null);
   }, [coveredIds, uncoveredCount]);
 
@@ -188,30 +197,6 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     }, 'Reconciliation failed.');
   };
 
-  const handleRequestReload = async () => {
-    if (!reconSummary) return;
-    const amount = parseFloat(reloadAmountInput);
-    if (Number.isNaN(amount) || amount <= 0) {
-      reloadAction.setError('Enter a valid reload amount.');
-      return;
-    }
-    await reloadAction.run(async () => {
-      await addTransaction(
-        {
-          title: 'Debit Card Reload',
-          date: new Date().toISOString().slice(0, 10),
-          amount,
-          direction: 'Inflow',
-          type: 'Journal',
-          budgetLine: 'Debit Card',
-          notes: `Requested after reconciling ${reconSummary.transactionCount} ${pluralize(reconSummary.transactionCount, 'transaction')} (${formatCurrency(reconSummary.totalAmount)} total).`,
-        },
-        generateTransactionId(),
-      );
-      setReloadRequested(true);
-    }, 'Reload request failed.');
-  };
-
   // Recomputed live off current state (selected, service fees, whether a
   // reload has actually been requested yet) rather than snapshotted once --
   // cheap, pure, and lets the download always reflect the treasurer's
@@ -231,12 +216,45 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // generating the form at all.
   const loadBalanceNotSet = !activeOrganization?.debitCardSettings.loadBalance;
 
+  const handleRequestReload = async () => {
+    if (!reconSummary || !reconciliationFormData) return;
+    // Always the form's Debit Card Reload Amount: SOFO reloads the full
+    // amount owed, never a partial one.
+    const amount = reconciliationFormData.reloadAmount;
+    await reloadAction.run(async () => {
+      await addTransaction(
+        {
+          title: 'Debit Card Reload',
+          date: new Date().toISOString().slice(0, 10),
+          amount,
+          direction: 'Inflow',
+          type: 'Journal',
+          budgetLine: 'Debit Card',
+          notes: `Requested after reconciling ${reconSummary.transactionCount} ${pluralize(reconSummary.transactionCount, 'transaction')} (${formatCurrency(reconSummary.totalAmount)} total).`,
+        },
+        generateTransactionId(),
+      );
+      setReloadRequested(true);
+    }, 'Reload request failed.');
+  };
+
+  // The form records the reload decision, so it has to be made (and a
+  // reload actually requested, if wanted) before the form is generated.
+  const canDownloadForm =
+    reloadChoice === 'do-not-reload' ||
+    (reloadChoice === 'please-reload' && reloadRequested);
+
   const handleDownloadForm = async () => {
-    if (!reconciliationFormData) return;
+    if (!reconciliationFormData || !reloadChoice) return;
     await pdfAction.run(async () => {
       const blob = await generateReconciliationPdf(
-        reconciliationFormData,
-        reloadRequested ? 'please-reload' : 'do-not-reload',
+        {
+          ...reconciliationFormData,
+          lastReconciliationDate:
+            reconciliationFormData.lastReconciliationDate ??
+            (lastReconciliationDateInput || undefined),
+        },
+        reloadChoice,
       );
       downloadReconciliationPdf(blob, reconciliationFormData.orgName);
     }, 'Could not generate the reconciliation form.');
@@ -265,6 +283,13 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
               : 'Showing all unreconciled debit card transactions.'}
           </p>
 
+          {!hideCheckboxes && unreconciledTxns.length > 0 && (
+            <p className={styles['wl-recon-subtitle']}>
+              Untick purchases to leave them for the next reconciliation. Only the most
+              recent ones can be left out, so unticking one also unticks everything newer.
+            </p>
+          )}
+
           {unreconciledTxns.length === 0 ? (
             <div className={styles['wl-recon-empty']}>
               <span className={styles['wl-recon-empty-icon']}>✓</span>
@@ -284,9 +309,23 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                       key={t.id}
                       className={`${styles['wl-recon-item']}${isBlocking ? ` ${styles['wl-recon-item--warning']}` : ''}`}
                     >
-                      <div
+                      <label
                         className={`${styles['wl-recon-row']}${isBlocking ? ` ${styles['wl-recon-row--disabled']}` : ''}`}
                       >
+                        {!hideCheckboxes && (
+                          <input
+                            type="checkbox"
+                            checked={selected.has(t.id)}
+                            onChange={(e) =>
+                              setSelected((prev) =>
+                                setIncluded(unreconciledTxns, prev, t, e.target.checked),
+                              )
+                            }
+                          />
+                        )}
+                        <span className={styles['wl-recon-row-date']}>
+                          {formatDate(t.date)}
+                        </span>
                         <span className={styles['wl-recon-row-title']}>{t.title}</span>
                         {t.receiptFileUrl && (
                           <span
@@ -336,7 +375,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                           {t.direction === 'Outflow' ? '−' : '+'}
                           {formatCurrency(t.amount)}
                         </span>
-                      </div>
+                      </label>
 
                       {isMissing && (
                         <div className={styles['wl-recon-missing']}>
@@ -530,104 +569,112 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
           </div>
 
           <div className={styles['wl-recon-reload']}>
-            <h3 className={styles['wl-recon-reload-title']}>
-              Request a Debit Card Reload
-            </h3>
-            {reloadRequested ? (
-              <p className={styles['wl-recon-reload-confirm']}>
-                ✓ Reload of {formatCurrency(parseFloat(reloadAmountInput))} added, pending
-                approval.
-              </p>
-            ) : (
-              <>
+            <h3 className={styles['wl-recon-reload-title']}>Debit Card Reload</h3>
+            {loadBalanceNotSet && (
+              <div className={styles['wl-recon-block-warning']}>
+                ⚠ This org&apos;s debit card Load Balance isn&apos;t set, so the
+                reconciliation form won&apos;t be accurate. Set it under SOFO / CO
+                Settings first.
+              </div>
+            )}
+            <div className="wl-form-group">
+              <label className="wl-form-label" htmlFor="service-fees">
+                Service Fees (if any)
+              </label>
+              <div className={styles['wl-amount-input-wrap']}>
+                <span className={styles['wl-amount-input-prefix']}>$</span>
+                <input
+                  id="service-fees"
+                  type="text"
+                  inputMode="decimal"
+                  className={`wl-form-input ${styles['wl-amount-input']}`}
+                  placeholder="0.00"
+                  value={serviceFeesInput}
+                  disabled={reloadRequested}
+                  onChange={(e) => setServiceFeesInput(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {reconciliationFormData && !reconciliationFormData.lastReconciliationDate && (
+              <div className="wl-form-group">
+                <label className="wl-form-label" htmlFor="last-reconciliation-date">
+                  Date of Last Reconciliation
+                </label>
+                <input
+                  id="last-reconciliation-date"
+                  type="date"
+                  className="wl-form-input"
+                  max={reconciliationFormData.balanceAsOfDate}
+                  value={lastReconciliationDateInput}
+                  onChange={(e) => setLastReconciliationDateInput(e.target.value)}
+                />
                 <p className={styles['wl-recon-reload-hint']}>
-                  Creates a Journal transaction on the Debit Card line, which counts
-                  toward the balance once approved and paid.
+                  This is the first reconciliation in WildcatLedger. If this card was
+                  reconciled before, enter that date; leave it blank if it never has been.
                 </p>
-                {loadBalanceNotSet && (
-                  <div className={styles['wl-recon-block-warning']}>
-                    ⚠ This org&apos;s debit card Load Balance isn&apos;t set, so the
-                    reconciliation form below won&apos;t be accurate. Set it under SOFO /
-                    CO Settings first.
-                  </div>
-                )}
-                <div className="wl-form-group">
-                  <label className="wl-form-label" htmlFor="service-fees">
-                    Service Fees (if any)
-                  </label>
-                  <div className={styles['wl-amount-input-wrap']}>
-                    <span className={styles['wl-amount-input-prefix']}>$</span>
-                    <input
-                      id="service-fees"
-                      type="text"
-                      inputMode="decimal"
-                      className={`wl-form-input ${styles['wl-amount-input']}`}
-                      placeholder="0.00"
-                      value={serviceFeesInput}
-                      onChange={(e) => setServiceFeesInput(e.target.value)}
-                    />
-                  </div>
-                </div>
-                {reconciliationFormData && (
+              </div>
+            )}
+
+            {reconciliationFormData && (
+              <fieldset
+                className={styles['wl-recon-reload-choice']}
+                disabled={reloadRequested}
+              >
+                <legend className="wl-form-label">
+                  Do you want SOFO to reload the card?
+                </legend>
+                <label className={styles['wl-recon-reload-option']}>
+                  <input
+                    type="radio"
+                    name="reload-choice"
+                    checked={reloadChoice === 'please-reload'}
+                    onChange={() => setReloadChoice('please-reload')}
+                  />
+                  <span>
+                    Please reload {formatCurrency(reconciliationFormData.reloadAmount)}
+                  </span>
+                </label>
+                {reconciliationFormData.completedReconciliationsPendingReload > 0 && (
                   <p className={styles['wl-recon-reload-hint']}>
-                    Suggested reload amount:{' '}
-                    {formatCurrency(reconciliationFormData.reloadAmount)} (this
-                    round&apos;s{' '}
-                    {formatCurrency(reconciliationFormData.reconciliationSubtotal)}
-                    {reconciliationFormData.completedReconciliationsPendingReload > 0 &&
-                      ` + ${formatCurrency(reconciliationFormData.completedReconciliationsPendingReload)} owed from a prior reconciliation`}
-                    ).{' '}
-                    <button
-                      type="button"
-                      className={styles['wl-recon-exemption-link']}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        font: 'inherit',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() =>
-                        setReloadAmountInput(
-                          reconciliationFormData.reloadAmount.toFixed(2),
-                        )
-                      }
-                    >
-                      Use this amount
-                    </button>
+                    This round&apos;s{' '}
+                    {formatCurrency(reconciliationFormData.reconciliationSubtotal)} plus{' '}
+                    {formatCurrency(
+                      reconciliationFormData.completedReconciliationsPendingReload,
+                    )}{' '}
+                    from an earlier reconciliation that hasn&apos;t been reloaded yet.
                   </p>
                 )}
-                <div className={styles['wl-recon-reload-row']}>
-                  <div className="wl-form-group">
-                    <label className="wl-form-label" htmlFor="reload-amount">
-                      Amount
-                    </label>
-                    <div className={styles['wl-amount-input-wrap']}>
-                      <span className={styles['wl-amount-input-prefix']}>$</span>
-                      <input
-                        id="reload-amount"
-                        type="text"
-                        inputMode="decimal"
-                        className={`wl-form-input ${styles['wl-amount-input']}`}
-                        placeholder="0.00"
-                        value={reloadAmountInput}
-                        onChange={(e) => setReloadAmountInput(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles['wl-btn-download-zip']}
-                    onClick={handleRequestReload}
-                    disabled={reloadAction.pending}
-                  >
-                    {reloadAction.pending ? 'Submitting…' : 'Request Reload'}
-                  </button>
-                </div>
-                {reloadAction.error && (
-                  <div className="wl-form-error">{reloadAction.error}</div>
-                )}
-              </>
+                <label className={styles['wl-recon-reload-option']}>
+                  <input
+                    type="radio"
+                    name="reload-choice"
+                    checked={reloadChoice === 'do-not-reload'}
+                    onChange={() => setReloadChoice('do-not-reload')}
+                  />
+                  <span>Do not reload at this time</span>
+                </label>
+              </fieldset>
+            )}
+
+            {reloadChoice === 'please-reload' &&
+              (reloadRequested ? (
+                <p className={styles['wl-recon-reload-confirm']}>
+                  ✓ Reload requested. It stays Pending until SOFO puts the money on the
+                  card.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  className={styles['wl-btn-download-zip']}
+                  onClick={handleRequestReload}
+                  disabled={reloadAction.pending}
+                >
+                  {reloadAction.pending ? 'Submitting…' : 'Request Reload'}
+                </button>
+              ))}
+            {reloadAction.error && (
+              <div className="wl-form-error">{reloadAction.error}</div>
             )}
           </div>
 
@@ -659,7 +706,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
               type="button"
               className={styles['wl-btn-download-zip']}
               onClick={handleDownloadForm}
-              disabled={pdfAction.pending}
+              disabled={pdfAction.pending || !canDownloadForm}
+              title={canDownloadForm ? undefined : 'Choose whether to reload first'}
             >
               {pdfAction.pending ? 'Generating…' : '⬇ Reconciliation Form (PDF)'}
             </button>

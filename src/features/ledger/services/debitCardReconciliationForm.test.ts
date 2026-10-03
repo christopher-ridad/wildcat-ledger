@@ -1,6 +1,7 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { buildMockOrganization, buildMockTransaction } from '../../../test/mocks';
+import { Transaction } from '../types';
 import { calculateReconciliationFormData } from './debitCardReconciliationForm';
 
 describe('calculateReconciliationFormData', () => {
@@ -140,70 +141,71 @@ describe('calculateReconciliationFormData', () => {
     expect(data.completedReconciliationsPendingReload).toBe(40);
   });
 
-  test('a paid reload nets against prior completed reconciliations', () => {
-    const priorRound = buildMockTransaction({
-      id: 'prior',
-      amount: 40,
-      reconciledAt: Date.now() - 1000,
-    });
-    const paidReload = buildMockTransaction({
-      id: 'reload-1',
-      type: 'Journal',
-      direction: 'Inflow',
-      paymentStatus: 'Paid',
-      amount: 40,
-    });
+  describe('completed reconciliations pending reload', () => {
+    // Round A was reconciled on day 1, round B on day 3.
+    const DAY = 24 * 60 * 60 * 1000;
+    const roundA = buildMockTransaction({ id: 'a', amount: 150, reconciledAt: 1 * DAY });
+    const roundB = buildMockTransaction({ id: 'b', amount: 40, reconciledAt: 3 * DAY });
     const thisRound = buildMockTransaction({
       id: 'current',
       amount: 10,
       reconciledAt: null,
     });
-    const org = buildMockOrganization({
-      transactions: [priorRound, paidReload, thisRound],
+    const reload = (overrides: Parameters<typeof buildMockTransaction>[0]) =>
+      buildMockTransaction({ type: 'Journal', direction: 'Inflow', ...overrides });
+
+    const pendingReloadFor = (...transactions: Transaction[]) =>
+      calculateReconciliationFormData(
+        buildMockOrganization({ transactions: [...transactions, thisRound] }),
+        ['current'],
+        0,
+      ).completedReconciliationsPendingReload;
+
+    test('counts every prior round in full when nothing has been reloaded', () => {
+      expect(pendingReloadFor(roundA, roundB)).toBe(190);
     });
 
-    const data = calculateReconciliationFormData(org, ['current'], 0);
-
-    expect(data.completedReconciliationsPendingReload).toBe(0);
-    expect(data.reloadAmount).toBe(10);
-  });
-
-  // Regression guard: a pending (not yet Paid) reload must NOT reduce
-  // completedReconciliationsPendingReload -- the card hasn't actually
-  // received the money yet.
-  test('a reload that has not reached Paid status does not reduce completedReconciliationsPendingReload', () => {
-    const priorRound = buildMockTransaction({
-      id: 'prior',
-      amount: 40,
-      reconciledAt: Date.now() - 1000,
+    test('a Paid reload covers every round reconciled before it was requested', () => {
+      const paid = reload({
+        id: 'r1',
+        paymentStatus: 'Paid',
+        reloadRequestedAt: 2 * DAY,
+      });
+      expect(pendingReloadFor(roundA, roundB, paid)).toBe(40);
     });
-    const pendingReload = buildMockTransaction({
-      id: 'reload-1',
-      type: 'Journal',
-      direction: 'Inflow',
-      paymentStatus: 'Pending',
-      amount: 40,
+
+    test('a round is reloaded in full or not at all, whatever the reload amount', () => {
+      const paid = reload({
+        id: 'r1',
+        amount: 100,
+        paymentStatus: 'Paid',
+        reloadRequestedAt: 2 * DAY,
+      });
+      expect(pendingReloadFor(roundA, paid)).toBe(0);
     });
-    const org = buildMockOrganization({ transactions: [priorRound, pendingReload] });
 
-    const data = calculateReconciliationFormData(org, [], 0);
-
-    expect(data.completedReconciliationsPendingReload).toBe(40);
-  });
-
-  test('clamps completedReconciliationsPendingReload at 0 rather than going negative', () => {
-    const paidReload = buildMockTransaction({
-      id: 'reload-1',
-      type: 'Journal',
-      direction: 'Inflow',
-      paymentStatus: 'Paid',
-      amount: 40,
+    test('a reload that is still Pending covers nothing yet', () => {
+      const pending = reload({
+        id: 'r1',
+        paymentStatus: 'Pending',
+        reloadRequestedAt: 4 * DAY,
+      });
+      expect(pendingReloadFor(roundA, roundB, pending)).toBe(190);
     });
-    const org = buildMockOrganization({ transactions: [paidReload] });
 
-    const data = calculateReconciliationFormData(org, [], 0);
-
-    expect(data.completedReconciliationsPendingReload).toBe(0);
+    test('only the most recent Paid reload matters', () => {
+      const older = reload({
+        id: 'r1',
+        paymentStatus: 'Paid',
+        reloadRequestedAt: 2 * DAY,
+      });
+      const newer = reload({
+        id: 'r2',
+        paymentStatus: 'Paid',
+        reloadRequestedAt: 4 * DAY,
+      });
+      expect(pendingReloadFor(roundA, roundB, older, newer)).toBe(0);
+    });
   });
 
   test('unreconciled purchases excluded from this batch count as pendingTransactions', () => {
@@ -250,5 +252,48 @@ describe('calculateReconciliationFormData', () => {
     expect(data.lastFourDigits).toBe('1234');
     expect(data.inventoryControlNumber).toBe('12345678-1234567');
     expect(data.loadBalance).toBe(500);
+  });
+
+  test('uses the most recent earlier reconciliation as the date of last reconciliation', () => {
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 'old',
+          reconciledAt: Date.parse('2026-08-01T12:00:00'),
+        }),
+        buildMockTransaction({
+          id: 'recent',
+          reconciledAt: Date.parse('2026-09-01T12:00:00'),
+        }),
+        // This round, already reconciled by the time the form is generated.
+        buildMockTransaction({
+          id: 'current',
+          reconciledAt: Date.parse('2026-10-03T12:00:00'),
+        }),
+      ],
+    });
+
+    const data = calculateReconciliationFormData(org, ['current'], 0);
+
+    expect(data.lastReconciliationDate).toBe('2026-09-01');
+  });
+
+  test('has no date of last reconciliation the first time', () => {
+    const org = buildMockOrganization({
+      transactions: [buildMockTransaction({ id: 'current', reconciledAt: null })],
+    });
+    expect(
+      calculateReconciliationFormData(org, ['current'], 0).lastReconciliationDate,
+    ).toBe(undefined);
+  });
+
+  test("dates the balance as of today, in the viewer's own timezone", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-03T22:30:00'));
+    const org = buildMockOrganization({ transactions: [] });
+    expect(calculateReconciliationFormData(org, [], 0).balanceAsOfDate).toBe(
+      '2026-10-03',
+    );
+    vi.useRealTimers();
   });
 });

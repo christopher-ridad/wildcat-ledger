@@ -4,7 +4,7 @@ import { useAuth } from '../features/authentication/hooks/useAuth';
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { TimelineBoard } from '../features/tasks/components/TimelineBoard';
 import { currentAcademicYearLabel } from '../features/tasks/utils/groupTasksByQuarter';
-import { todayDateString } from '../features/tasks/utils/today';
+import { todayDateString } from '../utils/today';
 
 export const TimelinePage = () => {
   const { activeOrganization, peopleNames } = useLedger();

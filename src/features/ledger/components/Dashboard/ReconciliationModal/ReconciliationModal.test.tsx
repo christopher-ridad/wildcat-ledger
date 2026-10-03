@@ -249,7 +249,7 @@ describe('ReconciliationModal', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows a validation error for an invalid reload amount without calling addTransaction', async () => {
+  test("the reload amount is always the form's Debit Card Reload Amount, service fees included", async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
@@ -258,6 +258,8 @@ describe('ReconciliationModal', () => {
           id: 't1',
           budgetLine: 'Debit Card',
           receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
         }),
       ],
     });
@@ -265,12 +267,19 @@ describe('ReconciliationModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
-
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('Service Fees (if any)'), {
+      target: { value: '3' },
+    });
+    fireEvent.click(screen.getByLabelText('Please reload $53.00'));
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
-    expect(await screen.findByText('Enter a valid reload amount.')).toBeInTheDocument();
-    expect(addTransaction).not.toHaveBeenCalled();
+    await vi.waitFor(() =>
+      expect(addTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 53 }),
+        expect.any(String),
+      ),
+    );
+    expect(screen.queryByLabelText('Amount')).not.toBeInTheDocument();
   });
 
   test('shows an error message when reconciling fails, and stays on the review step', async () => {
@@ -467,7 +476,7 @@ describe('ReconciliationModal', () => {
     await screen.findByText('Reconciliation complete!');
     expect(screen.getByText('exemptions')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
+    fireEvent.click(screen.getByLabelText(/^Please reload/));
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
     await vi.waitFor(() =>
@@ -684,7 +693,7 @@ describe('ReconciliationModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  test('the reload amount starts blank', async () => {
+  test('no reload choice is made by default, and the form waits for one', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
       transactions: [
@@ -702,10 +711,12 @@ describe('ReconciliationModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
 
-    expect(screen.getByLabelText('Amount')).toHaveValue('');
+    expect(screen.getByLabelText(/^Please reload/)).not.toBeChecked();
+    expect(screen.getByLabelText('Do not reload at this time')).not.toBeChecked();
+    expect(screen.getByText('⬇ Reconciliation Form (PDF)')).toBeDisabled();
   });
 
-  test('submitting a reload amount creates a Journal transaction on the Debit Card line', async () => {
+  test('requesting a reload creates a Pending Journal on the Debit Card line for the full amount', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     const generateTransactionId = vi.fn(() => 'reload-id');
@@ -729,14 +740,13 @@ describe('ReconciliationModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
-
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
+    fireEvent.click(screen.getByLabelText('Please reload $50.00'));
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
     await vi.waitFor(() =>
       expect(addTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
-          amount: 200,
+          amount: 50,
           direction: 'Inflow',
           type: 'Journal',
           budgetLine: 'Debit Card',
@@ -744,9 +754,10 @@ describe('ReconciliationModal', () => {
         'reload-id',
       ),
     );
-    expect(
-      await screen.findByText(/Reload of \$200\.00 added, pending approval/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Reload requested/)).toBeInTheDocument();
+    // Locked in once requested, so the form can't disagree with the request.
+    expect(screen.getByLabelText('Do not reload at this time')).toBeDisabled();
+    expect(screen.getByLabelText('Service Fees (if any)')).toBeDisabled();
   });
 
   test('shows an error message when the reload request fails', async () => {
@@ -767,7 +778,7 @@ describe('ReconciliationModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '200' } });
+    fireEvent.click(screen.getByLabelText(/^Please reload/));
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
 
     expect(await screen.findByText('Reload rejected')).toBeInTheDocument();
@@ -813,7 +824,7 @@ describe('ReconciliationModal', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  test('downloading the reconciliation form generates and downloads a PDF, marked "do not reload" before any reload is requested', async () => {
+  test('choosing not to reload generates the form marked "do not reload"', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
       name: 'Ballroom Latin and Swing Team',
@@ -831,6 +842,7 @@ describe('ReconciliationModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
+    fireEvent.click(screen.getByLabelText('Do not reload at this time'));
     fireEvent.click(screen.getByText('⬇ Reconciliation Form (PDF)'));
 
     await vi.waitFor(() => expect(mockGeneratePdf).toHaveBeenCalled());
@@ -863,9 +875,10 @@ describe('ReconciliationModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
-    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '50' } });
+    fireEvent.click(screen.getByLabelText(/^Please reload/));
+    expect(screen.getByText('⬇ Reconciliation Form (PDF)')).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
-    await screen.findByText(/Reload of \$50\.00 added/);
+    await screen.findByText(/Reload requested/);
 
     fireEvent.click(screen.getByText('⬇ Reconciliation Form (PDF)'));
 
@@ -914,10 +927,17 @@ describe('ReconciliationModal', () => {
     expect(screen.queryByText(/Load Balance isn't set/)).not.toBeInTheDocument();
   });
 
-  test('"Use this amount" fills the reload amount with the computed suggestion', async () => {
+  test('explains when the reload amount includes an earlier round not yet reloaded', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
       transactions: [
+        buildMockTransaction({
+          id: 'prior',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r0',
+          amount: 40,
+          reconciledAt: 1000,
+        }),
         buildMockTransaction({
           id: 't1',
           budgetLine: 'Debit Card',
@@ -931,11 +951,109 @@ describe('ReconciliationModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
     await screen.findByText('Reconciliation complete!');
-    fireEvent.change(screen.getByLabelText('Service Fees (if any)'), {
-      target: { value: '3' },
-    });
-    fireEvent.click(screen.getByText('Use this amount'));
 
-    expect(screen.getByLabelText('Amount')).toHaveValue('53.00');
+    expect(screen.getByLabelText('Please reload $90.00')).toBeInTheDocument();
+    expect(
+      screen.getByText(/plus \$40\.00 from an earlier reconciliation/),
+    ).toBeInTheDocument();
+  });
+
+  test('unticking a purchase also unticks every newer one, and only the rest are reconciled', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const purchase = (id: string, date: string) =>
+      buildMockTransaction({ id, date, budgetLine: 'Debit Card', receiptFileUrl: id });
+    const org = buildMockOrganization({
+      transactions: [
+        purchase('sep26', '2026-09-26'),
+        purchase('sep27', '2026-09-27'),
+        purchase('sep28', '2026-09-28'),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    const [sep28, sep27, sep26] = screen.getAllByRole('checkbox');
+    fireEvent.click(sep27);
+    expect(sep28).not.toBeChecked();
+    expect(sep27).not.toBeChecked();
+    expect(sep26).toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await vi.waitFor(() => expect(reconcileTransactions).toHaveBeenCalledWith(['sep26']));
+  });
+
+  test('ticking a purchase back in also ticks every older one', () => {
+    const purchase = (id: string, date: string) =>
+      buildMockTransaction({ id, date, budgetLine: 'Debit Card', receiptFileUrl: id });
+    const org = buildMockOrganization({
+      transactions: [
+        purchase('sep26', '2026-09-26'),
+        purchase('sep27', '2026-09-27'),
+        purchase('sep28', '2026-09-28'),
+      ],
+    });
+    renderModal({ activeOrganization: org });
+
+    const [sep28, sep27, sep26] = screen.getAllByRole('checkbox');
+    fireEvent.click(sep26);
+    fireEvent.click(sep27);
+    expect(sep28).not.toBeChecked();
+    expect(sep27).toBeChecked();
+    expect(sep26).toBeChecked();
+  });
+
+  test('asks for the date of the last reconciliation when the app has none on record, and puts it on the form', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+    fireEvent.change(screen.getByLabelText('Date of Last Reconciliation'), {
+      target: { value: '2026-05-15' },
+    });
+    fireEvent.click(screen.getByLabelText('Do not reload at this time'));
+    fireEvent.click(screen.getByText('⬇ Reconciliation Form (PDF)'));
+
+    await vi.waitFor(() => expect(mockGeneratePdf).toHaveBeenCalled());
+    expect(mockGeneratePdf.mock.calls[0][0].lastReconciliationDate).toBe('2026-05-15');
+  });
+
+  test('does not ask for the date of the last reconciliation when one is on record', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 'prior',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r0',
+          reconciledAt: Date.parse('2026-09-01T12:00:00'),
+        }),
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    expect(
+      screen.queryByLabelText('Date of Last Reconciliation'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Do not reload at this time'));
+    fireEvent.click(screen.getByText('⬇ Reconciliation Form (PDF)'));
+    await vi.waitFor(() => expect(mockGeneratePdf).toHaveBeenCalled());
+    expect(mockGeneratePdf.mock.calls[0][0].lastReconciliationDate).toBe('2026-09-01');
   });
 });

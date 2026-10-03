@@ -10,6 +10,8 @@ import {
 
 const baseData: ReconciliationFormData = {
   orgName: 'Ballroom Latin and Swing Team',
+  lastReconciliationDate: '2026-09-01',
+  balanceAsOfDate: '2026-10-03',
   accountNumber: '2012-345',
   lastFourDigits: '6789',
   inventoryControlNumber: '12345678-1234567',
@@ -123,6 +125,20 @@ describe('generateReconciliationPdf', () => {
     for (const [i, digit] of [...'6789'].entries()) {
       expect(await extractTextNear(blob, LAST_FOUR_DIGIT_XS[i], 672)).toBe(digit);
     }
+  });
+
+  test('draws the date of last reconciliation and the balance-as-of date', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    expect(await extractTextNear(blob, 458, 696)).toBe('09/01/2026');
+    expect(await extractTextNear(blob, 144, 414)).toBe('10/3');
+  });
+
+  test('leaves the date of last reconciliation blank for a first-ever reconciliation', async () => {
+    const blob = await generateReconciliationPdf(
+      { ...baseData, lastReconciliationDate: undefined },
+      'please-reload',
+    );
+    expect(await extractTextNear(blob, 458, 696)).toBeUndefined();
   });
 
   test('shows Total Expenditures as positive when the numbers are consistent', async () => {

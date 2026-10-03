@@ -6,7 +6,9 @@
  * not a WildcatLedger-specific interpretation.
  */
 
+import { localDateString, todayDateString } from '../../../utils/today';
 import { Organization, Transaction } from '../types';
+import { isDebitCardPurchase, reloadedThrough } from '../utils/debitCardReloads';
 
 interface ReconciliationFormReimbursement {
   date?: string;
@@ -16,6 +18,11 @@ interface ReconciliationFormReimbursement {
 
 export interface ReconciliationFormData {
   orgName: string;
+  // YYYY-MM-DD. The most recent earlier reconciliation recorded in the app,
+  // or undefined if this is the first one here.
+  lastReconciliationDate?: string;
+  // YYYY-MM-DD. When the card balance below was read, i.e. today.
+  balanceAsOfDate: string;
   accountNumber?: string;
   lastFourDigits?: string;
   inventoryControlNumber?: string;
@@ -25,7 +32,8 @@ export interface ReconciliationFormData {
   balanceAsOf: number;
   // "The total amount of money from any previous reconciliations that have
   // not been reloaded" (the guide's own words) -- prior rounds only, not
-  // including the batch being reconciled right now.
+  // including the batch being reconciled right now. See
+  // utils/debitCardReloads.ts for what counts as reloaded.
   completedReconciliationsPendingReload: number;
   // Unreconciled debit card purchases NOT part of this reconciliation batch.
   pendingTransactions: number;
@@ -36,21 +44,9 @@ export interface ReconciliationFormData {
   reloadAmount: number;
 }
 
-const isDebitCardPurchase = (t: Transaction) =>
-  t.budgetLine === 'Debit Card' && t.type !== 'Journal';
-
 // IL sales tax is never an authorized charge (see the form's page 2 guide):
 // it's split out of the purchase and paid back to SOFO separately.
 const salesTax = (t: Transaction) => t.taxAmount ?? 0;
-
-// A reload is a Journal (Inflow) on the Debit Card line -- see
-// handleRequestReload in ReconciliationModal.tsx, which is the only place
-// one is ever created. Only a Paid one has actually reloaded the card.
-const isPaidReload = (t: Transaction) =>
-  t.budgetLine === 'Debit Card' &&
-  t.type === 'Journal' &&
-  t.direction === 'Inflow' &&
-  t.paymentStatus === 'Paid';
 
 // selectedTransactionIds is the batch just reconciled (or about to be) --
 // by the time this runs in the real flow, those transactions already have
@@ -78,27 +74,37 @@ export function calculateReconciliationFormData(
 
   const reconciliationSubtotal = authorizedCharges + serviceFees + totalReimbursed;
 
-  const priorReconciledTotal = transactions
+  // Prior rounds whose money isn't back on the card yet. A round is
+  // reloaded in full or not at all, so this is every purchase reconciled
+  // after the most recent Paid reload was requested.
+  const cardReloadedThrough = reloadedThrough(transactions);
+  const completedReconciliationsPendingReload = transactions
     .filter(
-      (t) => isDebitCardPurchase(t) && t.reconciledAt != null && !selectedIds.has(t.id),
+      (t) =>
+        isDebitCardPurchase(t) &&
+        t.reconciledAt != null &&
+        t.reconciledAt > cardReloadedThrough &&
+        !selectedIds.has(t.id),
     )
     .reduce((sum, t) => sum + t.amount, 0);
-  const paidReloadsTotal = transactions
-    .filter(isPaidReload)
-    .reduce((sum, t) => sum + t.amount, 0);
-  // Clamped at 0: a negative value here would only mean more was reloaded
-  // than was ever reconciled, which shouldn't happen and isn't a
-  // meaningful number to print on the form either way.
-  const completedReconciliationsPendingReload = Math.max(
-    0,
-    priorReconciledTotal - paidReloadsTotal,
-  );
 
   const pendingTransactions = transactions
     .filter(
       (t) => isDebitCardPurchase(t) && t.reconciledAt == null && !selectedIds.has(t.id),
     )
     .reduce((sum, t) => sum + t.amount, 0);
+
+  // From the purchases themselves rather than the org's
+  // lastReconciliationDate, which reconciling this round has already
+  // overwritten by the time the form is generated.
+  const lastReconciledAt = Math.max(
+    0,
+    ...transactions
+      .filter(
+        (t) => isDebitCardPurchase(t) && t.reconciledAt != null && !selectedIds.has(t.id),
+      )
+      .map((t) => t.reconciledAt ?? 0),
+  );
 
   const loadBalance = organization.debitCardSettings.loadBalance ?? 0;
   const balanceAsOf = organization.budgetAllocations['Debit Card'];
@@ -119,6 +125,10 @@ export function calculateReconciliationFormData(
 
   return {
     orgName: organization.name,
+    lastReconciliationDate: lastReconciledAt
+      ? localDateString(lastReconciledAt)
+      : undefined,
+    balanceAsOfDate: todayDateString(),
     accountNumber: organization.debitCardSettings.accountNumber,
     lastFourDigits: organization.debitCardSettings.lastFourDigits,
     inventoryControlNumber: organization.debitCardSettings.inventoryControlNumber,

@@ -303,6 +303,18 @@ test('reconciling a covered debit card purchase', async ({ page }) => {
   await confirmButton.click();
 
   await expect(reconDialog.getByText('Reconciliation complete!')).toBeVisible();
+
+  // The form records the reload decision, so it waits for one; asking for a
+  // reload creates the request for the form's full reload amount.
+  const formButton = reconDialog.getByRole('button', {
+    name: '⬇ Reconciliation Form (PDF)',
+  });
+  await expect(formButton).toBeDisabled();
+  await reconDialog.getByLabel(/^Please reload \$/).check();
+  await reconDialog.getByRole('button', { name: 'Request Reload' }).click();
+  await expect(reconDialog.getByText(/Reload requested/)).toBeVisible();
+  await expect(formButton).toBeEnabled();
+
   await reconDialog.getByRole('button', { name: 'Done' }).click();
   await expect(reconDialog).toBeHidden();
 
