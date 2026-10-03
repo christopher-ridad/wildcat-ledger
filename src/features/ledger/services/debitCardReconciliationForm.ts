@@ -25,7 +25,6 @@ export interface ReconciliationFormData {
   balanceAsOfDate: string;
   accountNumber?: string;
   lastFourDigits?: string;
-  inventoryControlNumber?: string;
   reimbursements: ReconciliationFormReimbursement[];
   totalReimbursed: number;
   loadBalance: number;
@@ -131,7 +130,6 @@ export function calculateReconciliationFormData(
     balanceAsOfDate: todayDateString(),
     accountNumber: organization.debitCardSettings.accountNumber,
     lastFourDigits: organization.debitCardSettings.lastFourDigits,
-    inventoryControlNumber: organization.debitCardSettings.inventoryControlNumber,
     reimbursements,
     totalReimbursed,
     loadBalance,

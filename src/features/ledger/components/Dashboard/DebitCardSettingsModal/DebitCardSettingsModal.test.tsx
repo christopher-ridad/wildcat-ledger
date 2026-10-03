@@ -24,7 +24,6 @@ describe('DebitCardSettingsModal', () => {
         projectId: '70000000',
         accountNumber: '2000-000',
         lastFourDigits: '4321',
-        inventoryControlNumber: '12345678-1234567',
         loadBalance: 2000,
       },
     });
@@ -33,9 +32,6 @@ describe('DebitCardSettingsModal', () => {
     expect(screen.getByLabelText('Project ID')).toHaveValue('70000000');
     expect(screen.getByLabelText('Account No.')).toHaveValue('2000-000');
     expect(screen.getByLabelText('Last 4 Digits of Card')).toHaveValue('4321');
-    expect(screen.getByLabelText('Inventory Control No.')).toHaveValue(
-      '12345678-1234567',
-    );
     expect(screen.getByLabelText('Load Balance')).toHaveValue('2000');
   });
 
@@ -90,17 +86,6 @@ describe('DebitCardSettingsModal', () => {
     expect(screen.getByLabelText('Account No.')).toHaveValue('2000-000');
   });
 
-  test("auto-inserts a dash into the Inventory Control No. as it's typed", () => {
-    renderModal({ activeOrganization: buildMockOrganization() });
-    fireEvent.change(screen.getByLabelText('Inventory Control No.'), {
-      target: { value: '123456781234567extra' },
-    });
-    // Non-digits stripped, capped at 15 digits, dash after the 8th.
-    expect(screen.getByLabelText('Inventory Control No.')).toHaveValue(
-      '12345678-1234567',
-    );
-  });
-
   test('rejects an Account No. that is not in the 20XX-XXX format', async () => {
     const updateDebitCardSettings = vi.fn().mockResolvedValue(undefined);
     renderModal({
@@ -113,25 +98,6 @@ describe('DebitCardSettingsModal', () => {
     expect(
       await screen.findByText(
         'Account No. must be in the format 20XX-XXX (e.g. 2000-000).',
-      ),
-    ).toBeInTheDocument();
-    expect(updateDebitCardSettings).not.toHaveBeenCalled();
-  });
-
-  test('rejects an Inventory Control No. that is not in the 8-digit-dash-7-digit format', async () => {
-    const updateDebitCardSettings = vi.fn().mockResolvedValue(undefined);
-    renderModal({
-      activeOrganization: buildMockOrganization(),
-      updateDebitCardSettings,
-    });
-    fireEvent.change(screen.getByLabelText('Inventory Control No.'), {
-      target: { value: '123' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-
-    expect(
-      await screen.findByText(
-        'Inventory Control No. must be in the format XXXXXXXX-XXXXXXX (e.g. 12345678-1234567).',
       ),
     ).toBeInTheDocument();
     expect(updateDebitCardSettings).not.toHaveBeenCalled();
@@ -192,9 +158,6 @@ describe('DebitCardSettingsModal', () => {
     fireEvent.change(screen.getByLabelText('Last 4 Digits of Card'), {
       target: { value: '4321' },
     });
-    fireEvent.change(screen.getByLabelText('Inventory Control No.'), {
-      target: { value: '123456781234567' },
-    });
     fireEvent.change(screen.getByLabelText('Load Balance'), {
       target: { value: '2000' },
     });
@@ -204,7 +167,6 @@ describe('DebitCardSettingsModal', () => {
       expect(updateDebitCardSettings).toHaveBeenCalledWith({
         projectId: '70000000',
         accountNumber: '2000-000',
-        inventoryControlNumber: '12345678-1234567',
         lastFourDigits: '4321',
         loadBalance: 2000,
       }),

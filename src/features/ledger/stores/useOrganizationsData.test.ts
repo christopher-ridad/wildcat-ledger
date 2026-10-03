@@ -62,7 +62,6 @@ const mockSuccessfulLoad = (
           debit_card_project_id: null,
           debit_card_account_number: null,
           debit_card_last_four: null,
-          debit_card_icn: null,
           debit_card_load_balance: null,
         },
       ],
@@ -228,7 +227,6 @@ describe('useOrganizationsData', () => {
             debit_card_project_id: null,
             debit_card_account_number: null,
             debit_card_last_four: null,
-            debit_card_icn: null,
             debit_card_load_balance: null,
           },
           {
@@ -242,7 +240,6 @@ describe('useOrganizationsData', () => {
             debit_card_project_id: null,
             debit_card_account_number: null,
             debit_card_last_four: null,
-            debit_card_icn: null,
             debit_card_load_balance: null,
           },
         ],

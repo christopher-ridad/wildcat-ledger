@@ -401,17 +401,17 @@ integration or webhook, so "reimbursed" is purely a flag the app trusts a manage
 ## SOFO / Cashier's Office settings
 
 Each org can save the debit-card details needed to pre-fill the official SOFO debit-card
-reconciliation form: Project ID, Account No., last 4 digits of the card, Inventory Control No., and
-the card's load balance (its fixed limit, not its current running balance, which is tracked
+reconciliation form: Project ID, Account No., last 4 digits of the card, and the card's load balance (its fixed limit, not its current running balance, which is tracked
 separately). The exact formats below come straight from that official form's own validation rules,
 not a choice made by this app:
 
 - **Project ID:** 8 digits, between `70000000` and `79999999`
 - **Account No.:** the format `20XX-XXX` (e.g. `2000-000`)
-- **Inventory Control No.:** 8 digits, a dash, then 7 more digits (e.g. `12345678-1234567`)
+
+The form's Inventory Control No. is always left blank: SOFO has discontinued it.
 
 **Technical implementation:** these fields are stored as regular, unencrypted columns. The last 4
-digits and the Inventory Control No. aren't the full card number, and the database already encrypts
+digits aren't the full card number, and the database already encrypts
 everything at rest the same way it does for every other piece of information it stores.
 
 ## Document requirements & requesting documents

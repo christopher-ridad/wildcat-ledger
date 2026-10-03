@@ -71,7 +71,6 @@ export const rowToOrganization = (
     projectId: row.debit_card_project_id ?? undefined,
     accountNumber: row.debit_card_account_number ?? undefined,
     lastFourDigits: row.debit_card_last_four ?? undefined,
-    inventoryControlNumber: row.debit_card_icn ?? undefined,
     loadBalance:
       row.debit_card_load_balance != null
         ? Number(row.debit_card_load_balance)

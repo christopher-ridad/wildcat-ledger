@@ -46,12 +46,11 @@ const SECTIONS: FaqSection[] = [
           <>
             <p>
               It&rsquo;s where a SOFO Approver enters your org&rsquo;s official
-              identifiers: Project ID, Account No., Inventory Control No., and the last 4
-              digits of the debit card, plus its Load Balance (the fixed card limit set by
-              the Cashier&rsquo;s Office, not its current running balance). These exist to
-              pre-fill the actual SOFO reconciliation form, not for anything the app
-              calculates from, plus easy access to that information whenever else you need
-              it.
+              identifiers: Project ID, Account No., and the last 4 digits of the debit
+              card, plus its Load Balance (the fixed card limit set by the Cashier&rsquo;s
+              Office, not its current running balance). These exist to pre-fill the actual
+              SOFO reconciliation form, not for anything the app calculates from, plus
+              easy access to that information whenever else you need it.
             </p>
             <p>
               Only a SOFO Approver can open or edit it, from the gear icon in the sidebar.

@@ -181,7 +181,6 @@ export type Database = {
         Row: {
           budget_allocations: Json;
           debit_card_account_number: string | null;
-          debit_card_icn: string | null;
           debit_card_last_four: string | null;
           debit_card_load_balance: number | null;
           debit_card_project_id: string | null;
@@ -195,7 +194,6 @@ export type Database = {
         Insert: {
           budget_allocations?: Json;
           debit_card_account_number?: string | null;
-          debit_card_icn?: string | null;
           debit_card_last_four?: string | null;
           debit_card_load_balance?: number | null;
           debit_card_project_id?: string | null;
@@ -209,7 +207,6 @@ export type Database = {
         Update: {
           budget_allocations?: Json;
           debit_card_account_number?: string | null;
-          debit_card_icn?: string | null;
           debit_card_last_four?: string | null;
           debit_card_load_balance?: number | null;
           debit_card_project_id?: string | null;

@@ -313,7 +313,6 @@ describe('organization settings updates', () => {
       debit_card_project_id: '70000001',
       debit_card_account_number: null,
       debit_card_last_four: null,
-      debit_card_icn: null,
       debit_card_load_balance: null,
     });
   });

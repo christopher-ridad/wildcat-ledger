@@ -117,11 +117,7 @@ export async function generateReconciliationPdf(
     });
   }
 
-  if (data.inventoryControlNumber) {
-    const [first, second] = data.inventoryControlNumber.split('-');
-    draw(page, font, first ?? '', 205, 650.4);
-    draw(page, font, second ?? '', 360, 650.4);
-  }
+  // Inventory Control No. is left blank: SOFO no longer uses it.
 
   // Reimbursements table: only 2 blank rows on the template itself, so
   // only the first 2 line items are itemized -- matching the real paper
@@ -141,7 +137,7 @@ export async function generateReconciliationPdf(
   // Activity Summary
   draw(page, font, money(data.loadBalance), 220, 438.4);
   // The "Balance as of ______" blank only fits a month/day.
-  draw(page, font, monthDay(data.balanceAsOfDate), 144, 414, { size: 8 });
+  draw(page, font, monthDay(data.balanceAsOfDate), 144, 413);
   draw(page, font, money(data.balanceAsOf), 224, 412.8);
   draw(page, font, money(data.completedReconciliationsPendingReload), 223, 388);
   draw(page, font, money(data.pendingTransactions), 224, 356.8);

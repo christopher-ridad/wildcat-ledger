@@ -240,7 +240,6 @@ describe('calculateReconciliationFormData', () => {
       debitCardSettings: {
         accountNumber: '2000-000',
         lastFourDigits: '1234',
-        inventoryControlNumber: '12345678-1234567',
         loadBalance: 500,
       },
     });
@@ -250,7 +249,6 @@ describe('calculateReconciliationFormData', () => {
     expect(data.orgName).toBe('Ballroom Latin and Swing Team');
     expect(data.accountNumber).toBe('2000-000');
     expect(data.lastFourDigits).toBe('1234');
-    expect(data.inventoryControlNumber).toBe('12345678-1234567');
     expect(data.loadBalance).toBe(500);
   });
 

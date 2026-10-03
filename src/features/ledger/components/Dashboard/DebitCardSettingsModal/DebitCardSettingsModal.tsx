@@ -16,7 +16,6 @@ interface DebitCardSettingsModalProps {
 // docs/BUSINESS_RULES.md#sofo--cashiers-office-settings.
 const PROJECT_ID_PATTERN = /^7\d{7}$/; // 70000000-79999999
 const ACCOUNT_NUMBER_PATTERN = /^20\d{2}-\d{3}$/; // e.g. 2000-000
-const ICN_PATTERN = /^\d{8}-\d{7}$/; // e.g. 12345678-1234567
 const LAST_FOUR_DIGITS_PATTERN = /^\d{4}$/;
 
 const formatWithDash = (raw: string, digitsBeforeDash: number, maxDigits: number) => {
@@ -35,7 +34,6 @@ export const DebitCardSettingsModal = ({
 
   const [projectId, setProjectId] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
-  const [inventoryControlNumber, setInventoryControlNumber] = useState('');
   const [lastFourDigits, setLastFourDigits] = useState('');
   const [loadBalance, setLoadBalance] = useState('');
   const saveAction = useAsyncAction();
@@ -47,7 +45,6 @@ export const DebitCardSettingsModal = ({
   useResetOnOpen(isOpen, () => {
     setProjectId(settings?.projectId ?? '');
     setAccountNumber(settings?.accountNumber ?? '');
-    setInventoryControlNumber(settings?.inventoryControlNumber ?? '');
     setLastFourDigits(settings?.lastFourDigits ?? '');
     setLoadBalance(settings?.loadBalance != null ? String(settings.loadBalance) : '');
     saveAction.setError(null);
@@ -61,10 +58,6 @@ export const DebitCardSettingsModal = ({
     setAccountNumber(formatWithDash(e.target.value, 4, 7));
   };
 
-  const handleInventoryControlNumberChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setInventoryControlNumber(formatWithDash(e.target.value, 8, 15));
-  };
-
   const handleSave = async () => {
     const fieldValidations = [
       {
@@ -76,12 +69,6 @@ export const DebitCardSettingsModal = ({
         value: accountNumber,
         pattern: ACCOUNT_NUMBER_PATTERN,
         message: 'Account No. must be in the format 20XX-XXX (e.g. 2000-000).',
-      },
-      {
-        value: inventoryControlNumber,
-        pattern: ICN_PATTERN,
-        message:
-          'Inventory Control No. must be in the format XXXXXXXX-XXXXXXX (e.g. 12345678-1234567).',
       },
       {
         value: lastFourDigits,
@@ -105,7 +92,6 @@ export const DebitCardSettingsModal = ({
       await updateDebitCardSettings({
         projectId: projectId.trim() || undefined,
         accountNumber: accountNumber.trim() || undefined,
-        inventoryControlNumber: inventoryControlNumber.trim() || undefined,
         lastFourDigits: lastFourDigits.trim() || undefined,
         loadBalance: parsedLoadBalance,
       });
@@ -154,21 +140,6 @@ export const DebitCardSettingsModal = ({
             value={accountNumber}
             placeholder="2000-000"
             onChange={handleAccountNumberChange}
-          />
-        </div>
-
-        <div className="wl-form-group">
-          <label className="wl-form-label" htmlFor="sofo-icn">
-            Inventory Control No.
-          </label>
-          <input
-            id="sofo-icn"
-            type="text"
-            inputMode="numeric"
-            className="wl-form-input"
-            value={inventoryControlNumber}
-            placeholder="12345678-1234567"
-            onChange={handleInventoryControlNumberChange}
           />
         </div>
       </div>

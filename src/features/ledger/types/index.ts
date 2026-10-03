@@ -157,7 +157,6 @@ export interface DebitCardSettings {
   projectId?: string;
   accountNumber?: string;
   lastFourDigits?: string;
-  inventoryControlNumber?: string;
   loadBalance?: number;
 }
 

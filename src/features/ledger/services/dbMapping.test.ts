@@ -194,7 +194,6 @@ const minimalOrganizationRow: OrganizationRow = {
   debit_card_project_id: null,
   debit_card_account_number: null,
   debit_card_last_four: null,
-  debit_card_icn: null,
   debit_card_load_balance: null,
 };
 
@@ -214,7 +213,6 @@ describe('rowToOrganization', () => {
         projectId: undefined,
         accountNumber: undefined,
         lastFourDigits: undefined,
-        inventoryControlNumber: undefined,
         loadBalance: undefined,
       },
     });
@@ -230,7 +228,6 @@ describe('rowToOrganization', () => {
       debit_card_project_id: '70000001',
       debit_card_account_number: '2000-001',
       debit_card_last_four: '1234',
-      debit_card_icn: '12345678-1234567',
       debit_card_load_balance: '500.50' as unknown as number,
     };
     const transactions = [
@@ -247,7 +244,6 @@ describe('rowToOrganization', () => {
       projectId: '70000001',
       accountNumber: '2000-001',
       lastFourDigits: '1234',
-      inventoryControlNumber: '12345678-1234567',
       loadBalance: 500.5,
     });
   });

@@ -14,7 +14,6 @@ const baseData: ReconciliationFormData = {
   balanceAsOfDate: '2026-10-03',
   accountNumber: '2012-345',
   lastFourDigits: '6789',
-  inventoryControlNumber: '12345678-1234567',
   reimbursements: [
     { date: '2026-03-01', description: 'IL Sales Tax - Coffee Shop', amount: 2.5 },
   ],
@@ -172,7 +171,6 @@ describe('generateReconciliationPdf', () => {
       ...baseData,
       accountNumber: undefined,
       lastFourDigits: undefined,
-      inventoryControlNumber: undefined,
       reimbursements: [],
     };
     await expect(
