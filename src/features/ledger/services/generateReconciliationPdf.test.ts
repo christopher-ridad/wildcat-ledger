@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { PDFDocument } from 'pdf-lib';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { downloadBlob } from '../../../utils/downloadBlob';
 import { ReconciliationFormData } from './debitCardReconciliationForm';
 import {
   downloadReconciliationPdf,
@@ -28,6 +29,8 @@ const baseData: ReconciliationFormData = {
   reconciliationSubtotal: 123.25,
   reloadAmount: 163.25,
 };
+
+vi.mock('../../../utils/downloadBlob', () => ({ downloadBlob: vi.fn() }));
 
 beforeEach(() => {
   // Real template bytes, read from disk -- the test exercises pdf-lib
@@ -191,6 +194,45 @@ describe('generateReconciliationPdf', () => {
   // Regression guard for the real bug caught during manual verification:
   // only the first 2 reimbursements have blank rows on the template, so a
   // 3rd (or more) must not throw trying to draw into a nonexistent row.
+  test('lists up to 3 reimbursements, one per row, with MM/DD/YYYY dates', async () => {
+    const blob = await generateReconciliationPdf(
+      {
+        ...baseData,
+        reimbursements: [
+          { date: '2026-09-18', description: 'Jewel-Osco', amount: 1.1 },
+          { date: '2026-09-22', description: 'Amazon', amount: 2.5 },
+          { date: '2026-09-26', description: 'Insomnia Cookies', amount: 2.8 },
+        ],
+      },
+      'please-reload',
+    );
+    expect(await extractTextNear(blob, 100.8, 561.6)).toBe('09/18/2026');
+    expect(await extractTextNear(blob, 484, 544.8)).toBe('2.50');
+    expect(await extractTextNear(blob, 245.6, 528)).toBe('Insomnia Cookies');
+  });
+
+  test('combines everything past the second reimbursement into the last row', async () => {
+    const blob = await generateReconciliationPdf(
+      {
+        ...baseData,
+        reimbursements: [
+          { date: '2026-09-18', description: 'Jewel-Osco', amount: 1.1 },
+          { date: '2026-09-22', description: 'Amazon', amount: 2.5 },
+          { date: '2026-09-26', description: 'Insomnia Cookies', amount: 2.8 },
+          { date: '2026-09-27', description: 'Target', amount: 0.9 },
+          { date: '2026-09-28', description: 'Walgreens', amount: 0.45 },
+        ],
+      },
+      'please-reload',
+    );
+    expect(await extractTextNear(blob, 245.6, 544.8)).toBe('Amazon');
+    expect(await extractTextNear(blob, 245.6, 528)).toBe(
+      'IL sales tax on 3 other purchases',
+    );
+    expect(await extractTextNear(blob, 484, 528)).toBe('4.15');
+    expect(await extractTextNear(blob, 100.8, 528)).toBeUndefined();
+  });
+
   test('does not throw when given more reimbursements than the template has rows for', async () => {
     const manyReimbursements: ReconciliationFormData = {
       ...baseData,
@@ -207,41 +249,12 @@ describe('generateReconciliationPdf', () => {
 });
 
 describe('downloadReconciliationPdf', () => {
-  test('creates a download link named after the org and clicks it', () => {
+  test('downloads the PDF under a filename built from the org name', () => {
     const blob = new Blob(['pdf bytes'], { type: 'application/pdf' });
-    const clickSpy = vi.fn();
-    const createElementSpy = vi
-      .spyOn(document, 'createElement')
-      .mockReturnValue({ click: clickSpy } as unknown as HTMLAnchorElement);
-    vi.stubGlobal('URL', {
-      ...URL,
-      createObjectURL: vi.fn(() => 'blob:mock-url'),
-      revokeObjectURL: vi.fn(),
-    });
-
-    downloadReconciliationPdf(blob, 'Ballroom Latin and Swing Team');
-
-    expect(createElementSpy).toHaveBeenCalledWith('a');
-    expect(clickSpy).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
-
-    createElementSpy.mockRestore();
-  });
-
-  test('sanitizes the org name into a safe filename', () => {
-    const blob = new Blob(['pdf bytes'], { type: 'application/pdf' });
-    const anchor = { click: vi.fn() } as unknown as HTMLAnchorElement;
-    vi.spyOn(document, 'createElement').mockReturnValue(anchor);
-    vi.stubGlobal('URL', {
-      ...URL,
-      createObjectURL: vi.fn(() => 'blob:mock-url'),
-      revokeObjectURL: vi.fn(),
-    });
-
     downloadReconciliationPdf(blob, "Women's Club @ Evanston!");
-
-    expect(anchor.download).toBe('Women-s-Club-Evanston--debit-card-reconciliation.pdf');
-
-    vi.restoreAllMocks();
+    expect(downloadBlob).toHaveBeenCalledWith(
+      blob,
+      'Women-s-Club-Evanston--debit-card-reconciliation.pdf',
+    );
   });
 });

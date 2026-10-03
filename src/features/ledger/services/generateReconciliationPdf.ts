@@ -19,6 +19,7 @@
 
 import { PDFDocument, PDFFont, PDFPage, rgb, StandardFonts } from 'pdf-lib';
 
+import { downloadBlob } from '../../../utils/downloadBlob';
 import { formatCurrency, formatDate } from '../utils/calculations';
 import { ReconciliationFormData } from './debitCardReconciliationForm';
 
@@ -48,6 +49,24 @@ function signedMoney(amount: number): string {
 function monthDay(isoDate: string): string {
   const [, month, day] = isoDate.split('-');
   return `${Number(month)}/${Number(day)}`;
+}
+
+// More reimbursements than the table has rows: list all but the last row's
+// worth individually and combine the rest into that last row.
+function fitToRows(
+  reimbursements: ReconciliationFormData['reimbursements'],
+  rowCount: number,
+): ReconciliationFormData['reimbursements'] {
+  if (reimbursements.length <= rowCount) return reimbursements;
+  const listed = reimbursements.slice(0, rowCount - 1);
+  const combined = reimbursements.slice(rowCount - 1);
+  return [
+    ...listed,
+    {
+      description: `IL sales tax on ${combined.length} other purchases`,
+      amount: combined.reduce((sum, r) => sum + r.amount, 0),
+    },
+  ];
 }
 
 interface DrawOptions {
@@ -119,16 +138,14 @@ export async function generateReconciliationPdf(
 
   // Inventory Control No. is left blank: SOFO no longer uses it.
 
-  // Reimbursements table: only 2 blank rows on the template itself, so
-  // only the first 2 line items are itemized -- matching the real paper
-  // form's own physical limit (a treasurer with more than that already
-  // has to continue on a separate sheet). Row y's are hand-calibrated
-  // against a rendered proof, not evenly interpolated -- an even split
-  // landed row 2's baseline right on the grid line under row 1.
-  const REIMBURSEMENT_ROW_YS = [558, 524];
-  data.reimbursements.slice(0, 2).forEach((r, i) => {
+  // Reimbursements table: the template has 3 rows, each about 17pt tall
+  // between grid lines at y 574.4 / 557.6 / 540.8 / 524 (read off the
+  // template's own drawing), so each baseline sits 4pt above its row's
+  // bottom line. Deposit No. is left blank: SOFO no longer uses it.
+  const REIMBURSEMENT_ROW_YS = [561.6, 544.8, 528];
+  fitToRows(data.reimbursements, REIMBURSEMENT_ROW_YS.length).forEach((r, i) => {
     const y = REIMBURSEMENT_ROW_YS[i];
-    draw(page, font, r.date ?? '', 100.8, y, { size: 9 });
+    draw(page, font, r.date ? formatDate(r.date) : '', 100.8, y, { size: 9 });
     draw(page, font, r.description, 245.6, y, { size: 9 });
     draw(page, font, money(r.amount), 484, y);
   });
@@ -167,9 +184,8 @@ export async function generateReconciliationPdf(
 }
 
 export function downloadReconciliationPdf(blob: Blob, orgName: string) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${orgName.replace(/[^a-z0-9]+/gi, '-')}-debit-card-reconciliation.pdf`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadBlob(
+    blob,
+    `${orgName.replace(/[^a-z0-9]+/gi, '-')}-debit-card-reconciliation.pdf`,
+  );
 }

@@ -23,3 +23,25 @@ export const setIncluded = (
   }
   return next;
 };
+
+// The purchases that can be included right now: ones that aren't blocked
+// (missing a receipt, owing tax, or waiting on an edit/delete), with no
+// blocked purchase dated before them -- including one would mean including
+// every older purchase too. A blocked purchase can still be left out, along
+// with everything newer, so the older ones reconcile on their own.
+export const getIncludableIds = (
+  purchases: Transaction[],
+  isBlocked: (t: Transaction) => boolean,
+): Set<string> => {
+  const blockedDates = purchases.filter(isBlocked).map((t) => t.date ?? '');
+  const oldestBlockedDate = blockedDates.length ? blockedDates.sort()[0] : undefined;
+  return new Set(
+    purchases
+      .filter(
+        (t) =>
+          !isBlocked(t) &&
+          (oldestBlockedDate === undefined || (t.date ?? '') <= oldestBlockedDate),
+      )
+      .map((t) => t.id),
+  );
+};

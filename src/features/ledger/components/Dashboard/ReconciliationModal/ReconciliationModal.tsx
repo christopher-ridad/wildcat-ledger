@@ -20,7 +20,10 @@ import {
 import { needsTaxReimbursement } from '../../../utils/documentRequirements';
 import { Modal } from '../Modal';
 import styles from './ReconciliationModal.module.css';
-import { setIncluded } from './reconciliationSelection';
+import { getIncludableIds, setIncluded } from './reconciliationSelection';
+
+const LEAVE_OUT_HINT =
+  'Purchases older than it can still be reconciled now; it and anything newer stay for next time.';
 
 interface ReconciliationModalProps {
   isOpen: boolean;
@@ -84,19 +87,16 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   // needs resolving from the dashboard before reconciling.
   const pendingChangeFor = (t: Transaction) => pendingChangeForTransaction(t.id);
 
-  const coveredIds = unreconciledTxns
-    .filter(isCovered)
-    .map((t) => t.id)
-    .join(',');
-  const uncoveredCount = unreconciledTxns.filter((t) => !isCovered(t)).length;
+  const isBlocked = (t: Transaction) =>
+    !isCovered(t) || needsTaxReimbursement(t) || !!pendingChangeFor(t);
+  const includableIds = getIncludableIds(unreconciledTxns, isBlocked);
+  const includableKey = [...includableIds].join(',');
   // Reset selection whenever the modal opens (the false→true transition only —
-  // NOT on every subsequent change to coveredIds/uncoveredCount while it stays
-  // open, since reconciling flips those via Realtime a moment later and would
-  // otherwise reset `step` back to 'review' right under the success screen).
+  // NOT on every subsequent change to the list while it stays open, since
+  // reconciling changes it via Realtime a moment later and would otherwise
+  // reset `step` back to 'review' right under the success screen).
   useResetOnOpen(isOpen, () => {
-    setSelected(
-      uncoveredCount === 0 && coveredIds ? new Set(coveredIds.split(',')) : new Set(),
-    );
+    setSelected(new Set(includableIds));
     confirmAction.setError(null);
     uploadAction.reset();
     reimburseAction.reset();
@@ -107,24 +107,26 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     reloadAction.setError(null);
     setLastReconciliationDateInput('');
     pdfAction.setError(null);
-  }, [coveredIds, uncoveredCount]);
+  }, [includableKey]);
 
-  // All uncovered transactions in the list (blocks reconciliation entirely)
   const uncoveredAll = unreconciledTxns.filter((t) => !isCovered(t));
   const unresolvedTaxAll = unreconciledTxns.filter(needsTaxReimbursement);
   const pendingAll = unreconciledTxns.filter((t) => pendingChangeFor(t));
+  const selectedBlocked = unreconciledTxns.filter(
+    (t) => selected.has(t.id) && isBlocked(t),
+  );
 
-  // If ANY unreconciled transaction is missing a receipt/exemption form,
-  // owes an unresolved tax reimbursement, or has a pending edit/delete
-  // request, hide ALL checkboxes — nothing can be selected until every
-  // transaction is covered and resolved
-  const hideCheckboxes =
-    uncoveredAll.length > 0 || unresolvedTaxAll.length > 0 || pendingAll.length > 0;
+  const canConfirm = selected.size > 0 && selectedBlocked.length === 0;
 
-  const coveredCount = unreconciledTxns.filter(isCovered).length;
-  const displayCount = hideCheckboxes ? coveredCount : selected.size;
-
-  const canConfirm = !hideCheckboxes && selected.size > 0;
+  // Once a purchase's blocker is resolved mid-session, tick it (and anything
+  // older) -- unless an older purchase is still blocked.
+  const includeOnceResolved = (txnId: string) => {
+    const txn = unreconciledTxns.find((t) => t.id === txnId);
+    if (!txn) return;
+    const othersBlocked = (t: Transaction) => t.id !== txnId && isBlocked(t);
+    if (!getIncludableIds(unreconciledTxns, othersBlocked).has(txnId)) return;
+    setSelected((prev) => setIncluded(unreconciledTxns, prev, txn, true));
+  };
 
   const handleFileChange = async (txnId: string, file: File | null) => {
     if (!file) return;
@@ -132,11 +134,9 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       txnId,
       async () => {
         await uploadExemptionForm(txnId, file);
-        // The auto-select effect only (re)populates `selected` on the modal's
-        // own isOpen false->true transition, not on every coveredIds change
-        // while it stays open -- so a transaction that just became covered
-        // mid-session needs to be added here, or Confirm stays stuck at (0).
-        setSelected((prev) => new Set(prev).add(txnId));
+        // The auto-select effect only runs when the modal opens, so a
+        // purchase that just became covered mid-session is ticked here.
+        includeOnceResolved(txnId);
       },
       'Upload failed.',
     );
@@ -147,9 +147,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       txnId,
       async () => {
         await markTaxReimbursed(txnId);
-        // See the matching comment in handleFileChange -- the auto-select
-        // effect won't pick this up mid-session on its own.
-        setSelected((prev) => new Set(prev).add(txnId));
+        // See the matching comment in handleFileChange.
+        includeOnceResolved(txnId);
       },
       'Failed to mark as reimbursed.',
     );
@@ -160,21 +159,9 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       confirmAction.setError('Select at least one transaction to reconcile.');
       return;
     }
-    if (uncoveredAll.length > 0) {
+    if (selectedBlocked.length > 0) {
       confirmAction.setError(
-        `${uncoveredAll.length} transaction(s) are missing a receipt or exemption form.`,
-      );
-      return;
-    }
-    if (unresolvedTaxAll.length > 0) {
-      confirmAction.setError(
-        `${unresolvedTaxAll.length} transaction(s) owe an unresolved tax reimbursement to SOFO.`,
-      );
-      return;
-    }
-    if (pendingAll.length > 0) {
-      confirmAction.setError(
-        `${pendingAll.length} transaction(s) have a pending edit or delete request awaiting approval.`,
+        `${selectedBlocked.length} selected ${pluralize(selectedBlocked.length, 'transaction')} can't be reconciled yet.`,
       );
       return;
     }
@@ -277,7 +264,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
               : 'Showing all unreconciled debit card transactions.'}
           </p>
 
-          {!hideCheckboxes && unreconciledTxns.length > 0 && (
+          {unreconciledTxns.length > 0 && (
             <p className={styles['wl-recon-subtitle']}>
               Untick purchases to leave them for the next reconciliation. Only the most
               recent ones can be left out, so unticking one also unticks everything newer.
@@ -306,17 +293,16 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                       <label
                         className={`${styles['wl-recon-row']}${isBlocking ? ` ${styles['wl-recon-row--disabled']}` : ''}`}
                       >
-                        {!hideCheckboxes && (
-                          <input
-                            type="checkbox"
-                            checked={selected.has(t.id)}
-                            onChange={(e) =>
-                              setSelected((prev) =>
-                                setIncluded(unreconciledTxns, prev, t, e.target.checked),
-                              )
-                            }
-                          />
-                        )}
+                        <input
+                          type="checkbox"
+                          checked={selected.has(t.id)}
+                          disabled={!selected.has(t.id) && !includableIds.has(t.id)}
+                          onChange={(e) =>
+                            setSelected((prev) =>
+                              setIncluded(unreconciledTxns, prev, t, e.target.checked),
+                            )
+                          }
+                        />
                         <span className={styles['wl-recon-row-date']}>
                           {formatDate(t.date)}
                         </span>
@@ -476,7 +462,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   ⚠ {uncoveredAll.length} {pluralize(uncoveredAll.length, 'transaction')}{' '}
                   cannot be reconciled until{' '}
                   {uncoveredAll.length === 1 ? 'it has' : 'they have'} a receipt or
-                  attached exemption form.
+                  attached exemption form. {LEAVE_OUT_HINT}
                 </div>
               )}
 
@@ -485,7 +471,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   ⚠ {unresolvedTaxAll.length}{' '}
                   {pluralize(unresolvedTaxAll.length, 'transaction')} cannot be reconciled
                   until {unresolvedTaxAll.length === 1 ? 'its' : 'their'} tax
-                  reimbursement to SOFO is resolved.
+                  reimbursement to SOFO is resolved. {LEAVE_OUT_HINT}
                 </div>
               )}
 
@@ -494,7 +480,7 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   ⚠ {pendingAll.length} {pluralize(pendingAll.length, 'transaction')}{' '}
                   cannot be reconciled until {pendingAll.length === 1 ? 'its' : 'their'}{' '}
                   pending edit or delete request {pendingAll.length === 1 ? 'is' : 'are'}{' '}
-                  resolved.
+                  resolved. {LEAVE_OUT_HINT}
                 </div>
               )}
 
@@ -509,16 +495,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   type="button"
                   className="wl-btn-primary"
                   onClick={handleConfirm}
-                  disabled={confirmAction.pending || !canConfirm || hideCheckboxes}
-                  title={
-                    hideCheckboxes
-                      ? 'Resolve all missing receipts before reconciling'
-                      : undefined
-                  }
+                  disabled={confirmAction.pending || !canConfirm}
                 >
                   {confirmAction.pending
                     ? 'Reconciling…'
-                    : `Confirm & Reconcile (${displayCount})`}
+                    : `Confirm & Reconcile (${selected.size})`}
                 </button>
                 <button
                   type="button"

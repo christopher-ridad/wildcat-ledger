@@ -71,69 +71,94 @@ describe('ReconciliationModal', () => {
     expect(screen.getByRole('button', { name: 'Confirm & Reconcile (2)' })).toBeEnabled();
   });
 
-  test('blocks confirmation entirely when any transaction is missing a receipt/exemption form', () => {
+  test('a recent purchase missing a receipt can be left out so the older ones reconcile', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
       transactions: [
         buildMockTransaction({
-          id: 't1',
+          id: 'older',
+          date: '2026-09-01',
           budgetLine: 'Debit Card',
           receiptFileUrl: 'r1',
         }),
-        buildMockTransaction({ id: 't2', budgetLine: 'Debit Card' }),
+        buildMockTransaction({
+          id: 'newer',
+          date: '2026-09-02',
+          budgetLine: 'Debit Card',
+        }),
       ],
     });
-    renderModal({ activeOrganization: org });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
     expect(
       screen.getByText(/1 transaction cannot be reconciled until it has a receipt/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+    const [newer, older] = screen.getAllByRole('checkbox');
+    expect(newer).not.toBeChecked();
+    expect(newer).toBeDisabled();
+    expect(older).toBeChecked();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await vi.waitFor(() => expect(reconcileTransactions).toHaveBeenCalledWith(['older']));
   });
 
-  test('blocks confirmation entirely when any transaction owes an unresolved tax reimbursement', () => {
+  test('an older purchase owing tax holds back everything newer', () => {
     const org = buildMockOrganization({
       transactions: [
         buildMockTransaction({
-          id: 't1',
+          id: 'older',
+          date: '2026-09-01',
           budgetLine: 'Debit Card',
           receiptFileUrl: 'r1',
-        }),
-        buildMockTransaction({
-          id: 't2',
-          budgetLine: 'Debit Card',
-          receiptFileUrl: 'r2',
           taxExemptFormSubmitted: false,
           taxAmount: 2.5,
+        }),
+        buildMockTransaction({
+          id: 'newer',
+          date: '2026-09-02',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r2',
         }),
       ],
     });
     renderModal({ activeOrganization: org });
+
     expect(
       screen.getByText(
         /1 transaction cannot be reconciled until its tax reimbursement to SOFO is resolved/,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+    const [newer, older] = screen.getAllByRole('checkbox');
+    expect(newer).toBeDisabled();
+    expect(older).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Confirm & Reconcile (0)' }),
+    ).toBeDisabled();
   });
 
-  test('blocks confirmation entirely when any transaction has a pending edit/delete request', () => {
+  test('a recent purchase with a pending request can be left out so the older ones reconcile', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({
       transactions: [
         buildMockTransaction({
-          id: 't1',
+          id: 'older',
+          date: '2026-09-01',
           budgetLine: 'Debit Card',
           receiptFileUrl: 'r1',
         }),
         buildMockTransaction({
-          id: 't2',
+          id: 'newer',
+          date: '2026-09-02',
           budgetLine: 'Debit Card',
           receiptFileUrl: 'r2',
         }),
       ],
     });
     const pendingChanges = [
-      buildMockPendingChange({ transactionId: 't2', type: 'edit' }),
+      buildMockPendingChange({ transactionId: 'newer', type: 'edit' }),
     ];
-    renderModal({ activeOrganization: org, pendingChanges });
+    renderModal({ activeOrganization: org, pendingChanges, reconcileTransactions });
+
     expect(
       screen.getByText(
         /1 transaction cannot be reconciled until its pending edit or delete request is resolved/,
@@ -142,7 +167,9 @@ describe('ReconciliationModal', () => {
     expect(
       screen.getByText(/Has a pending edit request awaiting approval/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Confirm & Reconcile/ })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await vi.waitFor(() => expect(reconcileTransactions).toHaveBeenCalledWith(['older']));
   });
 
   test('does not block when tax was charged but the exemption form was submitted', () => {

@@ -321,6 +321,10 @@ Form. The two are interchangeable. A purchase can't be reconciled if:
 - it owes an unresolved tax reimbursement to SOFO (see below), or
 - it has a pending edit or delete request still awaiting approval.
 
+That only holds back that purchase and anything newer: since the most recent purchases can be left
+out (see below), the older ones can still be reconciled now, and the blocked purchase waits for the
+next round once it's resolved.
+
 Purchases can be left out of a reconciliation and carried to the next one, but only the most recent
 ones, as the form's guide requires ("Pending Transactions ... may only be the most recent
 purchases"). So in the reconciliation modal, unticking a purchase also unticks every newer one, and
@@ -340,6 +344,11 @@ confirmed.
 `reconcile_transactions_with_audit`. `request_transaction_change_with_audit` and
 `resolve_pending_change_with_audit` don't special-case a reconciled transaction — they use the same
 `transaction_edit_requires_approval` logic as any other.
+
+The form's Reimbursements table has three rows. With more than three reimbursements, the first two
+are listed individually and the rest are combined into the third row ("IL sales tax on N other
+purchases"); the total always includes all of them. The Deposit No. column is left blank, since SOFO
+no longer uses it.
 
 On the generated form, "Balance as of" is dated the day the form is generated, since that's when
 the card balance is read. "Date of Last Reconciliation" is the most recent earlier round reconciled
