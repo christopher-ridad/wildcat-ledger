@@ -8,6 +8,10 @@ import {
   MockLedgerProvider,
 } from '../../../../../test/mocks';
 import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
+import {
+  downloadReconciliationPdf,
+  generateReconciliationPdf,
+} from '../../../services/generateReconciliationPdf';
 import { LedgerContextValue } from '../../../types';
 import { ReconciliationModal } from './ReconciliationModal';
 
@@ -15,7 +19,14 @@ vi.mock('../../../services/downloadReceiptsZip', () => ({
   downloadReceiptsZip: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('../../../services/generateReconciliationPdf', () => ({
+  generateReconciliationPdf: vi.fn().mockResolvedValue(new Blob()),
+  downloadReconciliationPdf: vi.fn(),
+}));
+
 const mockDownloadZip = vi.mocked(downloadReceiptsZip);
+const mockGeneratePdf = vi.mocked(generateReconciliationPdf);
+const mockDownloadPdf = vi.mocked(downloadReconciliationPdf);
 
 const renderModal = (ledgerOverrides: Partial<LedgerContextValue> = {}, isOpen = true) =>
   render(
@@ -800,5 +811,91 @@ describe('ReconciliationModal', () => {
     );
     fireEvent.click(container.querySelector('.wl-modal-overlay') as Element);
     expect(onClose).toHaveBeenCalled();
+  });
+
+  test('downloading the reconciliation form generates and downloads a PDF, marked "do not reload" before any reload is requested', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      name: 'Ballroom Latin and Swing Team',
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+    fireEvent.click(screen.getByText('⬇ Reconciliation Form (PDF)'));
+
+    await vi.waitFor(() => expect(mockGeneratePdf).toHaveBeenCalled());
+    const [formData, reloadChoice] = mockGeneratePdf.mock.calls[0];
+    expect(formData).toEqual(
+      expect.objectContaining({
+        orgName: 'Ballroom Latin and Swing Team',
+        authorizedCharges: 50,
+      }),
+    );
+    expect(reloadChoice).toBe('do-not-reload');
+    expect(mockDownloadPdf).toHaveBeenCalled();
+  });
+
+  test('downloading the reconciliation form after requesting a reload marks it "please reload"', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions, addTransaction });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+    fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '50' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
+    await screen.findByText(/Reload of \$50\.00 added/);
+
+    fireEvent.click(screen.getByText('⬇ Reconciliation Form (PDF)'));
+
+    await vi.waitFor(() => expect(mockGeneratePdf).toHaveBeenCalled());
+    const [, reloadChoice] = mockGeneratePdf.mock.calls[0];
+    expect(reloadChoice).toBe('please-reload');
+  });
+
+  test('"Use this amount" fills the reload amount with the computed suggestion', async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+    fireEvent.change(screen.getByLabelText('Service Fees (if any)'), {
+      target: { value: '3' },
+    });
+    fireEvent.click(screen.getByText('Use this amount'));
+
+    expect(screen.getByLabelText('Amount')).toHaveValue('53.00');
   });
 });

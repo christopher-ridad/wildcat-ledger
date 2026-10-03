@@ -4,7 +4,12 @@ import { pluralize } from '../../../../../utils/pluralize';
 import { useAsyncAction, useAsyncActionMap } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { useResetOnOpen } from '../../../hooks/useResetOnOpen';
+import { calculateReconciliationFormData } from '../../../services/debitCardReconciliationForm';
 import { downloadReceiptsZip } from '../../../services/downloadReceiptsZip';
+import {
+  downloadReconciliationPdf,
+  generateReconciliationPdf,
+} from '../../../services/generateReconciliationPdf';
 import { Transaction } from '../../../types';
 import { formatCurrency, formatTimestamp } from '../../../utils/calculations';
 import {
@@ -61,6 +66,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
   const [reloadAmountInput, setReloadAmountInput] = useState('');
   const reloadAction = useAsyncAction();
   const [reloadRequested, setReloadRequested] = useState(false);
+  const [serviceFeesInput, setServiceFeesInput] = useState('0');
+  const pdfAction = useAsyncAction();
   // "Covered" per docs/BUSINESS_RULES.md#debit-card-reconciliation.
   const isCovered = (t: Transaction) => !!(t.receiptFileUrl || t.exemptionFormUrl);
   // See docs/BUSINESS_RULES.md#dual-approval-workflow -- a reconciled
@@ -89,6 +96,8 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
     setReloadAmountInput('');
     setReloadRequested(false);
     reloadAction.setError(null);
+    setServiceFeesInput('0');
+    pdfAction.setError(null);
   }, [coveredIds, uncoveredCount]);
 
   // All uncovered transactions in the list (blocks reconciliation entirely)
@@ -201,6 +210,29 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       );
       setReloadRequested(true);
     }, 'Reload request failed.');
+  };
+
+  // Recomputed live off current state (selected, service fees, whether a
+  // reload has actually been requested yet) rather than snapshotted once --
+  // cheap, pure, and lets the download always reflect the treasurer's
+  // latest input instead of going stale if they adjust something first.
+  const reconciliationFormData = activeOrganization
+    ? calculateReconciliationFormData(
+        activeOrganization,
+        [...selected],
+        parseFloat(serviceFeesInput) || 0,
+      )
+    : null;
+
+  const handleDownloadForm = async () => {
+    if (!reconciliationFormData) return;
+    await pdfAction.run(async () => {
+      const blob = await generateReconciliationPdf(
+        reconciliationFormData,
+        reloadRequested ? 'please-reload' : 'do-not-reload',
+      );
+      downloadReconciliationPdf(blob, reconciliationFormData.orgName);
+    }, 'Could not generate the reconciliation form.');
   };
 
   const handleDownloadZip = async () => {
@@ -505,6 +537,52 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   Creates a Journal transaction on the Debit Card line, which counts
                   toward the balance once approved and paid.
                 </p>
+                <div className="wl-form-group">
+                  <label className="wl-form-label" htmlFor="service-fees">
+                    Service Fees (if any)
+                  </label>
+                  <div className={styles['wl-amount-input-wrap']}>
+                    <span className={styles['wl-amount-input-prefix']}>$</span>
+                    <input
+                      id="service-fees"
+                      type="text"
+                      inputMode="decimal"
+                      className={`wl-form-input ${styles['wl-amount-input']}`}
+                      placeholder="0.00"
+                      value={serviceFeesInput}
+                      onChange={(e) => setServiceFeesInput(e.target.value)}
+                    />
+                  </div>
+                </div>
+                {reconciliationFormData && (
+                  <p className={styles['wl-recon-reload-hint']}>
+                    Suggested reload amount:{' '}
+                    {formatCurrency(reconciliationFormData.reloadAmount)} (this
+                    round&apos;s{' '}
+                    {formatCurrency(reconciliationFormData.reconciliationSubtotal)}
+                    {reconciliationFormData.completedReconciliationsPendingReload > 0 &&
+                      ` + ${formatCurrency(reconciliationFormData.completedReconciliationsPendingReload)} owed from a prior reconciliation`}
+                    ).{' '}
+                    <button
+                      type="button"
+                      className={styles['wl-recon-exemption-link']}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        font: 'inherit',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() =>
+                        setReloadAmountInput(
+                          reconciliationFormData.reloadAmount.toFixed(2),
+                        )
+                      }
+                    >
+                      Use this amount
+                    </button>
+                  </p>
+                )}
                 <div className={styles['wl-recon-reload-row']}>
                   <div className="wl-form-group">
                     <label className="wl-form-label" htmlFor="reload-amount">
@@ -544,6 +622,11 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
               {zipAction.error}
             </div>
           )}
+          {pdfAction.error && (
+            <div className="wl-form-error" style={{ marginTop: 12 }}>
+              {pdfAction.error}
+            </div>
+          )}
 
           <div className={styles['wl-recon-actions']}>
             {snapshotTxnsWithReceipts.length > 0 && (
@@ -558,6 +641,14 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   : `⬇ Receipts ZIP (${snapshotTxnsWithReceipts.length})`}
               </button>
             )}
+            <button
+              type="button"
+              className={styles['wl-btn-download-zip']}
+              onClick={handleDownloadForm}
+              disabled={pdfAction.pending}
+            >
+              {pdfAction.pending ? 'Generating…' : '⬇ Reconciliation Form (PDF)'}
+            </button>
             <button type="button" className="wl-btn-primary" onClick={onClose}>
               Done
             </button>
