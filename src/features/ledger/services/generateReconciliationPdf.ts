@@ -32,6 +32,18 @@ function money(amount: number): string {
   return formatCurrency(Math.abs(amount)).replace('$', '');
 }
 
+// Only for Total Expenditures: the one "$"-prefixed field (template gives
+// no sign character of its own, unlike the "-"/"+"-prefixed fields money()
+// is normally used for) whose underlying value can legitimately go
+// negative -- e.g. Load Balance not actually set yet in Debit Card
+// Settings. That mismatch is exactly what the form's own "*Total
+// Expenditures and Reconciliation Subtotal should match" note exists to
+// catch, so it has to stay visible rather than silently showing the
+// absolute value as if nothing were wrong.
+function signedMoney(amount: number): string {
+  return amount < 0 ? `-${money(amount)}` : money(amount);
+}
+
 interface DrawOptions {
   size?: number;
 }
@@ -106,7 +118,7 @@ export async function generateReconciliationPdf(
   draw(page, font, money(data.balanceAsOf), 224, 412.8);
   draw(page, font, money(data.completedReconciliationsPendingReload), 223, 388);
   draw(page, font, money(data.pendingTransactions), 224, 356.8);
-  draw(page, font, money(data.totalExpenditures), 220, 331.2);
+  draw(page, font, signedMoney(data.totalExpenditures), 220, 331.2);
 
   // Documentation Totals
   draw(page, font, money(data.authorizedCharges), 472, 438.4);

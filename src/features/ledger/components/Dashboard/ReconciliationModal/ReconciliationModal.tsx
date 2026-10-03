@@ -224,6 +224,13 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
       )
     : null;
 
+  // A never-configured Load Balance defaults to 0 (see
+  // calculateReconciliationFormData), which makes the generated form's
+  // Total Expenditures come out negative -- a real, visible mismatch
+  // rather than a silently wrong number, but better caught here before
+  // generating the form at all.
+  const loadBalanceNotSet = !activeOrganization?.debitCardSettings.loadBalance;
+
   const handleDownloadForm = async () => {
     if (!reconciliationFormData) return;
     await pdfAction.run(async () => {
@@ -537,6 +544,13 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
                   Creates a Journal transaction on the Debit Card line, which counts
                   toward the balance once approved and paid.
                 </p>
+                {loadBalanceNotSet && (
+                  <div className={styles['wl-recon-block-warning']}>
+                    ⚠ This org&apos;s debit card Load Balance isn&apos;t set, so the
+                    reconciliation form below won&apos;t be accurate. Set it under SOFO /
+                    CO Settings first.
+                  </div>
+                )}
                 <div className="wl-form-group">
                   <label className="wl-form-label" htmlFor="service-fees">
                     Service Fees (if any)

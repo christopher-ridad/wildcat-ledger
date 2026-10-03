@@ -874,6 +874,46 @@ describe('ReconciliationModal', () => {
     expect(reloadChoice).toBe('please-reload');
   });
 
+  test("warns when the org's debit card Load Balance is not set", async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+      debitCardSettings: {},
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    expect(screen.getByText(/Load Balance isn't set/)).toBeInTheDocument();
+  });
+
+  test("does not warn when the org's debit card Load Balance is set", async () => {
+    const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
+    const org = buildMockOrganization({
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+        }),
+      ],
+      debitCardSettings: { loadBalance: 1000 },
+    });
+    renderModal({ activeOrganization: org, reconcileTransactions });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+
+    expect(screen.queryByText(/Load Balance isn't set/)).not.toBeInTheDocument();
+  });
+
   test('"Use this amount" fills the reload amount with the computed suggestion', async () => {
     const reconcileTransactions = vi.fn().mockResolvedValue(undefined);
     const org = buildMockOrganization({

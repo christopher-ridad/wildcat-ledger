@@ -55,6 +55,32 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Regression test for a real bug: every drawn value used to go through
+// Math.abs(), so when totalExpenditures comes out negative (e.g. Load
+// Balance not actually set in Debit Card Settings, defaulting to 0) the
+// form silently printed the positive magnitude instead -- masking exactly
+// the kind of mismatch the form's own "*Total Expenditures and
+// Reconciliation Subtotal should match" note exists to catch. Reads the
+// drawn text back out via pdfjs-dist rather than just checking the
+// function didn't throw, since the bug was in what gets drawn, not
+// whether drawing succeeds.
+async function extractTextNear(blob: Blob, targetX: number, targetY: number) {
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const page = await doc.getPage(1);
+  const content = await page.getTextContent();
+  // The template's own blank line ("___________") sits at nearly the same
+  // position as whatever gets drawn on top of it, so excludes anything
+  // that's just underscores rather than taking the first positional match.
+  const match = content.items.find((item) => {
+    const i = item as { transform: number[]; str: string };
+    const [, , , , x, y] = i.transform;
+    return Math.abs(x - targetX) < 5 && Math.abs(y - targetY) < 2 && !/^_+$/.test(i.str);
+  }) as { str: string } | undefined;
+  return match?.str;
+}
+
 describe('generateReconciliationPdf', () => {
   test('fetches the template from its public path', async () => {
     await generateReconciliationPdf(baseData, 'please-reload');
@@ -76,6 +102,26 @@ describe('generateReconciliationPdf', () => {
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const doc = await PDFDocument.load(bytes);
     expect(doc.getPageCount()).toBe(2);
+  });
+
+  test('shows Total Expenditures as positive when the numbers are consistent', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    const text = await extractTextNear(blob, 220, 331.2);
+    expect(text).toBe('124.75');
+  });
+
+  test('shows Total Expenditures as negative (with a leading "-") when Load Balance is unset and the numbers do not add up', async () => {
+    const inconsistent: ReconciliationFormData = {
+      ...baseData,
+      loadBalance: 0,
+      balanceAsOf: 23.78,
+      completedReconciliationsPendingReload: 0,
+      pendingTransactions: 0,
+      totalExpenditures: -23.78,
+    };
+    const blob = await generateReconciliationPdf(inconsistent, 'do-not-reload');
+    const text = await extractTextNear(blob, 220, 331.2);
+    expect(text).toBe('-23.78');
   });
 
   test('produces a PDF regardless of which reload option is passed', async () => {
