@@ -70,13 +70,16 @@ async function extractTextNear(blob: Blob, targetX: number, targetY: number) {
   const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
   const page = await doc.getPage(1);
   const content = await page.getTextContent();
-  // The template's own blank line ("___________") sits at nearly the same
-  // position as whatever gets drawn on top of it, so excludes anything
-  // that's just underscores rather than taking the first positional match.
+  // The template's own blank line/spacer items ("___________", a lone " ")
+  // sit at nearly the same position as whatever gets drawn on top of them,
+  // so this excludes anything blank rather than taking the first
+  // positional match.
   const match = content.items.find((item) => {
     const i = item as { transform: number[]; str: string };
     const [, , , , x, y] = i.transform;
-    return Math.abs(x - targetX) < 5 && Math.abs(y - targetY) < 2 && !/^_+$/.test(i.str);
+    return (
+      Math.abs(x - targetX) < 5 && Math.abs(y - targetY) < 2 && !/^[_\s]*$/.test(i.str)
+    );
   }) as { str: string } | undefined;
   return match?.str;
 }
@@ -102,6 +105,24 @@ describe('generateReconciliationPdf', () => {
     const bytes = new Uint8Array(await blob.arrayBuffer());
     const doc = await PDFDocument.load(bytes);
     expect(doc.getPageCount()).toBe(2);
+  });
+
+  // Regression test: an earlier version drew each half of the account
+  // number (and all 4 last-four-digits) as one continuous string starting
+  // at the first box, which left the template's other single-digit boxes
+  // in each group empty -- the real template has one box per digit, not
+  // one box per group.
+  test('draws the account number and last-4-digits one digit per box', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    const ACCOUNT_DIGIT_XS = [164.8, 192.1, 230.3, 257.6, 284.9];
+    const LAST_FOUR_DIGIT_XS = [440.5, 467.1, 493.6, 516.0];
+
+    for (const [i, digit] of [...'12345'].entries()) {
+      expect(await extractTextNear(blob, ACCOUNT_DIGIT_XS[i], 672)).toBe(digit);
+    }
+    for (const [i, digit] of [...'6789'].entries()) {
+      expect(await extractTextNear(blob, LAST_FOUR_DIGIT_XS[i], 672)).toBe(digit);
+    }
   });
 
   test('shows Total Expenditures as positive when the numbers are consistent', async () => {

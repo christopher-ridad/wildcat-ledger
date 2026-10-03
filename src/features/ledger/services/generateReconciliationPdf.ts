@@ -82,15 +82,28 @@ export async function generateReconciliationPdf(
   draw(page, font, data.orgName, 110, 696);
 
   if (data.accountNumber) {
-    // Template already prints "2 0 ____ ____ - ____ ____ ____" -- draw the
-    // two halves (after stripping the pre-printed "20") into their own
-    // blanks either side of the template's own dash, not as one string
-    // (which visually collided with that dash).
-    const [acctFirst, acctSecond] = data.accountNumber.replace(/^20/, '').split('-');
-    draw(page, font, acctFirst ?? '', 168, 672);
-    draw(page, font, acctSecond ?? '', 234, 672);
+    // Template prints "2 0 ____ ____ - ____ ____ ____" -- each "____" is
+    // its own single-digit box (confirmed against a rendered proof: an
+    // earlier version drew each half as one continuous string starting at
+    // the first box, which left the later boxes in each half empty and
+    // visibly adrift from where the rest of the digits actually landed).
+    // Five boxes for the five digits left after stripping the pre-printed
+    // "20" (format is 20XX-XXX): two before the template's own dash, three
+    // after. X positions read off each box's own position in the
+    // template's text layer, not evenly interpolated.
+    const acctDigits = data.accountNumber.replace(/^20/, '').replace('-', '');
+    const ACCOUNT_DIGIT_XS = [164.8, 192.1, 230.3, 257.6, 284.9];
+    [...acctDigits].slice(0, 5).forEach((digit, i) => {
+      draw(page, font, digit, ACCOUNT_DIGIT_XS[i], 672);
+    });
   }
-  draw(page, font, data.lastFourDigits ?? '', 437, 672);
+  if (data.lastFourDigits) {
+    // Same one-digit-per-box layout as the account number above.
+    const LAST_FOUR_DIGIT_XS = [440.5, 467.1, 493.6, 516.0];
+    [...data.lastFourDigits].slice(0, 4).forEach((digit, i) => {
+      draw(page, font, digit, LAST_FOUR_DIGIT_XS[i], 672);
+    });
+  }
 
   if (data.inventoryControlNumber) {
     const [first, second] = data.inventoryControlNumber.split('-');
