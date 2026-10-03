@@ -351,6 +351,7 @@ export type Database = {
           payment_status: string | null;
           receipt_file_url: string | null;
           reconciled_at: number | null;
+          reload_requested_at: number | null;
           reimbursed_member_name: string | null;
           special_pay_form_acknowledged_missing: boolean | null;
           special_pay_form_url: string | null;
@@ -393,6 +394,7 @@ export type Database = {
           payment_status?: string | null;
           receipt_file_url?: string | null;
           reconciled_at?: number | null;
+          reload_requested_at?: number | null;
           reimbursed_member_name?: string | null;
           special_pay_form_acknowledged_missing?: boolean | null;
           special_pay_form_url?: string | null;
@@ -435,6 +437,7 @@ export type Database = {
           payment_status?: string | null;
           receipt_file_url?: string | null;
           reconciled_at?: number | null;
+          reload_requested_at?: number | null;
           reimbursed_member_name?: string | null;
           special_pay_form_acknowledged_missing?: boolean | null;
           special_pay_form_url?: string | null;
@@ -502,6 +505,7 @@ export type Database = {
           payment_status: string | null;
           receipt_file_url: string | null;
           reconciled_at: number | null;
+          reload_requested_at: number | null;
           reimbursed_member_name: string | null;
           special_pay_form_acknowledged_missing: boolean | null;
           special_pay_form_url: string | null;

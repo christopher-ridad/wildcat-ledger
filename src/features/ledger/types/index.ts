@@ -59,6 +59,9 @@ export interface Transaction {
   // Reconciliation — Debit Card transactions only
   // null = not yet reconciled; number = epoch ms when reconciled
   reconciledAt?: number | null;
+  // Debit Card reloads only: epoch ms when the reload was requested, set by
+  // the database. See utils/debitCardReloads.ts.
+  reloadRequestedAt?: number;
   // Set when the user explicitly acknowledges they have no receipt at submission time
   noReceiptAcknowledged?: boolean;
   // Uploaded when the transaction has no receipt (satisfies receipt requirement for reconciliation)

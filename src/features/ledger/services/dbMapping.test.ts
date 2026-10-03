@@ -39,6 +39,7 @@ const minimalTransactionRow: TransactionRow = {
   special_pay_form_url: null,
   exemption_form_url: null,
   reconciled_at: null,
+  reload_requested_at: null,
   no_receipt_acknowledged: null,
   tax_exempt_form_submitted: null,
   tax_amount: null,

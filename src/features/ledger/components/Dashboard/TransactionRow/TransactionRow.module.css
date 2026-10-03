@@ -74,6 +74,12 @@
   border-color: #86efac;
 }
 
+.wl-status-badge--superseded {
+  color: #4b5563;
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
 .wl-status-select {
   appearance: none;
   -webkit-appearance: none;

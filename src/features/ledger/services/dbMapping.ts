@@ -41,6 +41,7 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
   conflictOfInterestFileUrl: row.conflict_of_interest_file_url ?? undefined,
   specialPayFormUrl: row.special_pay_form_url ?? undefined,
   reconciledAt: row.reconciled_at ?? undefined,
+  reloadRequestedAt: row.reload_requested_at ?? undefined,
   noReceiptAcknowledged: row.no_receipt_acknowledged ?? undefined,
   exemptionFormUrl: row.exemption_form_url ?? undefined,
   taxExemptFormSubmitted: row.tax_exempt_form_submitted ?? undefined,
