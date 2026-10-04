@@ -79,6 +79,42 @@ export type Database = {
           },
         ];
       };
+      debit_card_reconciliations: {
+        Row: {
+          created_at: string;
+          form_data: Json;
+          id: string;
+          last_reconciliation_date: string | null;
+          org_id: string;
+          reconciled_at: number;
+          reload_choice: string | null;
+          reload_transaction_id: string | null;
+          transaction_ids: string[];
+        };
+        Insert: {
+          created_at?: string;
+          form_data: Json;
+          id?: string;
+          last_reconciliation_date?: string | null;
+          org_id: string;
+          reconciled_at: number;
+          reload_choice?: string | null;
+          reload_transaction_id?: string | null;
+          transaction_ids: string[];
+        };
+        Update: {
+          created_at?: string;
+          form_data?: Json;
+          id?: string;
+          last_reconciliation_date?: string | null;
+          org_id?: string;
+          reconciled_at?: number;
+          reload_choice?: string | null;
+          reload_transaction_id?: string | null;
+          transaction_ids?: string[];
+        };
+        Relationships: [];
+      };
       financial_task_requirements: {
         Row: {
           completed_at: string | null;
@@ -566,8 +602,8 @@ export type Database = {
         Returns: undefined;
       };
       reconcile_transactions_with_audit: {
-        Args: { p_org_id: string; p_transaction_ids: string[] };
-        Returns: undefined;
+        Args: { p_form_data: Json; p_org_id: string; p_transaction_ids: string[] };
+        Returns: Database['public']['Tables']['debit_card_reconciliations']['Row'];
       };
       request_reload_with_audit: {
         Args: {

@@ -8,12 +8,21 @@
 // info into the generated types.
 
 import { Database } from '../../../config/database.types';
-import { AuditEntry, Organization, PendingChange, Transaction } from '../types';
+import {
+  AuditEntry,
+  Organization,
+  PendingChange,
+  ReconciliationRound,
+  Transaction,
+} from '../types';
+import { ReconciliationFormData } from './debitCardReconciliationForm';
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row'];
 type OrganizationRow = Database['public']['Tables']['organizations']['Row'];
 type AuditLogRow = Database['public']['Tables']['audit_log']['Row'];
 type PendingChangeRow = Database['public']['Tables']['pending_changes']['Row'];
+type ReconciliationRoundRow =
+  Database['public']['Tables']['debit_card_reconciliations']['Row'];
 
 export const rowToTransaction = (row: TransactionRow): Transaction => ({
   id: row.id,
@@ -101,4 +110,16 @@ export const rowToPendingChange = (row: PendingChangeRow): PendingChange => ({
   requestedAt: row.requested_at,
   before: row.before as PendingChange['before'],
   after: row.after as PendingChange['after'],
+});
+
+export const rowToReconciliationRound = (
+  row: ReconciliationRoundRow,
+): ReconciliationRound => ({
+  id: row.id,
+  reconciledAt: Number(row.reconciled_at),
+  transactionIds: row.transaction_ids,
+  formData: row.form_data as unknown as ReconciliationFormData,
+  reloadChoice: (row.reload_choice as ReconciliationRound['reloadChoice']) ?? undefined,
+  reloadTransactionId: row.reload_transaction_id ?? undefined,
+  lastReconciliationDate: row.last_reconciliation_date ?? undefined,
 });

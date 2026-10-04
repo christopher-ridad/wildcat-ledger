@@ -1,3 +1,5 @@
+import type { ReconciliationFormData } from '../services/debitCardReconciliationForm';
+
 export type BudgetLine = 'ASG' | 'Operating' | 'Gifts' | 'Debit Card';
 
 export type Funding = 'ASG' | 'Operating' | 'Gifts';
@@ -216,7 +218,17 @@ export interface LedgerContextValue {
   updateBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   initializeBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   updateDebitCardSettings: (settings: DebitCardSettings) => Promise<void>;
-  reconcileTransactions: (transactionIds: string[]) => Promise<void>;
+  // Reconciles the given purchases and saves the round, with the form's
+  // numbers frozen as of now -- see ReconciliationRound.
+  reconcileTransactions: (
+    transactionIds: string[],
+    formData: ReconciliationFormData,
+  ) => Promise<ReconciliationRound>;
+  fetchLastReconciliation: () => Promise<ReconciliationRound | null>;
+  updateReconciliationRound: (
+    id: string,
+    patch: ReconciliationRoundUpdate,
+  ) => Promise<ReconciliationRound>;
   uploadExemptionForm: (transactionId: string, file: File) => Promise<void>;
   markTaxReimbursed: (transactionId: string) => Promise<void>;
   // Mints an upload token for the given document type on an existing
@@ -228,3 +240,25 @@ export interface LedgerContextValue {
   filteredTransactions: Transaction[];
   budgetLineSummaries: BudgetLineSummaryData[];
 }
+
+// One debit card reconciliation, saved so its finishing screen can be
+// reopened. formData is the reconciliation form's numbers as of
+// reconciling; the rest is filled in as the treasurer finishes. See
+// docs/BUSINESS_RULES.md#revisiting-the-last-reconciliation.
+export interface ReconciliationRound {
+  id: string;
+  reconciledAt: number;
+  transactionIds: string[];
+  formData: ReconciliationFormData;
+  reloadChoice?: 'please-reload' | 'do-not-reload';
+  reloadTransactionId?: string;
+  // YYYY-MM-DD, entered when the app had no earlier reconciliation on record.
+  lastReconciliationDate?: string;
+}
+
+export type ReconciliationRoundUpdate = Partial<
+  Pick<
+    ReconciliationRound,
+    'reloadChoice' | 'reloadTransactionId' | 'lastReconciliationDate'
+  >
+>;

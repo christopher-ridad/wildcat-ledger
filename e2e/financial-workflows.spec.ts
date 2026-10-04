@@ -311,14 +311,28 @@ test('reconciling a covered debit card purchase', async ({ page }) => {
   });
   await expect(formButton).toBeDisabled();
   await reconDialog.getByLabel(/^Please reload \$/).check();
+  // The seeded org starts with $10,000 in each line, so Gifts can pay for it.
+  await reconDialog.getByLabel(/^Gifts/).check();
   await reconDialog.getByRole('button', { name: 'Request Reload' }).click();
   await expect(reconDialog.getByText(/Reload requested/)).toBeVisible();
   await expect(formButton).toBeEnabled();
 
+  // Closing before downloading the form asks first.
   await reconDialog.getByRole('button', { name: 'Done' }).click();
+  await reconDialog.getByRole('button', { name: 'Close anyway' }).click();
   await expect(reconDialog).toBeHidden();
 
   await expect(row.getByText('Reconciled', { exact: true })).toBeVisible();
+
+  // The round was saved, so its finishing screen can be reopened, with the
+  // reload it already requested.
+  await page.getByRole('button', { name: 'Reconcile Debit Card' }).click();
+  await reconDialog.getByRole('button', { name: /View last reconciliation/ }).click();
+  await expect(reconDialog.getByText(/^Reconciled /)).toBeVisible();
+  await expect(
+    reconDialog.getByRole('list', { name: 'Reconciled transactions' }),
+  ).toContainText(title);
+  await expect(reconDialog.getByText(/Reload requested/)).toBeVisible();
 });
 
 // See docs/BUSINESS_RULES.md#dual-approval-workflow -- reconciled
@@ -358,7 +372,9 @@ test('correcting a reconciled debit card transaction still needs a second approv
   }
   await reconDialog.getByRole('button', { name: /Confirm & Reconcile/ }).click();
   await expect(reconDialog.getByText('Reconciliation complete!')).toBeVisible();
+  // Closing before downloading the form asks first.
   await reconDialog.getByRole('button', { name: 'Done' }).click();
+  await reconDialog.getByRole('button', { name: 'Close anyway' }).click();
   await expect(reconDialog).toBeHidden();
   await expect(row.getByText('Reconciled', { exact: true })).toBeVisible();
 

@@ -1,4 +1,7 @@
+import { Json } from '../../../config/database.types';
 import { supabase } from '../../../config/supabase';
+import { rowToReconciliationRound } from '../services/dbMapping';
+import { ReconciliationFormData } from '../services/debitCardReconciliationForm';
 import {
   documentPath,
   removeTransactionDocuments,
@@ -10,6 +13,8 @@ import {
   DebitCardSettings,
   PaymentStatus,
   PendingChange,
+  ReconciliationRound,
+  ReconciliationRoundUpdate,
   Transaction,
   UserRole,
 } from '../types';
@@ -158,10 +163,57 @@ export function useLedgerMutations(
       debit_card_load_balance: settings.loadBalance ?? null,
     });
 
-  const reconcileTransactions = async (transactionIds: string[]) =>
-    callOrgRpc('reconcile_transactions_with_audit', {
+  const reconcileTransactions = async (
+    transactionIds: string[],
+    formData: ReconciliationFormData,
+  ): Promise<ReconciliationRound> => {
+    const { data, error } = await supabase.rpc('reconcile_transactions_with_audit', {
+      p_org_id: activeOrganizationId ?? '',
       p_transaction_ids: transactionIds,
+      p_form_data: formData as unknown as Json,
     });
+    if (error) throw error;
+    return rowToReconciliationRound(data);
+  };
+
+  const fetchLastReconciliation = async (): Promise<ReconciliationRound | null> => {
+    if (!activeOrganizationId) return null;
+    const { data, error } = await supabase
+      .from('debit_card_reconciliations')
+      .select('*')
+      .eq('org_id', activeOrganizationId)
+      .order('reconciled_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? rowToReconciliationRound(data) : null;
+  };
+
+  // Selects the row back for the same reason updateActiveOrganization does:
+  // an update RLS refuses would otherwise succeed silently.
+  const updateReconciliationRound = async (
+    id: string,
+    patch: ReconciliationRoundUpdate,
+  ): Promise<ReconciliationRound> => {
+    const { data, error } = await supabase
+      .from('debit_card_reconciliations')
+      .update({
+        ...('reloadChoice' in patch && { reload_choice: patch.reloadChoice ?? null }),
+        ...('reloadTransactionId' in patch && {
+          reload_transaction_id: patch.reloadTransactionId ?? null,
+        }),
+        ...('lastReconciliationDate' in patch && {
+          last_reconciliation_date: patch.lastReconciliationDate ?? null,
+        }),
+      })
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+    if (error) throw error;
+    if (!data)
+      throw new Error("Couldn't save the reconciliation. Check your permissions.");
+    return rowToReconciliationRound(data);
+  };
 
   const uploadExemptionForm = async (transactionId: string, file: File) => {
     if (!activeOrganizationId) return;
@@ -207,6 +259,8 @@ export function useLedgerMutations(
     initializeBudgetAllocations,
     updateDebitCardSettings,
     reconcileTransactions,
+    fetchLastReconciliation,
+    updateReconciliationRound,
     uploadExemptionForm,
     markTaxReimbursed,
     requestTransactionDocument,

@@ -355,6 +355,27 @@ the card balance is read. "Date of Last Reconciliation" is the most recent earli
 in the app. If there isn't one, the treasurer can enter the date of a reconciliation done before
 they started using WildcatLedger, or leave it blank if the card has never been reconciled.
 
+### Revisiting the last reconciliation
+
+Each reconciliation is saved as a round, so its finishing screen (the reload choice, the
+reconciliation form, and the receipts ZIP) can be reopened from "View last reconciliation" in the
+Reconcile Debit Card modal. Only the most recent round is offered; earlier ones are in the audit log.
+
+The form's numbers are frozen when the round is reconciled. Recomputing them later would drift
+with any card activity since (a purchase added afterwards would look like a Pending Transaction,
+and the card balance would have moved), so a reopened round re-downloads exactly the same form.
+The reload choice, the reload it requested, and a typed-in Date of Last Reconciliation are saved to
+the round as the treasurer finishes, so a round closed before deciding on a reload can still be
+finished later.
+
+Closing a just-reconciled round before downloading its form (and receipts ZIP, if it has receipts)
+asks first; a reopened round closes without asking.
+
+**Technical implementation:** the `debit_card_reconciliations` table (migration `0043`), written by
+`reconcile_transactions_with_audit`. Only the follow-up columns (reload choice, reload transaction,
+date of last reconciliation) can be updated afterwards, and only by a manager; the frozen numbers
+and the round's transactions can't be changed.
+
 ### Service fees
 
 SOFO charges a $3.00 service fee after 3 months without card activity. It's recorded in the ledger
@@ -376,6 +397,16 @@ the form's Debit Card Reload Amount, this round's subtotal plus any earlier roun
 A reload starts as Pending and only counts as money back on the card once it's marked Paid (shown as
 "Reloaded").
 
+A reload is paid for out of one of the org's other budget lines: ASG, Operating, or Gifts. The
+treasurer picks which when asking for the reload, and a line that doesn't have the full amount can't
+be picked. If none of them does, the only option is "Do not reload at this time". Nothing moves while
+the reload is Pending; once it's marked Paid, the amount is added to the Debit Card line and
+subtracted from the chosen line together (and both are reversed if it's un-marked or deleted). The
+server also refuses to mark it Paid if the chosen line no longer has enough by then. Reloads from
+before this have no funding line and only ever affected the Debit Card line. A reload can't be
+edited through the general edit form, which would turn it into an ordinary Journal; it can still be
+deleted.
+
 Two facts about how SOFO handles reloads drive the rest:
 
 - **A round is reloaded in full or not at all.** There are no partial reloads.
@@ -395,7 +426,9 @@ deleted, so it stays in the audit history.
 A round's total is the full amount of everything reconciled in it, tax and service fees included,
 since that's what left the card.
 
-**Technical implementation:** each reload Journal has a `reload_requested_at` timestamp, set by the
+**Technical implementation:** the funding line is the reload Journal's `funding` column, and every
+balance change goes through `apply_transaction_to_balances` (migration `0042`), which moves a funded
+reload's money between the two lines. Each reload Journal also has a `reload_requested_at` timestamp, set by the
 database when it's created (migration `0039`; reloads from before then are dated to the end of their
 transaction date). `utils/debitCardReloads.ts` works out which reloads are superseded and how far
 the latest Paid reload covers; `update_payment_status_with_audit` refuses to mark a superseded

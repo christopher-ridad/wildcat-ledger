@@ -347,15 +347,106 @@ describe('organization settings updates', () => {
   });
 });
 
+const roundRow = {
+  id: 'round-1',
+  org_id: 'org-1',
+  reconciled_at: 1790000000000,
+  transaction_ids: ['txn-1', 'txn-2'],
+  form_data: { reloadAmount: 40 },
+  reload_choice: null,
+  reload_transaction_id: null,
+  last_reconciliation_date: null,
+  created_at: '2026-10-03T00:00:00Z',
+};
+
 describe('reconcileTransactions', () => {
-  test('calls reconcile_transactions_with_audit with the given ids', async () => {
-    mockRpc.mockResolvedValue({ error: null } as never);
+  test('reconciles the ids with the frozen form numbers and returns the saved round', async () => {
+    mockRpc.mockResolvedValue({ data: roundRow, error: null } as never);
     const { reconcileTransactions } = useLedgerMutations('org-1', 'sofoApprover');
-    await reconcileTransactions(['txn-1', 'txn-2']);
+    const formData = { reloadAmount: 40 } as never;
+
+    const round = await reconcileTransactions(['txn-1', 'txn-2'], formData);
+
     expect(mockRpc).toHaveBeenCalledWith('reconcile_transactions_with_audit', {
       p_org_id: 'org-1',
       p_transaction_ids: ['txn-1', 'txn-2'],
+      p_form_data: formData,
     });
+    expect(round).toMatchObject({
+      id: 'round-1',
+      transactionIds: ['txn-1', 'txn-2'],
+      reloadChoice: undefined,
+    });
+  });
+});
+
+describe('fetchLastReconciliation', () => {
+  test("returns the org's most recent round", async () => {
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: roundRow, error: null }),
+    };
+    mockFrom.mockReturnValue(chain as never);
+    const { fetchLastReconciliation } = useLedgerMutations('org-1', 'sofoApprover');
+
+    const round = await fetchLastReconciliation();
+
+    expect(mockFrom).toHaveBeenCalledWith('debit_card_reconciliations');
+    expect(chain.eq).toHaveBeenCalledWith('org_id', 'org-1');
+    expect(chain.order).toHaveBeenCalledWith('reconciled_at', { ascending: false });
+    expect(round?.id).toBe('round-1');
+  });
+
+  test('returns null when the org has no saved round yet', async () => {
+    const chain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    };
+    mockFrom.mockReturnValue(chain as never);
+    const { fetchLastReconciliation } = useLedgerMutations('org-1', 'sofoApprover');
+
+    expect(await fetchLastReconciliation()).toBeNull();
+  });
+});
+
+describe('updateReconciliationRound', () => {
+  const updateChain = (data: unknown) => {
+    const chain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data, error: null }),
+    };
+    mockFrom.mockReturnValue(chain as never);
+    return chain;
+  };
+
+  test('saves only the fields given', async () => {
+    const chain = updateChain({ ...roundRow, reload_choice: 'do-not-reload' });
+    const { updateReconciliationRound } = useLedgerMutations('org-1', 'sofoApprover');
+
+    const round = await updateReconciliationRound('round-1', {
+      reloadChoice: 'do-not-reload',
+    });
+
+    expect(chain.update).toHaveBeenCalledWith({ reload_choice: 'do-not-reload' });
+    expect(chain.eq).toHaveBeenCalledWith('id', 'round-1');
+    expect(round.reloadChoice).toBe('do-not-reload');
+  });
+
+  test('fails loudly when the update matched no row', async () => {
+    updateChain(null);
+    const { updateReconciliationRound } = useLedgerMutations('org-1', 'sofoApprover');
+
+    await expect(
+      updateReconciliationRound('round-1', { reloadChoice: 'do-not-reload' }),
+    ).rejects.toThrow(/Couldn't save the reconciliation/);
   });
 });
 
