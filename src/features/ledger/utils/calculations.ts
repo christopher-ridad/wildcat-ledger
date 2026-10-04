@@ -36,6 +36,14 @@ export const applyFilters = (
   return [...filtered].sort(byDateDescending);
 };
 
+// YYYY-MM-DD -> MM/DD/YYYY, without going through Date (which would shift
+// the day for timezones west of UTC).
+export const formatDate = (iso?: string) => {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  return `${m}/${d}/${y}`;
+};
+
 export const formatCurrency = (amount: number): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 

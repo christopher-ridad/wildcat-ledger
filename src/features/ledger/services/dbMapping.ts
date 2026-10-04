@@ -8,12 +8,21 @@
 // info into the generated types.
 
 import { Database } from '../../../config/database.types';
-import { AuditEntry, Organization, PendingChange, Transaction } from '../types';
+import {
+  AuditEntry,
+  Organization,
+  PendingChange,
+  ReconciliationRound,
+  Transaction,
+} from '../types';
+import { ReconciliationFormData } from './debitCardReconciliationForm';
 
 type TransactionRow = Database['public']['Tables']['transactions']['Row'];
 type OrganizationRow = Database['public']['Tables']['organizations']['Row'];
 type AuditLogRow = Database['public']['Tables']['audit_log']['Row'];
 type PendingChangeRow = Database['public']['Tables']['pending_changes']['Row'];
+type ReconciliationRoundRow =
+  Database['public']['Tables']['debit_card_reconciliations']['Row'];
 
 export const rowToTransaction = (row: TransactionRow): Transaction => ({
   id: row.id,
@@ -34,6 +43,7 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
   isExistingVendor: row.is_existing_vendor ?? undefined,
   existingVendorNumber: row.existing_vendor_number ?? undefined,
   isNorthwesternEmployee: row.is_northwestern_employee ?? undefined,
+  isServiceFee: row.is_service_fee,
   receiptFileUrl: row.receipt_file_url ?? undefined,
   contractFileUrl: row.contract_file_url ?? undefined,
   w9FileUrl: row.w9_file_url ?? undefined,
@@ -41,6 +51,7 @@ export const rowToTransaction = (row: TransactionRow): Transaction => ({
   conflictOfInterestFileUrl: row.conflict_of_interest_file_url ?? undefined,
   specialPayFormUrl: row.special_pay_form_url ?? undefined,
   reconciledAt: row.reconciled_at ?? undefined,
+  reloadRequestedAt: row.reload_requested_at ?? undefined,
   noReceiptAcknowledged: row.no_receipt_acknowledged ?? undefined,
   exemptionFormUrl: row.exemption_form_url ?? undefined,
   taxExemptFormSubmitted: row.tax_exempt_form_submitted ?? undefined,
@@ -70,7 +81,6 @@ export const rowToOrganization = (
     projectId: row.debit_card_project_id ?? undefined,
     accountNumber: row.debit_card_account_number ?? undefined,
     lastFourDigits: row.debit_card_last_four ?? undefined,
-    inventoryControlNumber: row.debit_card_icn ?? undefined,
     loadBalance:
       row.debit_card_load_balance != null
         ? Number(row.debit_card_load_balance)
@@ -100,4 +110,16 @@ export const rowToPendingChange = (row: PendingChangeRow): PendingChange => ({
   requestedAt: row.requested_at,
   before: row.before as PendingChange['before'],
   after: row.after as PendingChange['after'],
+});
+
+export const rowToReconciliationRound = (
+  row: ReconciliationRoundRow,
+): ReconciliationRound => ({
+  id: row.id,
+  reconciledAt: Number(row.reconciled_at),
+  transactionIds: row.transaction_ids,
+  formData: row.form_data as unknown as ReconciliationFormData,
+  reloadChoice: (row.reload_choice as ReconciliationRound['reloadChoice']) ?? undefined,
+  reloadTransactionId: row.reload_transaction_id ?? undefined,
+  lastReconciliationDate: row.last_reconciliation_date ?? undefined,
 });

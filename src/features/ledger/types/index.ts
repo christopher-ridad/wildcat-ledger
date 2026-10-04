@@ -1,3 +1,5 @@
+import type { ReconciliationFormData } from '../services/debitCardReconciliationForm';
+
 export type BudgetLine = 'ASG' | 'Operating' | 'Gifts' | 'Debit Card';
 
 export type Funding = 'ASG' | 'Operating' | 'Gifts';
@@ -49,6 +51,10 @@ export interface Transaction {
   // conveys it. Kept for historical Payment Request rows that used the
   // Northwestern-employee checkbox.
   isNorthwesternEmployee?: boolean;
+  // Debit Card only: a SOFO service fee, which needs no receipt and goes on
+  // the reconciliation form's Service Fees line. See
+  // docs/BUSINESS_RULES.md#service-fees.
+  isServiceFee?: boolean;
   // Storage object paths (Supabase Storage, 'documents' bucket)
   receiptFileUrl?: string;
   contractFileUrl?: string;
@@ -59,6 +65,9 @@ export interface Transaction {
   // Reconciliation — Debit Card transactions only
   // null = not yet reconciled; number = epoch ms when reconciled
   reconciledAt?: number | null;
+  // Debit Card reloads only: epoch ms when the reload was requested, set by
+  // the database. See utils/debitCardReloads.ts.
+  reloadRequestedAt?: number;
   // Set when the user explicitly acknowledges they have no receipt at submission time
   noReceiptAcknowledged?: boolean;
   // Uploaded when the transaction has no receipt (satisfies receipt requirement for reconciliation)
@@ -154,7 +163,6 @@ export interface DebitCardSettings {
   projectId?: string;
   accountNumber?: string;
   lastFourDigits?: string;
-  inventoryControlNumber?: string;
   loadBalance?: number;
 }
 
@@ -210,7 +218,17 @@ export interface LedgerContextValue {
   updateBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   initializeBudgetAllocations: (allocations: BudgetAllocations) => Promise<void>;
   updateDebitCardSettings: (settings: DebitCardSettings) => Promise<void>;
-  reconcileTransactions: (transactionIds: string[]) => Promise<void>;
+  // Reconciles the given purchases and saves the round, with the form's
+  // numbers frozen as of now -- see ReconciliationRound.
+  reconcileTransactions: (
+    transactionIds: string[],
+    formData: ReconciliationFormData,
+  ) => Promise<ReconciliationRound>;
+  fetchLastReconciliation: () => Promise<ReconciliationRound | null>;
+  updateReconciliationRound: (
+    id: string,
+    patch: ReconciliationRoundUpdate,
+  ) => Promise<ReconciliationRound>;
   uploadExemptionForm: (transactionId: string, file: File) => Promise<void>;
   markTaxReimbursed: (transactionId: string) => Promise<void>;
   // Mints an upload token for the given document type on an existing
@@ -222,3 +240,25 @@ export interface LedgerContextValue {
   filteredTransactions: Transaction[];
   budgetLineSummaries: BudgetLineSummaryData[];
 }
+
+// One debit card reconciliation, saved so its finishing screen can be
+// reopened. formData is the reconciliation form's numbers as of
+// reconciling; the rest is filled in as the treasurer finishes. See
+// docs/BUSINESS_RULES.md#revisiting-the-last-reconciliation.
+export interface ReconciliationRound {
+  id: string;
+  reconciledAt: number;
+  transactionIds: string[];
+  formData: ReconciliationFormData;
+  reloadChoice?: 'please-reload' | 'do-not-reload';
+  reloadTransactionId?: string;
+  // YYYY-MM-DD, entered when the app had no earlier reconciliation on record.
+  lastReconciliationDate?: string;
+}
+
+export type ReconciliationRoundUpdate = Partial<
+  Pick<
+    ReconciliationRound,
+    'reloadChoice' | 'reloadTransactionId' | 'lastReconciliationDate'
+  >
+>;

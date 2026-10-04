@@ -28,6 +28,7 @@ export interface FormState {
   type: SupportedType;
   funding: FundingOption;
   // Debit Card
+  isServiceFee: boolean;
   receiptFile: File | null;
   noReceiptAcknowledged: boolean;
   taxExemptFormSubmitted: boolean;
@@ -60,6 +61,7 @@ export const initialForm: FormState = {
   amount: '',
   type: 'Debit Card',
   funding: 'ASG',
+  isServiceFee: false,
   receiptFile: null,
   noReceiptAcknowledged: false,
   taxExemptFormSubmitted: false,

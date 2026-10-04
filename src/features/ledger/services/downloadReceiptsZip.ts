@@ -11,6 +11,7 @@
 
 import JSZip from 'jszip';
 
+import { downloadBlob } from '../../../utils/downloadBlob';
 import { getErrorMessage } from '../../../utils/errors';
 import { Transaction } from '../types';
 import { downloadDocument } from './storage';
@@ -87,10 +88,5 @@ export async function downloadReceiptsZip(
     }),
   );
 
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = zipName;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadBlob(await zip.generateAsync({ type: 'blob' }), zipName);
 }

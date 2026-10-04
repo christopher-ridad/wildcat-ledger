@@ -1,0 +1,276 @@
+import { readFileSync } from 'fs';
+import { PDFDocument } from 'pdf-lib';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { downloadBlob } from '../../../utils/downloadBlob';
+import { ReconciliationFormData } from './debitCardReconciliationForm';
+import {
+  downloadReconciliationPdf,
+  generateReconciliationPdf,
+} from './generateReconciliationPdf';
+
+const baseData: ReconciliationFormData = {
+  orgName: 'Ballroom Latin and Swing Team',
+  lastReconciliationDate: '2026-09-01',
+  balanceAsOfDate: '2026-10-03',
+  accountNumber: '2012-345',
+  lastFourDigits: '6789',
+  reimbursements: [
+    { date: '2026-03-01', description: 'IL Sales Tax - Coffee Shop', amount: 2.5 },
+  ],
+  totalReimbursed: 2.5,
+  loadBalance: 500,
+  balanceAsOf: 320.25,
+  completedReconciliationsPendingReload: 40,
+  pendingTransactions: 15,
+  totalExpenditures: 124.75,
+  authorizedCharges: 117.25,
+  serviceFees: 3,
+  reconciliationSubtotal: 123.25,
+  reloadAmount: 163.25,
+};
+
+vi.mock('../../../utils/downloadBlob', () => ({ downloadBlob: vi.fn() }));
+
+beforeEach(() => {
+  // Real template bytes, read from disk -- the test exercises pdf-lib
+  // against the actual form, not a stub, since the thing worth protecting
+  // against regression is "does this still produce a valid filled PDF
+  // without throwing," not just "was fetch called." Copied into a fresh
+  // Uint8Array (not bytes.buffer directly): Node's fs.readFileSync Buffer
+  // belongs to Node's own realm, while this jsdom test environment has its
+  // own separate ArrayBuffer/Uint8Array globals -- pdf-lib's instanceof
+  // check silently fails across realms (surfacing as a confusing "type
+  // NaN" error), so this re-materializes the bytes using the realm pdf-lib
+  // will actually check against.
+  const bytes = new Uint8Array(
+    readFileSync('public/forms/debit-card-reconciliation.pdf'),
+  );
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => bytes.buffer,
+    }),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+// Regression test for a real bug: every drawn value used to go through
+// Math.abs(), so when totalExpenditures comes out negative (e.g. Load
+// Balance not actually set in Debit Card Settings, defaulting to 0) the
+// form silently printed the positive magnitude instead -- masking exactly
+// the kind of mismatch the form's own "*Total Expenditures and
+// Reconciliation Subtotal should match" note exists to catch. Reads the
+// drawn text back out via pdfjs-dist rather than just checking the
+// function didn't throw, since the bug was in what gets drawn, not
+// whether drawing succeeds.
+type TextItem = { transform: number[]; str: string };
+
+// Parsed once per generated PDF -- parsing is the slow part, and some tests
+// look up many positions in the same PDF.
+const pageTextCache = new WeakMap<Blob, Promise<TextItem[]>>();
+
+function pageText(blob: Blob): Promise<TextItem[]> {
+  let text = pageTextCache.get(blob);
+  if (!text) {
+    text = (async () => {
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const content = await (await doc.getPage(1)).getTextContent();
+      return content.items as TextItem[];
+    })();
+    pageTextCache.set(blob, text);
+  }
+  return text;
+}
+
+async function extractTextNear(blob: Blob, targetX: number, targetY: number) {
+  const items = await pageText(blob);
+  // The template's own blank line/spacer items ("___________", a lone " ")
+  // sit at nearly the same position as whatever gets drawn on top of them,
+  // so this excludes anything blank rather than taking the first
+  // positional match.
+  const match = items.find((i) => {
+    const [, , , , x, y] = i.transform;
+    return (
+      Math.abs(x - targetX) < 5 && Math.abs(y - targetY) < 2 && !/^[_\s]*$/.test(i.str)
+    );
+  }) as { str: string } | undefined;
+  return match?.str;
+}
+
+describe('generateReconciliationPdf', () => {
+  test('fetches the template from its public path', async () => {
+    await generateReconciliationPdf(baseData, 'please-reload');
+    expect(fetch).toHaveBeenCalledWith('/forms/debit-card-reconciliation.pdf');
+  });
+
+  test('throws a clear error when the template fails to load', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    await expect(generateReconciliationPdf(baseData, 'please-reload')).rejects.toThrow(
+      'Could not load the reconciliation form template.',
+    );
+  });
+
+  test('produces a non-empty, valid, single-page PDF', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    expect(blob.type).toBe('application/pdf');
+    expect(blob.size).toBeGreaterThan(0);
+
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const doc = await PDFDocument.load(bytes);
+    expect(doc.getPageCount()).toBe(2);
+  });
+
+  // Regression test: an earlier version drew each half of the account
+  // number (and all 4 last-four-digits) as one continuous string starting
+  // at the first box, which left the template's other single-digit boxes
+  // in each group empty -- the real template has one box per digit, not
+  // one box per group.
+  test('draws the account number and last-4-digits one digit per box', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    const ACCOUNT_DIGIT_XS = [164.8, 192.1, 230.3, 257.6, 284.9];
+    const LAST_FOUR_DIGIT_XS = [440.5, 467.1, 493.6, 516.0];
+
+    for (const [i, digit] of [...'12345'].entries()) {
+      expect(await extractTextNear(blob, ACCOUNT_DIGIT_XS[i], 672)).toBe(digit);
+    }
+    for (const [i, digit] of [...'6789'].entries()) {
+      expect(await extractTextNear(blob, LAST_FOUR_DIGIT_XS[i], 672)).toBe(digit);
+    }
+  });
+
+  test('draws the date of last reconciliation and the balance-as-of date', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    expect(await extractTextNear(blob, 458, 696)).toBe('09/01/2026');
+    expect(await extractTextNear(blob, 144, 414)).toBe('10/3');
+  });
+
+  test('leaves the date of last reconciliation blank for a first-ever reconciliation', async () => {
+    const blob = await generateReconciliationPdf(
+      { ...baseData, lastReconciliationDate: undefined },
+      'please-reload',
+    );
+    expect(await extractTextNear(blob, 458, 696)).toBeUndefined();
+  });
+
+  test('shows Total Expenditures as positive when the numbers are consistent', async () => {
+    const blob = await generateReconciliationPdf(baseData, 'please-reload');
+    const text = await extractTextNear(blob, 220, 331.2);
+    expect(text).toBe('124.75');
+  });
+
+  test('shows Total Expenditures as negative (with a leading "-") when Load Balance is unset and the numbers do not add up', async () => {
+    const inconsistent: ReconciliationFormData = {
+      ...baseData,
+      loadBalance: 0,
+      balanceAsOf: 23.78,
+      completedReconciliationsPendingReload: 0,
+      pendingTransactions: 0,
+      totalExpenditures: -23.78,
+    };
+    const blob = await generateReconciliationPdf(inconsistent, 'do-not-reload');
+    const text = await extractTextNear(blob, 220, 331.2);
+    expect(text).toBe('-23.78');
+  });
+
+  test('fills in the reload amount lines only when asking for a reload', async () => {
+    const reloading = await generateReconciliationPdf(baseData, 'please-reload');
+    expect(await extractTextNear(reloading, 457, 216)).toBe('163.25');
+
+    const notReloading = await generateReconciliationPdf(baseData, 'do-not-reload');
+    expect(await extractTextNear(notReloading, 457, 267.2)).toBeUndefined();
+    expect(await extractTextNear(notReloading, 461, 241.6)).toBeUndefined();
+    expect(await extractTextNear(notReloading, 457, 216)).toBeUndefined();
+  });
+
+  test('produces a PDF regardless of which reload option is passed', async () => {
+    await expect(
+      generateReconciliationPdf(baseData, 'do-not-reload'),
+    ).resolves.toBeInstanceOf(Blob);
+  });
+
+  test('produces a PDF even with no reimbursements and missing optional fields', async () => {
+    const minimal: ReconciliationFormData = {
+      ...baseData,
+      accountNumber: undefined,
+      lastFourDigits: undefined,
+      reimbursements: [],
+    };
+    await expect(
+      generateReconciliationPdf(minimal, 'do-not-reload'),
+    ).resolves.toBeInstanceOf(Blob);
+  });
+
+  // Regression guard for the real bug caught during manual verification:
+  // only the first 2 reimbursements have blank rows on the template, so a
+  // 3rd (or more) must not throw trying to draw into a nonexistent row.
+  test('lists up to 3 reimbursements, one per row, with MM/DD/YYYY dates', async () => {
+    const blob = await generateReconciliationPdf(
+      {
+        ...baseData,
+        reimbursements: [
+          { date: '2026-09-18', description: 'Jewel-Osco', amount: 1.1 },
+          { date: '2026-09-22', description: 'Amazon', amount: 2.5 },
+          { date: '2026-09-26', description: 'Insomnia Cookies', amount: 2.8 },
+        ],
+      },
+      'please-reload',
+    );
+    expect(await extractTextNear(blob, 100.8, 561.6)).toBe('09/18/2026');
+    expect(await extractTextNear(blob, 484, 544.8)).toBe('2.50');
+    expect(await extractTextNear(blob, 245.6, 528)).toBe('Insomnia Cookies');
+  });
+
+  test('combines everything past the second reimbursement into the last row', async () => {
+    const blob = await generateReconciliationPdf(
+      {
+        ...baseData,
+        reimbursements: [
+          { date: '2026-09-18', description: 'Jewel-Osco', amount: 1.1 },
+          { date: '2026-09-22', description: 'Amazon', amount: 2.5 },
+          { date: '2026-09-26', description: 'Insomnia Cookies', amount: 2.8 },
+          { date: '2026-09-27', description: 'Target', amount: 0.9 },
+          { date: '2026-09-28', description: 'Walgreens', amount: 0.45 },
+        ],
+      },
+      'please-reload',
+    );
+    expect(await extractTextNear(blob, 245.6, 544.8)).toBe('Amazon');
+    expect(await extractTextNear(blob, 245.6, 528)).toBe(
+      'IL sales tax on 3 other purchases',
+    );
+    expect(await extractTextNear(blob, 484, 528)).toBe('4.15');
+    expect(await extractTextNear(blob, 100.8, 528)).toBeUndefined();
+  });
+
+  test('does not throw when given more reimbursements than the template has rows for', async () => {
+    const manyReimbursements: ReconciliationFormData = {
+      ...baseData,
+      reimbursements: [
+        { date: '2026-01-01', description: 'One', amount: 1 },
+        { date: '2026-01-02', description: 'Two', amount: 2 },
+        { date: '2026-01-03', description: 'Three', amount: 3 },
+      ],
+    };
+    await expect(
+      generateReconciliationPdf(manyReimbursements, 'please-reload'),
+    ).resolves.toBeInstanceOf(Blob);
+  });
+});
+
+describe('downloadReconciliationPdf', () => {
+  test('downloads the PDF under a filename built from the org name', () => {
+    const blob = new Blob(['pdf bytes'], { type: 'application/pdf' });
+    downloadReconciliationPdf(blob, "Women's Club @ Evanston!");
+    expect(downloadBlob).toHaveBeenCalledWith(
+      blob,
+      'Women-s-Club-Evanston--debit-card-reconciliation.pdf',
+    );
+  });
+});

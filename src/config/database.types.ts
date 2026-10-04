@@ -79,6 +79,42 @@ export type Database = {
           },
         ];
       };
+      debit_card_reconciliations: {
+        Row: {
+          created_at: string;
+          form_data: Json;
+          id: string;
+          last_reconciliation_date: string | null;
+          org_id: string;
+          reconciled_at: number;
+          reload_choice: string | null;
+          reload_transaction_id: string | null;
+          transaction_ids: string[];
+        };
+        Insert: {
+          created_at?: string;
+          form_data: Json;
+          id?: string;
+          last_reconciliation_date?: string | null;
+          org_id: string;
+          reconciled_at: number;
+          reload_choice?: string | null;
+          reload_transaction_id?: string | null;
+          transaction_ids: string[];
+        };
+        Update: {
+          created_at?: string;
+          form_data?: Json;
+          id?: string;
+          last_reconciliation_date?: string | null;
+          org_id?: string;
+          reconciled_at?: number;
+          reload_choice?: string | null;
+          reload_transaction_id?: string | null;
+          transaction_ids?: string[];
+        };
+        Relationships: [];
+      };
       financial_task_requirements: {
         Row: {
           completed_at: string | null;
@@ -181,7 +217,6 @@ export type Database = {
         Row: {
           budget_allocations: Json;
           debit_card_account_number: string | null;
-          debit_card_icn: string | null;
           debit_card_last_four: string | null;
           debit_card_load_balance: number | null;
           debit_card_project_id: string | null;
@@ -195,7 +230,6 @@ export type Database = {
         Insert: {
           budget_allocations?: Json;
           debit_card_account_number?: string | null;
-          debit_card_icn?: string | null;
           debit_card_last_four?: string | null;
           debit_card_load_balance?: number | null;
           debit_card_project_id?: string | null;
@@ -209,7 +243,6 @@ export type Database = {
         Update: {
           budget_allocations?: Json;
           debit_card_account_number?: string | null;
-          debit_card_icn?: string | null;
           debit_card_last_four?: string | null;
           debit_card_load_balance?: number | null;
           debit_card_project_id?: string | null;
@@ -345,12 +378,14 @@ export type Database = {
           is_existing_vendor: boolean | null;
           is_individual_vendor: boolean | null;
           is_northwestern_employee: boolean | null;
+          is_service_fee: boolean;
           no_receipt_acknowledged: boolean | null;
           notes: string;
           org_id: string;
           payment_status: string | null;
           receipt_file_url: string | null;
           reconciled_at: number | null;
+          reload_requested_at: number | null;
           reimbursed_member_name: string | null;
           special_pay_form_acknowledged_missing: boolean | null;
           special_pay_form_url: string | null;
@@ -387,12 +422,14 @@ export type Database = {
           is_existing_vendor?: boolean | null;
           is_individual_vendor?: boolean | null;
           is_northwestern_employee?: boolean | null;
+          is_service_fee?: boolean;
           no_receipt_acknowledged?: boolean | null;
           notes?: string;
           org_id: string;
           payment_status?: string | null;
           receipt_file_url?: string | null;
           reconciled_at?: number | null;
+          reload_requested_at?: number | null;
           reimbursed_member_name?: string | null;
           special_pay_form_acknowledged_missing?: boolean | null;
           special_pay_form_url?: string | null;
@@ -429,12 +466,14 @@ export type Database = {
           is_existing_vendor?: boolean | null;
           is_individual_vendor?: boolean | null;
           is_northwestern_employee?: boolean | null;
+          is_service_fee?: boolean;
           no_receipt_acknowledged?: boolean | null;
           notes?: string;
           org_id?: string;
           payment_status?: string | null;
           receipt_file_url?: string | null;
           reconciled_at?: number | null;
+          reload_requested_at?: number | null;
           reimbursed_member_name?: string | null;
           special_pay_form_acknowledged_missing?: boolean | null;
           special_pay_form_url?: string | null;
@@ -496,12 +535,14 @@ export type Database = {
           is_existing_vendor: boolean | null;
           is_individual_vendor: boolean | null;
           is_northwestern_employee: boolean | null;
+          is_service_fee: boolean;
           no_receipt_acknowledged: boolean | null;
           notes: string;
           org_id: string;
           payment_status: string | null;
           receipt_file_url: string | null;
           reconciled_at: number | null;
+          reload_requested_at: number | null;
           reimbursed_member_name: string | null;
           special_pay_form_acknowledged_missing: boolean | null;
           special_pay_form_url: string | null;
@@ -561,8 +602,8 @@ export type Database = {
         Returns: undefined;
       };
       reconcile_transactions_with_audit: {
-        Args: { p_org_id: string; p_transaction_ids: string[] };
-        Returns: undefined;
+        Args: { p_form_data: Json; p_org_id: string; p_transaction_ids: string[] };
+        Returns: Database['public']['Tables']['debit_card_reconciliations']['Row'];
       };
       request_reload_with_audit: {
         Args: {

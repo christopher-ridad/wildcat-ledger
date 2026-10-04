@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { useLedger } from '../../../hooks/useLedger';
 import { Transaction } from '../../../types';
+import { getSupersededReloadIds } from '../../../utils/debitCardReloads';
 import { Modal } from '../Modal';
 import { TransactionFilesModal } from '../TransactionFilesModal';
 import { TransactionModal } from '../TransactionModal';
@@ -11,6 +12,7 @@ import styles from './TransactionList.module.css';
 
 export const TransactionList = () => {
   const {
+    activeOrganization,
     filteredTransactions,
     deleteTransaction,
     canEdit,
@@ -28,6 +30,11 @@ export const TransactionList = () => {
   const [viewingFilesTransaction, setViewingFilesTransaction] =
     useState<Transaction | null>(null);
   const deleteAction = useAsyncAction();
+  // From every transaction, not just the filtered ones -- a filter could
+  // hide the newer request that supersedes one on screen.
+  const supersededReloadIds = getSupersededReloadIds(
+    activeOrganization?.transactions ?? [],
+  );
 
   const handleDeleteConfirm = async () => {
     if (!deletingTransaction || deleteAction.pending) return;
@@ -76,6 +83,7 @@ export const TransactionList = () => {
                   key={t.id}
                   t={t}
                   canEdit={canEdit}
+                  isSupersededReload={supersededReloadIds.has(t.id)}
                   pending={pendingChangeForTransaction(t.id)}
                   onEdit={setEditingTransaction}
                   onDelete={setDeletingTransaction}

@@ -15,6 +15,7 @@ const renderFields = (overrides: Partial<ComponentProps<typeof DebitCardFields>>
       ocrError={null}
       onReceiptChange={vi.fn()}
       onChange={vi.fn()}
+      onServiceFeeChange={vi.fn()}
       {...overrides}
     />,
   );
@@ -124,5 +125,19 @@ describe('DebitCardFields', () => {
       }),
     );
     expect(onChange).toHaveBeenCalled();
+  });
+
+  test('ticking "This is a SOFO service fee" reports the change', () => {
+    const onServiceFeeChange = vi.fn();
+    renderFields({ onServiceFeeChange });
+    fireEvent.click(screen.getByLabelText('This is a SOFO service fee'));
+    expect(onServiceFeeChange).toHaveBeenCalledWith(true);
+  });
+
+  test('a service fee asks for no receipt or tax', () => {
+    renderFields({ form: { ...initialForm, isServiceFee: true } });
+    expect(screen.getByText(/No receipt needed/)).toBeInTheDocument();
+    expect(screen.queryByText("I don't have a receipt")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Tax Charged/)).not.toBeInTheDocument();
   });
 });

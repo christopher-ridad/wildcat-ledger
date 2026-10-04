@@ -31,6 +31,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
     setSpecialPayFormCheckBlocking,
     setDocumentNotStored,
     handleExistingVendorChange,
+    handleServiceFeeChange,
     handleReceiptChange,
     handleChange,
     handleTypeChange,
@@ -153,6 +154,7 @@ export const AddTransactionForm = (props: AddTransactionFormProps) => {
             ocrError={ocrError}
             onReceiptChange={handleReceiptChange}
             onChange={handleChange}
+            onServiceFeeChange={handleServiceFeeChange}
           />
         )}
 

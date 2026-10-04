@@ -16,6 +16,7 @@ const baseForm: FormState = {
   amount: '12.50',
   type: 'Debit Card',
   funding: 'ASG',
+  isServiceFee: false,
   receiptFile: null,
   noReceiptAcknowledged: false,
   taxExemptFormSubmitted: false,

@@ -23,6 +23,7 @@ const renderRow = (props: Partial<ComponentProps<typeof TransactionRow>> = {}) =
         <TransactionRow
           t={buildMockTransaction()}
           canEdit={false}
+          isSupersededReload={false}
           pending={undefined}
           onEdit={noop}
           onDelete={noop}
@@ -554,5 +555,36 @@ describe('TransactionRow', () => {
       resolveApprove();
       await screen.findByText('Approve');
     });
+  });
+
+  test('shows a superseded reload as Superseded, with no status select', () => {
+    renderRow({
+      t: buildMockTransaction({
+        type: 'Journal',
+        direction: 'Inflow',
+        budgetLine: 'Debit Card',
+        paymentStatus: 'Pending',
+      }),
+      canEdit: true,
+      isSupersededReload: true,
+    });
+    expect(screen.getByText('Superseded')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
+  });
+
+  test('a reload shows which line pays for it, and has no Edit button', () => {
+    renderRow({
+      t: buildMockTransaction({
+        type: 'Journal',
+        direction: 'Inflow',
+        budgetLine: 'Debit Card',
+        funding: 'ASG',
+        paymentStatus: 'Pending',
+      }),
+      canEdit: true,
+    });
+    expect(screen.getByText('From ASG')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Edit transaction')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Delete transaction')).toBeInTheDocument();
   });
 });

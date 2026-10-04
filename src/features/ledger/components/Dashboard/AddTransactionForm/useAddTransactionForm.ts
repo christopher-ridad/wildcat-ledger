@@ -32,6 +32,7 @@ const buildInitialForm = (existingTransaction?: Transaction): FormState => {
     amount: String(t.amount),
     type: isSupportedType ? (t.type as FormState['type']) : 'Debit Card',
     funding: (t.budgetLine === 'Debit Card' ? 'ASG' : t.budgetLine) as FundingOption,
+    isServiceFee: t.isServiceFee ?? false,
     receiptFile: null,
     noReceiptAcknowledged: t.noReceiptAcknowledged ?? false,
     taxExemptFormSubmitted: t.taxExemptFormSubmitted ?? false,
@@ -196,6 +197,21 @@ export function useAddTransactionForm({
     setError(null);
   };
 
+  // A service fee has no receipt or sales tax, so ticking it drops anything
+  // already entered for those.
+  const handleServiceFeeChange = (isServiceFee: boolean) => {
+    setForm((prev) => ({
+      ...prev,
+      isServiceFee,
+      ...(isServiceFee && {
+        receiptFile: null,
+        noReceiptAcknowledged: false,
+        taxExemptFormSubmitted: false,
+        taxAmount: '',
+      }),
+    }));
+  };
+
   const handleExistingVendorChange = (isExistingVendor: boolean) => {
     setForm((prev) => ({
       ...prev,
@@ -320,6 +336,7 @@ export function useAddTransactionForm({
       const documentFields = await uploadDocuments(txnId);
 
       const isPaymentRequest = form.type === 'Payment Request';
+      const isCardPurchase = form.type === 'Debit Card' && !form.isServiceFee;
       const newTransaction: Omit<Transaction, 'id'> = {
         title: form.title.trim(),
         date: form.date || todayISO(),
@@ -344,14 +361,14 @@ export function useAddTransactionForm({
           isPaymentRequest && form.isExistingVendor
             ? form.existingVendorNumber.trim()
             : undefined,
+        isServiceFee: form.type === 'Debit Card' ? form.isServiceFee : undefined,
         noReceiptAcknowledged:
-          form.type === 'Debit Card' || form.type === 'Non-Officer Reimbursement'
+          isCardPurchase || form.type === 'Non-Officer Reimbursement'
             ? form.noReceiptAcknowledged
             : undefined,
-        taxExemptFormSubmitted:
-          form.type === 'Debit Card' ? form.taxExemptFormSubmitted : undefined,
+        taxExemptFormSubmitted: isCardPurchase ? form.taxExemptFormSubmitted : undefined,
         taxAmount:
-          form.type === 'Debit Card' && !form.taxExemptFormSubmitted && form.taxAmount
+          isCardPurchase && !form.taxExemptFormSubmitted && form.taxAmount
             ? parseFloat(form.taxAmount)
             : undefined,
         ...documentFields,
@@ -397,6 +414,7 @@ export function useAddTransactionForm({
     handleReceiptChange,
     handleChange,
     handleTypeChange,
+    handleServiceFeeChange,
     handleExistingVendorChange,
     setDocumentNotStored,
     handleSubmit,

@@ -321,6 +321,18 @@ Form. The two are interchangeable. A purchase can't be reconciled if:
 - it owes an unresolved tax reimbursement to SOFO (see below), or
 - it has a pending edit or delete request still awaiting approval.
 
+That only holds back that purchase and anything newer: since the most recent purchases can be left
+out (see below), the older ones can still be reconciled now, and the blocked purchase waits for the
+next round once it's resolved.
+
+Purchases can be left out of a reconciliation and carried to the next one, but only the most recent
+ones, as the form's guide requires ("Pending Transactions ... may only be the most recent
+purchases"). So in the reconciliation modal, unticking a purchase also unticks every newer one, and
+ticking one back in also ticks every older one. Purchases on the same date can be picked
+independently. A left-out purchase isn't part of Authorized Charges or Reimbursements Deposited;
+its full amount goes under Pending Transactions instead, so Total Expenditures and the
+Reconciliation Subtotal still match.
+
 Reconciling a purchase doesn't freeze it — a correction afterward goes through the same
 dual-approval rule any other transaction edit does (see
 [Dual-approval workflow](#dual-approval-workflow)). What reconciliation does still prevent is
@@ -332,6 +344,95 @@ confirmed.
 `reconcile_transactions_with_audit`. `request_transaction_change_with_audit` and
 `resolve_pending_change_with_audit` don't special-case a reconciled transaction — they use the same
 `transaction_edit_requires_approval` logic as any other.
+
+The form's Reimbursements table has three rows. With more than three reimbursements, the first two
+are listed individually and the rest are combined into the third row ("IL sales tax on N other
+purchases"); the total always includes all of them. The Deposit No. column is left blank, since SOFO
+no longer uses it.
+
+On the generated form, "Balance as of" is dated the day the form is generated, since that's when
+the card balance is read. "Date of Last Reconciliation" is the most recent earlier round reconciled
+in the app. If there isn't one, the treasurer can enter the date of a reconciliation done before
+they started using WildcatLedger, or leave it blank if the card has never been reconciled.
+
+### Revisiting the last reconciliation
+
+Each reconciliation is saved as a round, so its finishing screen (the reload choice, the
+reconciliation form, and the receipts ZIP) can be reopened from "View last reconciliation" in the
+Reconcile Debit Card modal. Only the most recent round is offered; earlier ones are in the audit log.
+
+The form's numbers are frozen when the round is reconciled. Recomputing them later would drift
+with any card activity since (a purchase added afterwards would look like a Pending Transaction,
+and the card balance would have moved), so a reopened round re-downloads exactly the same form.
+The reload choice, the reload it requested, and a typed-in Date of Last Reconciliation are saved to
+the round as the treasurer finishes, so a round closed before deciding on a reload can still be
+finished later.
+
+Closing a just-reconciled round before downloading its form (and receipts ZIP, if it has receipts)
+asks first; a reopened round closes without asking.
+
+**Technical implementation:** the `debit_card_reconciliations` table (migration `0043`), written by
+`reconcile_transactions_with_audit`. Only the follow-up columns (reload choice, reload transaction,
+date of last reconciliation) can be updated afterwards, and only by a manager; the frozen numbers
+and the round's transactions can't be changed.
+
+### Service fees
+
+SOFO charges a $3.00 service fee after 3 months without card activity. It's recorded in the ledger
+when it shows up on the card history, as a Debit Card transaction marked "This is a SOFO service
+fee", so the Debit Card balance stays right. A service fee needs no receipt to be reconciled, and
+follows the same leave-out rule as any other charge. On the reconciliation form it goes under
+Service Fees rather than Authorized Charges, which the form's guide says must exclude them.
+
+**Technical implementation:** the `is_service_fee` column on `transactions` (migration `0041`);
+`reconcile_transactions_with_audit` lets a service fee through without a receipt.
+
+### Reloads
+
+Reconciling and reloading are separate steps: a round can be reconciled without asking for a
+reload. After reconciling, the treasurer chooses "Please reload" or "Do not reload at this time",
+the form's own two checkboxes, and the reconciliation form can only be generated once they've
+chosen (and requested the reload, if they want one). The reload amount isn't editable: it's always
+the form's Debit Card Reload Amount, this round's subtotal plus any earlier rounds not yet reloaded.
+A reload starts as Pending and only counts as money back on the card once it's marked Paid (shown as
+"Reloaded").
+
+A reload is paid for out of one of the org's other budget lines: ASG, Operating, or Gifts. The
+treasurer picks which when asking for the reload, and a line that doesn't have the full amount can't
+be picked. If none of them does, the only option is "Do not reload at this time". Nothing moves while
+the reload is Pending; once it's marked Paid, the amount is added to the Debit Card line and
+subtracted from the chosen line together (and both are reversed if it's un-marked or deleted). The
+server also refuses to mark it Paid if the chosen line no longer has enough by then. Reloads from
+before this have no funding line and only ever affected the Debit Card line. A reload can't be
+edited through the general edit form, which would turn it into an ordinary Journal; it can still be
+deleted.
+
+Two facts about how SOFO handles reloads drive the rest:
+
+- **A round is reloaded in full or not at all.** There are no partial reloads.
+- **SOFO only acts on the most recent reload request.** Each request asks for this round's subtotal
+  plus every earlier round not yet back on the card, so a newer request replaces any older one.
+
+So once a reload is Paid, every round reconciled before that reload was requested is back on the
+card. Any round reconciled after it is still a "Completed Reconciliation (pending reload)" on the
+next reconciliation form, whether a later request is Pending or there's no request at all. That line
+corrects Total Expenditures: until the money is back, the card balance is lower by that round's
+total.
+
+An older request that's still Pending once a newer one exists is shown as **Superseded** and can't
+be marked Paid, since SOFO won't process it and paying it would count the same money twice. It isn't
+deleted, so it stays in the audit history.
+
+A round's total is the full amount of everything reconciled in it, tax and service fees included,
+since that's what left the card.
+
+**Technical implementation:** the funding line is the reload Journal's `funding` column, and every
+balance change goes through `apply_transaction_to_balances` (migration `0042`), which moves a funded
+reload's money between the two lines. Each reload Journal also has a `reload_requested_at` timestamp, set by the
+database when it's created (migration `0039`; reloads from before then are dated to the end of their
+transaction date). `utils/debitCardReloads.ts` works out which reloads are superseded and how far
+the latest Paid reload covers; `update_payment_status_with_audit` refuses to mark a superseded
+reload Paid.
 
 ## Tax exemption & SOFO reimbursement
 
@@ -352,17 +453,17 @@ integration or webhook, so "reimbursed" is purely a flag the app trusts a manage
 ## SOFO / Cashier's Office settings
 
 Each org can save the debit-card details needed to pre-fill the official SOFO debit-card
-reconciliation form: Project ID, Account No., last 4 digits of the card, Inventory Control No., and
-the card's load balance (its fixed limit, not its current running balance, which is tracked
+reconciliation form: Project ID, Account No., last 4 digits of the card, and the card's load balance (its fixed limit, not its current running balance, which is tracked
 separately). The exact formats below come straight from that official form's own validation rules,
 not a choice made by this app:
 
 - **Project ID:** 8 digits, between `70000000` and `79999999`
 - **Account No.:** the format `20XX-XXX` (e.g. `2000-000`)
-- **Inventory Control No.:** 8 digits, a dash, then 7 more digits (e.g. `12345678-1234567`)
+
+The form's Inventory Control No. is always left blank: SOFO has discontinued it.
 
 **Technical implementation:** these fields are stored as regular, unencrypted columns. The last 4
-digits and the Inventory Control No. aren't the full card number, and the database already encrypts
+digits aren't the full card number, and the database already encrypts
 everything at rest the same way it does for every other piece of information it stores.
 
 ## Document requirements & requesting documents

@@ -134,11 +134,14 @@ const SPECIAL_PAY_FORM: DocumentRequirement = {
 // update_payment_status_with_audit (server-side) -- keep the two in sync.
 // See docs/BUSINESS_RULES.md#existing-vendors.
 export const getRequiredDocuments = (
-  t: Pick<Transaction, 'type' | 'isIndividualVendor' | 'isExistingVendor'>,
+  t: Pick<
+    Transaction,
+    'type' | 'isIndividualVendor' | 'isExistingVendor' | 'isServiceFee'
+  >,
 ): DocumentRequirement[] => {
   switch (t.type) {
     case 'Debit Card':
-      return [DEBIT_CARD_RECEIPT];
+      return t.isServiceFee ? [] : [DEBIT_CARD_RECEIPT];
     case 'Non-Officer Reimbursement':
       return [RECEIPT];
     case 'Payment Request':

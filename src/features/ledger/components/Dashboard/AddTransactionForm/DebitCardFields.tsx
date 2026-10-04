@@ -14,6 +14,7 @@ interface DebitCardFieldsProps {
   ocrError: string | null;
   onReceiptChange: (e: ChangeEvent<HTMLInputElement>) => void;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  onServiceFeeChange: (isServiceFee: boolean) => void;
 }
 
 export const DebitCardFields = ({
@@ -24,7 +25,45 @@ export const DebitCardFields = ({
   ocrError,
   onReceiptChange,
   onChange,
+  onServiceFeeChange,
 }: DebitCardFieldsProps) => (
+  <>
+    <label className={styles['wl-form-checkbox']}>
+      <input
+        type="checkbox"
+        name="isServiceFee"
+        checked={form.isServiceFee}
+        onChange={(e) => onServiceFeeChange(e.target.checked)}
+      />
+      <span>This is a SOFO service fee</span>
+    </label>
+    {form.isServiceFee ? (
+      <p className={styles['wl-form-hint']}>
+        SOFO charges $3.00 after 3 months without card activity. No receipt needed.
+      </p>
+    ) : (
+      <CardPurchaseFields
+        form={form}
+        isEditing={isEditing}
+        existingTransaction={existingTransaction}
+        scanning={scanning}
+        ocrError={ocrError}
+        onReceiptChange={onReceiptChange}
+        onChange={onChange}
+      />
+    )}
+  </>
+);
+
+const CardPurchaseFields = ({
+  form,
+  isEditing,
+  existingTransaction,
+  scanning,
+  ocrError,
+  onReceiptChange,
+  onChange,
+}: Omit<DebitCardFieldsProps, 'onServiceFeeChange'>) => (
   <>
     <ReceiptUploadField
       form={form}

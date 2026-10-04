@@ -4,7 +4,7 @@ import { pluralize } from '../../../../../utils/pluralize';
 import { useAuth } from '../../../../authentication/hooks/useAuth';
 import { useAsyncAction } from '../../../hooks/useAsyncAction';
 import { PaymentStatus, PendingChange, Transaction } from '../../../types';
-import { formatCurrency } from '../../../utils/calculations';
+import { formatCurrency, formatDate } from '../../../utils/calculations';
 import { SOFO_SALES_TAX_REIMBURSEMENT_URL } from '../../../utils/constants';
 import { diffChangedKeys } from '../../../utils/diff';
 import {
@@ -14,12 +14,6 @@ import {
 import { DiffView } from '../../DiffView';
 import { getTransactionFiles } from '../TransactionFilesModal';
 import styles from './TransactionRow.module.css';
-
-const formatDate = (iso?: string) => {
-  if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return `${m}/${d}/${y}`;
-};
 
 const STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
   Pending: styles['wl-status-badge--pending'],
@@ -40,6 +34,7 @@ const statusLabel = (status: PaymentStatus, isReloadJournal: boolean) =>
 export const TransactionRow = ({
   t,
   canEdit,
+  isSupersededReload,
   pending,
   onEdit,
   onDelete,
@@ -52,6 +47,8 @@ export const TransactionRow = ({
 }: {
   t: Transaction;
   canEdit: boolean;
+  // See getSupersededReloadIds in utils/debitCardReloads.ts.
+  isSupersededReload: boolean;
   pending: PendingChange | undefined;
   onEdit: (t: Transaction) => void;
   onDelete: (t: Transaction) => void;
@@ -167,6 +164,12 @@ export const TransactionRow = ({
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>
           {t.type}
+          {isReloadJournal && t.funding && (
+            <span className={styles['wl-td-type-detail']}>From {t.funding}</span>
+          )}
+          {t.type === 'Debit Card' && t.isServiceFee && (
+            <span className={styles['wl-td-type-detail']}>Service fee</span>
+          )}
           {t.type === 'Payment Request' && t.isExistingVendor && (
             <span className={styles['wl-td-type-detail']}>
               Existing vendor #{t.existingVendorNumber}
@@ -183,6 +186,13 @@ export const TransactionRow = ({
               }
             >
               {isReconciled ? 'Reconciled' : 'Not Reconciled'}
+            </span>
+          ) : isSupersededReload ? (
+            <span
+              className={`${styles['wl-status-badge']} ${styles['wl-status-badge--superseded']}`}
+              title="Replaced by a newer reload request"
+            >
+              Superseded
             </span>
           ) : paymentStatus ? (
             canEdit && !pending ? (
@@ -295,14 +305,18 @@ export const TransactionRow = ({
                     time -- it doesn't freeze the record. A correction goes
                     through the same dual-approval rule as any other
                     transaction (see docs/BUSINESS_RULES.md#dual-approval-workflow). */}
-                <button
-                  type="button"
-                  className={styles['wl-action-btn']}
-                  onClick={() => onEdit(t)}
-                  aria-label="Edit transaction"
-                >
-                  ✎
-                </button>
+                {/* Reloads come from the reconciliation flow at a fixed amount; the
+                    general edit form would turn one into an ordinary Journal. */}
+                {!isReloadJournal && (
+                  <button
+                    type="button"
+                    className={styles['wl-action-btn']}
+                    onClick={() => onEdit(t)}
+                    aria-label="Edit transaction"
+                  >
+                    ✎
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`${styles['wl-action-btn']} ${styles['wl-action-btn--delete']}`}
