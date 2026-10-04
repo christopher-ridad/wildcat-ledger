@@ -1437,4 +1437,45 @@ describe('ReconciliationModal', () => {
       );
     });
   });
+
+  test('a reload that was created but not saved to the round is not offered again', async () => {
+    const addTransaction = vi.fn().mockResolvedValue(undefined);
+    const updateReconciliationRound = vi
+      .fn()
+      .mockRejectedValue(new Error('permission denied'));
+    const org = buildMockOrganization({
+      budgetAllocations: FUNDED_ASG,
+      transactions: [
+        buildMockTransaction({
+          id: 't1',
+          budgetLine: 'Debit Card',
+          receiptFileUrl: 'r1',
+          amount: 50,
+          direction: 'Outflow',
+        }),
+      ],
+    });
+    renderModal({
+      activeOrganization: org,
+      reconcileTransactions: mockReconcile(),
+      addTransaction,
+      updateReconciliationRound,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
+    await screen.findByText('Reconciliation complete!');
+    fireEvent.click(screen.getByLabelText(/^Please reload/));
+    fireEvent.click(screen.getByLabelText(/^ASG/));
+    fireEvent.click(screen.getByRole('button', { name: 'Request Reload' }));
+
+    expect(
+      await screen.findByText(
+        /was requested, but it couldn't be saved.*Don't request it again/,
+      ),
+    ).toBeInTheDocument();
+    expect(addTransaction).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole('button', { name: 'Request Reload' }),
+    ).not.toBeInTheDocument();
+  });
 });
