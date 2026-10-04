@@ -60,8 +60,12 @@ export const FinishReconciliation = ({
   // From the round rather than the ledger: a new reload only shows up in the
   // ledger once Realtime delivers it, and Request Reload mustn't reappear
   // (and be clickable twice) in the meantime.
-  const reloadRequested = !!round.reloadTransactionId;
-  const reloadTxn = transactions.find((t) => t.id === round.reloadTransactionId);
+  // Set the moment the reload is created, before it's saved to the round, so
+  // a failed save can't bring Request Reload back and invite a duplicate.
+  const [createdReloadId, setCreatedReloadId] = useState<string | null>(null);
+  const reloadId = round.reloadTransactionId ?? createdReloadId;
+  const reloadRequested = !!reloadId;
+  const reloadTxn = transactions.find((t) => t.id === reloadId);
   const reloadSuperseded =
     !!reloadTxn && getSupersededReloadIds(transactions).has(reloadTxn.id);
 
@@ -98,7 +102,7 @@ export const FinishReconciliation = ({
   const handleRequestReload = async () => {
     if (!reloadFunding) return;
     await reloadAction.run(async () => {
-      const reloadId = generateTransactionId();
+      const newReloadId = generateTransactionId();
       // Always the form's Debit Card Reload Amount: SOFO reloads the full
       // amount owed, never a partial one.
       await addTransaction(
@@ -112,9 +116,19 @@ export const FinishReconciliation = ({
           funding: reloadFunding,
           notes: `Requested after reconciling ${round.transactionIds.length} ${pluralize(round.transactionIds.length, 'transaction')} (${formatCurrency(totalAmount)} total).`,
         },
-        reloadId,
+        newReloadId,
       );
-      await saveToRound({ reloadChoice: 'please-reload', reloadTransactionId: reloadId });
+      setCreatedReloadId(newReloadId);
+      try {
+        await saveToRound({
+          reloadChoice: 'please-reload',
+          reloadTransactionId: newReloadId,
+        });
+      } catch {
+        throw new Error(
+          "The reload was requested, but it couldn't be saved to this reconciliation. Don't request it again.",
+        );
+      }
     }, 'Reload request failed.');
   };
 
