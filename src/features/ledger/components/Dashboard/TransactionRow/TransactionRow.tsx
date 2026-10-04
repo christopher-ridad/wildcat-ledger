@@ -164,6 +164,9 @@ export const TransactionRow = ({
         </td>
         <td className={`${styles['wl-td']} ${styles['wl-td-type']}`}>
           {t.type}
+          {isReloadJournal && t.funding && (
+            <span className={styles['wl-td-type-detail']}>From {t.funding}</span>
+          )}
           {t.type === 'Debit Card' && t.isServiceFee && (
             <span className={styles['wl-td-type-detail']}>Service fee</span>
           )}
@@ -302,14 +305,18 @@ export const TransactionRow = ({
                     time -- it doesn't freeze the record. A correction goes
                     through the same dual-approval rule as any other
                     transaction (see docs/BUSINESS_RULES.md#dual-approval-workflow). */}
-                <button
-                  type="button"
-                  className={styles['wl-action-btn']}
-                  onClick={() => onEdit(t)}
-                  aria-label="Edit transaction"
-                >
-                  ✎
-                </button>
+                {/* Reloads come from the reconciliation flow at a fixed amount; the
+                    general edit form would turn one into an ordinary Journal. */}
+                {!isReloadJournal && (
+                  <button
+                    type="button"
+                    className={styles['wl-action-btn']}
+                    onClick={() => onEdit(t)}
+                    aria-label="Edit transaction"
+                  >
+                    ✎
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`${styles['wl-action-btn']} ${styles['wl-action-btn--delete']}`}

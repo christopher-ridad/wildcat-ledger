@@ -1,4 +1,7 @@
-import { BudgetAllocations } from '../types';
+import { BudgetAllocations, Funding } from '../types';
+
+// The budget lines money can come from (everything but the debit card).
+export const FUNDING_LINES: Funding[] = ['ASG', 'Operating', 'Gifts'];
 
 export const POLICY_EXEMPTION_FORM_URL =
   'https://www.northwestern.edu/financial-operations/policies-procedures/forms/policy_exception.pdf';

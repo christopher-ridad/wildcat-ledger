@@ -571,4 +571,20 @@ describe('TransactionRow', () => {
     expect(screen.getByText('Superseded')).toBeInTheDocument();
     expect(screen.queryByLabelText('Payment status')).not.toBeInTheDocument();
   });
+
+  test('a reload shows which line pays for it, and has no Edit button', () => {
+    renderRow({
+      t: buildMockTransaction({
+        type: 'Journal',
+        direction: 'Inflow',
+        budgetLine: 'Debit Card',
+        funding: 'ASG',
+        paymentStatus: 'Pending',
+      }),
+      canEdit: true,
+    });
+    expect(screen.getByText('From ASG')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Edit transaction')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Delete transaction')).toBeInTheDocument();
+  });
 });

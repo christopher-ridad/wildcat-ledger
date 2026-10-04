@@ -68,18 +68,34 @@ afterEach(() => {
 // drawn text back out via pdfjs-dist rather than just checking the
 // function didn't throw, since the bug was in what gets drawn, not
 // whether drawing succeeds.
+type TextItem = { transform: number[]; str: string };
+
+// Parsed once per generated PDF -- parsing is the slow part, and some tests
+// look up many positions in the same PDF.
+const pageTextCache = new WeakMap<Blob, Promise<TextItem[]>>();
+
+function pageText(blob: Blob): Promise<TextItem[]> {
+  let text = pageTextCache.get(blob);
+  if (!text) {
+    text = (async () => {
+      const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
+      const content = await (await doc.getPage(1)).getTextContent();
+      return content.items as TextItem[];
+    })();
+    pageTextCache.set(blob, text);
+  }
+  return text;
+}
+
 async function extractTextNear(blob: Blob, targetX: number, targetY: number) {
-  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const bytes = new Uint8Array(await blob.arrayBuffer());
-  const doc = await pdfjsLib.getDocument({ data: bytes }).promise;
-  const page = await doc.getPage(1);
-  const content = await page.getTextContent();
+  const items = await pageText(blob);
   // The template's own blank line/spacer items ("___________", a lone " ")
   // sit at nearly the same position as whatever gets drawn on top of them,
   // so this excludes anything blank rather than taking the first
   // positional match.
-  const match = content.items.find((item) => {
-    const i = item as { transform: number[]; str: string };
+  const match = items.find((i) => {
     const [, , , , x, y] = i.transform;
     return (
       Math.abs(x - targetX) < 5 && Math.abs(y - targetY) < 2 && !/^[_\s]*$/.test(i.str)
