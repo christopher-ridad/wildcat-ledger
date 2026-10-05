@@ -64,6 +64,8 @@ export default async function globalSetup() {
         Gifts: 10000,
         'Debit Card': 10000,
       },
+      // Reconciling is blocked until the card's Load Balance is set.
+      debit_card_load_balance: 10000,
     })
     .select()
     .single();

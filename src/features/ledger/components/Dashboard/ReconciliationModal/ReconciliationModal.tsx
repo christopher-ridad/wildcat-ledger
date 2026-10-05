@@ -23,11 +23,18 @@ const LEAVE_OUT_HINT =
 interface ReconciliationModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // For the "Load Balance isn't set" block: closes this and opens SOFO / CO
+  // Settings.
+  onOpenSettings: () => void;
 }
 
 type Step = 'review' | 'finish';
 
-export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProps) => {
+export const ReconciliationModal = ({
+  isOpen,
+  onClose,
+  onOpenSettings,
+}: ReconciliationModalProps) => {
   const {
     activeOrganization,
     reconcileTransactions,
@@ -76,7 +83,13 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
 
   const isBlocked = (t: Transaction) =>
     !isCovered(t) || needsTaxReimbursement(t) || !!pendingChangeFor(t);
-  const includableIds = getIncludableIds(unreconciledTxns, isBlocked);
+  // The reconciliation form's Total Expenditures is worked out from the Load
+  // Balance, and the form's numbers are frozen on Confirm -- so nothing can
+  // be reconciled until it's set (enforced server-side too, migration 0045).
+  const loadBalanceSet = (activeOrganization?.debitCardSettings.loadBalance ?? 0) > 0;
+  const includableIds = loadBalanceSet
+    ? getIncludableIds(unreconciledTxns, isBlocked)
+    : new Set<string>();
   const includableKey = [...includableIds].join(',');
   // Reset selection whenever the modal opens (the false→true transition only —
   // NOT on every subsequent change to the list while it stays open, since
@@ -223,7 +236,21 @@ export const ReconciliationModal = ({ isOpen, onClose }: ReconciliationModalProp
             </button>
           )}
 
-          {unreconciledTxns.length > 0 && (
+          {!loadBalanceSet && unreconciledTxns.length > 0 && (
+            <div className={styles['wl-recon-block-warning']} role="alert">
+              ⚠ Set your debit card&apos;s Load Balance before reconciling. The
+              reconciliation form needs it to work out Total Expenditures.{' '}
+              <button
+                type="button"
+                className={styles['wl-recon-view-last']}
+                onClick={onOpenSettings}
+              >
+                Open SOFO / CO Settings
+              </button>
+            </div>
+          )}
+
+          {loadBalanceSet && unreconciledTxns.length > 0 && (
             <p className={styles['wl-recon-subtitle']}>
               Untick purchases to leave them for the next reconciliation. Only the most
               recent ones can be left out, so unticking one also unticks everything newer.

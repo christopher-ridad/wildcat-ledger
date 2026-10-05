@@ -321,6 +321,12 @@ Form. The two are interchangeable. A purchase can't be reconciled if:
 - it owes an unresolved tax reimbursement to SOFO (see below), or
 - it has a pending edit or delete request still awaiting approval.
 
+Nothing can be reconciled until the card's Load Balance is set under SOFO / Cashier's Office
+settings: the reconciliation form works out Total Expenditures from it, and the form's numbers are
+frozen when a round is reconciled. The reconciliation modal says so and links to the settings, and
+`reconcile_transactions_with_audit` refuses too (migration `0045`). Reloads only happen after
+reconciling, so they're blocked as well.
+
 That only holds back that purchase and anything newer: since the most recent purchases can be left
 out (see below), the older ones can still be reconciled now, and the blocked purchase waits for the
 next round once it's resolved.

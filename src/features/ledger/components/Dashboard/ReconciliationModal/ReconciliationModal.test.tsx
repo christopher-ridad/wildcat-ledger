@@ -33,6 +33,11 @@ const mockDownloadZip = vi.mocked(downloadReceiptsZip);
 const mockGeneratePdf = vi.mocked(generateReconciliationPdf);
 const mockDownloadPdf = vi.mocked(downloadReconciliationPdf);
 
+// Orgs in these tests have a Load Balance set, so they can reconcile,
+// unless a test sets debitCardSettings itself.
+const buildOrg = (overrides: Parameters<typeof buildMockOrganization>[0] = {}) =>
+  buildMockOrganization({ debitCardSettings: { loadBalance: 1000 }, ...overrides });
+
 // Stand-ins for the saved round: reconciling saves it, and updates merge into
 // it, the way the database row does.
 let savedRound: ReconciliationRound;
@@ -60,7 +65,7 @@ const renderModal = (ledgerOverrides: Partial<LedgerContextValue> = {}, isOpen =
     <MockLedgerProvider
       value={{ updateReconciliationRound: mockUpdateRound(), ...ledgerOverrides }}
     >
-      <ReconciliationModal isOpen={isOpen} onClose={vi.fn()} />
+      <ReconciliationModal isOpen={isOpen} onClose={vi.fn()} onOpenSettings={vi.fn()} />
     </MockLedgerProvider>,
   );
 
@@ -75,14 +80,14 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows an empty state when there are no unreconciled debit-card transactions', () => {
-    renderModal({ activeOrganization: buildMockOrganization({ transactions: [] }) });
+    renderModal({ activeOrganization: buildOrg({ transactions: [] }) });
     expect(
       screen.getByText('All debit card transactions are already reconciled.'),
     ).toBeInTheDocument();
   });
 
   test('auto-selects fully-covered transactions and shows a matching confirm count', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -102,7 +107,7 @@ describe('ReconciliationModal', () => {
 
   test('a recent purchase missing a receipt can be left out so the older ones reconcile', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 'older',
@@ -134,7 +139,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('an older purchase owing tax holds back everything newer', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 'older',
@@ -169,7 +174,7 @@ describe('ReconciliationModal', () => {
 
   test('a recent purchase with a pending request can be left out so the older ones reconcile', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 'older',
@@ -206,7 +211,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('does not block when tax was charged but the exemption form was submitted', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -223,7 +228,7 @@ describe('ReconciliationModal', () => {
 
   test('clicking Mark as Reimbursed calls markTaxReimbursed and unblocks reconciliation', async () => {
     const markTaxReimbursed = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -242,7 +247,7 @@ describe('ReconciliationModal', () => {
 
   test('shows an error message when marking as reimbursed fails', async () => {
     const markTaxReimbursed = vi.fn().mockRejectedValue(new Error('Mark failed'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -261,7 +266,7 @@ describe('ReconciliationModal', () => {
 
   test('confirming reconciles the selected transactions and shows a success summary', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -293,7 +298,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows the last reconciliation date in the subtitle when one is set', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -312,7 +317,7 @@ describe('ReconciliationModal', () => {
   test("a service fee reconciles without a receipt and counts toward the form's reload amount", async () => {
     const reconcileTransactions = mockReconcile();
     const addTransaction = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: FUNDED_ASG,
       transactions: [
         buildMockTransaction({
@@ -353,7 +358,7 @@ describe('ReconciliationModal', () => {
 
   test('shows an error message when reconciling fails, and stays on the review step', async () => {
     const reconcileTransactions = vi.fn().mockRejectedValue(new Error('Network error'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -373,7 +378,7 @@ describe('ReconciliationModal', () => {
   test('shows an error message when the receipts ZIP download fails', async () => {
     const reconcileTransactions = mockReconcile();
     mockDownloadZip.mockRejectedValueOnce(new Error('ZIP failed'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -395,7 +400,7 @@ describe('ReconciliationModal', () => {
   test('a successful ZIP download clears a previous download error', async () => {
     const reconcileTransactions = mockReconcile();
     mockDownloadZip.mockRejectedValueOnce(new Error('ZIP failed'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -417,7 +422,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows plural wording when more than one transaction blocks reconciliation', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' }),
         buildMockTransaction({ id: 't2', budgetLine: 'Debit Card' }),
@@ -430,7 +435,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows plural wording when more than one transaction owes a tax reimbursement', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -457,7 +462,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows plural wording when more than one transaction has a pending request', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -490,7 +495,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows a "+" sign for an inflow transaction in the unreconciled list', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -506,7 +511,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('shows "submitted without receipt" wording when the receipt was explicitly acknowledged missing', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -525,7 +530,7 @@ describe('ReconciliationModal', () => {
   test('shows plural exemption-count wording in the success summary, and pluralizes the reload request notes', async () => {
     const reconcileTransactions = mockReconcile();
     const addTransaction = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: FUNDED_ASG,
       transactions: [
         buildMockTransaction({
@@ -561,7 +566,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('clicking "Attach Completed Exemption Form" opens the file picker', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' })],
     });
     const { container } = renderModal({ activeOrganization: org });
@@ -577,7 +582,7 @@ describe('ReconciliationModal', () => {
 
   test('ignores a cancelled file selection (no file chosen)', () => {
     const uploadExemptionForm = vi.fn();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' })],
     });
     const { container } = renderModal({ activeOrganization: org, uploadExemptionForm });
@@ -590,7 +595,7 @@ describe('ReconciliationModal', () => {
 
   test('uploading an exemption form for a missing-receipt transaction calls uploadExemptionForm', async () => {
     const uploadExemptionForm = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' })],
     });
     const { container } = renderModal({ activeOrganization: org, uploadExemptionForm });
@@ -604,7 +609,7 @@ describe('ReconciliationModal', () => {
 
   test('shows an upload error message when the exemption form upload fails', async () => {
     const uploadExemptionForm = vi.fn().mockRejectedValue(new Error('Upload rejected'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [buildMockTransaction({ id: 't1', budgetLine: 'Debit Card' })],
     });
     const { container } = renderModal({ activeOrganization: org, uploadExemptionForm });
@@ -624,11 +629,11 @@ describe('ReconciliationModal', () => {
     const { container, rerender } = render(
       <MockLedgerProvider
         value={{
-          activeOrganization: buildMockOrganization({ transactions: [uncovered] }),
+          activeOrganization: buildOrg({ transactions: [uncovered] }),
           uploadExemptionForm,
         }}
       >
-        <ReconciliationModal isOpen onClose={vi.fn()} />
+        <ReconciliationModal isOpen onClose={vi.fn()} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
 
@@ -647,11 +652,11 @@ describe('ReconciliationModal', () => {
     rerender(
       <MockLedgerProvider
         value={{
-          activeOrganization: buildMockOrganization({ transactions: [covered] }),
+          activeOrganization: buildOrg({ transactions: [covered] }),
           uploadExemptionForm,
         }}
       >
-        <ReconciliationModal isOpen onClose={vi.fn()} />
+        <ReconciliationModal isOpen onClose={vi.fn()} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
 
@@ -678,14 +683,14 @@ describe('ReconciliationModal', () => {
     const { container, rerender } = render(
       <MockLedgerProvider
         value={{
-          activeOrganization: buildMockOrganization({
+          activeOrganization: buildOrg({
             transactions: [t1Unresolved, t2Unresolved],
           }),
           uploadExemptionForm,
           markTaxReimbursed,
         }}
       >
-        <ReconciliationModal isOpen onClose={vi.fn()} />
+        <ReconciliationModal isOpen onClose={vi.fn()} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
 
@@ -706,14 +711,14 @@ describe('ReconciliationModal', () => {
     rerender(
       <MockLedgerProvider
         value={{
-          activeOrganization: buildMockOrganization({
+          activeOrganization: buildOrg({
             transactions: [t1Covered, t2Resolved],
           }),
           uploadExemptionForm,
           markTaxReimbursed,
         }}
       >
-        <ReconciliationModal isOpen onClose={vi.fn()} />
+        <ReconciliationModal isOpen onClose={vi.fn()} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
 
@@ -722,7 +727,7 @@ describe('ReconciliationModal', () => {
 
   test('shows a Receipts ZIP button after reconciling covered transactions, and downloads on click', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -749,7 +754,7 @@ describe('ReconciliationModal', () => {
 
   const renderAfterReconciling = async () => {
     const onClose = vi.fn();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -766,7 +771,7 @@ describe('ReconciliationModal', () => {
           updateReconciliationRound: mockUpdateRound(),
         }}
       >
-        <ReconciliationModal isOpen onClose={onClose} />
+        <ReconciliationModal isOpen onClose={onClose} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
@@ -839,7 +844,7 @@ describe('ReconciliationModal', () => {
 
   test('no reload choice is made by default, and the form waits for one', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -864,7 +869,7 @@ describe('ReconciliationModal', () => {
     const reconcileTransactions = mockReconcile();
     const addTransaction = vi.fn().mockResolvedValue(undefined);
     const generateTransactionId = vi.fn(() => 'reload-id');
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: FUNDED_ASG,
       transactions: [
         buildMockTransaction({
@@ -908,7 +913,7 @@ describe('ReconciliationModal', () => {
   test('shows an error message when the reload request fails', async () => {
     const reconcileTransactions = mockReconcile();
     const addTransaction = vi.fn().mockRejectedValue(new Error('Reload rejected'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: FUNDED_ASG,
       transactions: [
         buildMockTransaction({
@@ -932,7 +937,7 @@ describe('ReconciliationModal', () => {
   });
 
   test('reload journals do not show up in the unreconciled transactions list', () => {
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -953,7 +958,7 @@ describe('ReconciliationModal', () => {
     const onClose = vi.fn();
     render(
       <MockLedgerProvider value={{}}>
-        <ReconciliationModal isOpen onClose={onClose} />
+        <ReconciliationModal isOpen onClose={onClose} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -964,7 +969,7 @@ describe('ReconciliationModal', () => {
     const onClose = vi.fn();
     const { container } = render(
       <MockLedgerProvider value={{}}>
-        <ReconciliationModal isOpen onClose={onClose} />
+        <ReconciliationModal isOpen onClose={onClose} onOpenSettings={vi.fn()} />
       </MockLedgerProvider>,
     );
     fireEvent.click(container.querySelector('.wl-modal-overlay') as Element);
@@ -973,7 +978,7 @@ describe('ReconciliationModal', () => {
 
   test('choosing not to reload generates the form marked "do not reload"', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       name: 'Ballroom Latin and Swing Team',
       transactions: [
         buildMockTransaction({
@@ -1007,7 +1012,7 @@ describe('ReconciliationModal', () => {
   test('downloading the reconciliation form after requesting a reload marks it "please reload"', async () => {
     const reconcileTransactions = mockReconcile();
     const addTransaction = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: FUNDED_ASG,
       transactions: [
         buildMockTransaction({
@@ -1036,9 +1041,9 @@ describe('ReconciliationModal', () => {
     expect(reloadChoice).toBe('please-reload');
   });
 
-  test("warns when the org's debit card Load Balance is not set", async () => {
-    const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+  test('blocks reconciling until the Load Balance is set, and offers to open settings', () => {
+    const onOpenSettings = vi.fn();
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -1048,17 +1053,27 @@ describe('ReconciliationModal', () => {
       ],
       debitCardSettings: {},
     });
-    renderModal({ activeOrganization: org, reconcileTransactions });
+    render(
+      <MockLedgerProvider value={{ activeOrganization: org }}>
+        <ReconciliationModal isOpen onClose={vi.fn()} onOpenSettings={onOpenSettings} />
+      </MockLedgerProvider>,
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
-    await screen.findByText('Reconciliation complete!');
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /Set your debit card's Load Balance before reconciling/,
+    );
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByRole('button', { name: 'Confirm & Reconcile (0)' }),
+    ).toBeDisabled();
 
-    expect(screen.getByText(/Load Balance wasn't set/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open SOFO / CO Settings' }));
+    expect(onOpenSettings).toHaveBeenCalled();
   });
 
-  test("does not warn when the org's debit card Load Balance is set", async () => {
-    const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+  test('reconciles normally once the Load Balance is set', () => {
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -1066,19 +1081,18 @@ describe('ReconciliationModal', () => {
           receiptFileUrl: 'r1',
         }),
       ],
-      debitCardSettings: { loadBalance: 1000 },
     });
-    renderModal({ activeOrganization: org, reconcileTransactions });
+    renderModal({ activeOrganization: org });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
-    await screen.findByText('Reconciliation complete!');
-
-    expect(screen.queryByText(/Load Balance wasn't set/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Set your debit card's Load Balance/),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' })).toBeEnabled();
   });
 
   test('explains when the reload amount includes an earlier round not yet reloaded', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 'prior',
@@ -1111,7 +1125,7 @@ describe('ReconciliationModal', () => {
     const reconcileTransactions = mockReconcile();
     const purchase = (id: string, date: string) =>
       buildMockTransaction({ id, date, budgetLine: 'Debit Card', receiptFileUrl: id });
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         purchase('sep26', '2026-09-26'),
         purchase('sep27', '2026-09-27'),
@@ -1135,7 +1149,7 @@ describe('ReconciliationModal', () => {
   test('ticking a purchase back in also ticks every older one', () => {
     const purchase = (id: string, date: string) =>
       buildMockTransaction({ id, date, budgetLine: 'Debit Card', receiptFileUrl: id });
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         purchase('sep26', '2026-09-26'),
         purchase('sep27', '2026-09-27'),
@@ -1154,7 +1168,7 @@ describe('ReconciliationModal', () => {
 
   test('asks for the date of the last reconciliation when the app has none on record, and puts it on the form', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 't1',
@@ -1179,7 +1193,7 @@ describe('ReconciliationModal', () => {
 
   test('does not ask for the date of the last reconciliation when one is on record', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       transactions: [
         buildMockTransaction({
           id: 'prior',
@@ -1211,7 +1225,7 @@ describe('ReconciliationModal', () => {
   test('a reload records the budget line that pays for it', async () => {
     const reconcileTransactions = mockReconcile();
     const addTransaction = vi.fn().mockResolvedValue(undefined);
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: { ASG: 10, Operating: 500, Gifts: 0, 'Debit Card': 0 },
       transactions: [
         buildMockTransaction({
@@ -1247,7 +1261,7 @@ describe('ReconciliationModal', () => {
 
   test('offers no reload when no budget line can pay for it', async () => {
     const reconcileTransactions = mockReconcile();
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: { ASG: 10, Operating: 20, Gifts: 0, 'Debit Card': 0 },
       transactions: [
         buildMockTransaction({
@@ -1307,7 +1321,7 @@ describe('ReconciliationModal', () => {
 
     test('confirming saves the round with the form numbers as of reconciling', async () => {
       const reconcileTransactions = mockReconcile();
-      const org = buildMockOrganization({
+      const org = buildOrg({
         transactions: [purchase],
         debitCardSettings: { loadBalance: 1000 },
         budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 960 },
@@ -1323,7 +1337,7 @@ describe('ReconciliationModal', () => {
     });
 
     test('offers to reopen the last reconciliation, showing its transactions', async () => {
-      const org = buildMockOrganization({ transactions: [reconciledPurchase] });
+      const org = buildOrg({ transactions: [reconciledPurchase] });
       renderModal({
         activeOrganization: org,
         fetchLastReconciliation: vi.fn().mockResolvedValue(lastRound),
@@ -1341,7 +1355,7 @@ describe('ReconciliationModal', () => {
 
     test('re-downloads the form from the numbers frozen when it was reconciled', async () => {
       // The card balance has moved on since; the form must not.
-      const org = buildMockOrganization({
+      const org = buildOrg({
         transactions: [reconciledPurchase],
         budgetAllocations: { ASG: 0, Operating: 0, Gifts: 0, 'Debit Card': 5 },
       });
@@ -1374,7 +1388,7 @@ describe('ReconciliationModal', () => {
         paymentStatus: 'Paid',
         amount: 40,
       });
-      const org = buildMockOrganization({ transactions: [reconciledPurchase, reload] });
+      const org = buildOrg({ transactions: [reconciledPurchase, reload] });
       renderModal({
         activeOrganization: org,
         fetchLastReconciliation: vi.fn().mockResolvedValue({
@@ -1396,7 +1410,7 @@ describe('ReconciliationModal', () => {
 
     test('closing a reopened round does not ask first', async () => {
       const onClose = vi.fn();
-      const org = buildMockOrganization({ transactions: [reconciledPurchase] });
+      const org = buildOrg({ transactions: [reconciledPurchase] });
       render(
         <MockLedgerProvider
           value={{
@@ -1404,7 +1418,7 @@ describe('ReconciliationModal', () => {
             fetchLastReconciliation: vi.fn().mockResolvedValue(lastRound),
           }}
         >
-          <ReconciliationModal isOpen onClose={onClose} />
+          <ReconciliationModal isOpen onClose={onClose} onOpenSettings={vi.fn()} />
         </MockLedgerProvider>,
       );
 
@@ -1418,7 +1432,7 @@ describe('ReconciliationModal', () => {
 
     test('downloading the form saves the reload choice and entered date to the round', async () => {
       const updateReconciliationRound = mockUpdateRound();
-      const org = buildMockOrganization({ transactions: [purchase] });
+      const org = buildOrg({ transactions: [purchase] });
       renderModal({ activeOrganization: org, updateReconciliationRound });
 
       fireEvent.click(screen.getByRole('button', { name: 'Confirm & Reconcile (1)' }));
@@ -1443,7 +1457,7 @@ describe('ReconciliationModal', () => {
     const updateReconciliationRound = vi
       .fn()
       .mockRejectedValue(new Error('permission denied'));
-    const org = buildMockOrganization({
+    const org = buildOrg({
       budgetAllocations: FUNDED_ASG,
       transactions: [
         buildMockTransaction({
