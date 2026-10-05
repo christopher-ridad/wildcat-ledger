@@ -8,7 +8,7 @@ import {
 } from '../features/ledger/components/CreateOrganization/BudgetUploadArea';
 import { useLedger } from '../features/ledger/hooks/useLedger';
 import { parseBudgetAllocation } from '../features/ledger/services/parseBudgetAllocation';
-import { BudgetAllocations } from '../features/ledger/types';
+import { BudgetAllocations, BudgetLine } from '../features/ledger/types';
 import { EMPTY_ALLOCATIONS } from '../features/ledger/utils/constants';
 import { TopNav } from '../layouts/TopNav';
 import { getErrorMessage } from '../utils/errors';
@@ -84,12 +84,13 @@ export const CreateOrganization = () => {
 
     try {
       const result = await parseBudgetAllocation(file);
-      setAllocations({
+      // The sheet never has the debit card on it, so keep whatever was typed.
+      setAllocations((prev) => ({
         ASG: result.ASG,
         Operating: result.Operating,
         Gifts: result.Gifts,
-        'Debit Card': 0,
-      });
+        'Debit Card': prev['Debit Card'],
+      }));
       setScanState('done');
     } catch (err) {
       setScanError(getErrorMessage(err, 'Scan failed'));
@@ -97,10 +98,8 @@ export const CreateOrganization = () => {
     }
   };
 
-  const updateLine = (line: keyof Omit<BudgetAllocations, 'Debit Card'>, raw: string) => {
-    if (!/^\d*\.?\d{0,2}$/.test(raw)) return;
-    const val = parseFloat(raw);
-    setAllocations((prev) => ({ ...prev, [line]: isNaN(val) ? 0 : val }));
+  const updateLine = (line: BudgetLine, amount: number) => {
+    setAllocations((prev) => ({ ...prev, [line]: amount }));
     setError(null);
   };
 

@@ -450,6 +450,15 @@ treasurer or president to confirm it happened, the same as any other payment-sta
 [`constants.ts`](../src/features/ledger/utils/constants.ts) as a plain URL. There's no API
 integration or webhook, so "reimbursed" is purely a flag the app trusts a manager to set honestly.
 
+## Initial budget setup
+
+A SOFO Approver sets each budget line's starting balance once, when the org first opens the app. ASG,
+Operating, and Gifts come from the org's budget allocation sheet (scanned, then confirmed). The debit
+card is never on that sheet, so its balance is entered separately: what's on the card right now,
+from the Cashier's Office, or blank ($0) if the org has no card. It's the card's current balance,
+not its Load Balance, which is the fixed limit set under SOFO / Cashier's Office settings. After setup,
+transactions keep every line's balance up to date.
+
 ## SOFO / Cashier's Office settings
 
 Each org can save the debit-card details needed to pre-fill the official SOFO debit-card
