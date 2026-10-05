@@ -45,7 +45,7 @@ describe('BudgetAllocationForm', () => {
     expect(screen.getByLabelText('Operating')).toHaveValue('');
   });
 
-  test('calls onLineChange with the line and raw typed value', () => {
+  test('calls onLineChange with the line and parsed amount', () => {
     const onLineChange = vi.fn();
     render(
       <BudgetAllocationForm
@@ -55,10 +55,10 @@ describe('BudgetAllocationForm', () => {
       />,
     );
     fireEvent.change(screen.getByLabelText('Gifts'), { target: { value: '75.25' } });
-    expect(onLineChange).toHaveBeenCalledWith('Gifts', '75.25');
+    expect(onLineChange).toHaveBeenCalledWith('Gifts', 75.25);
   });
 
-  test('always renders the Debit Card row as fixed and disabled at $0.00', () => {
+  test('keeps a trailing decimal point while typing', () => {
     render(
       <BudgetAllocationForm
         allocations={allocations}
@@ -66,10 +66,39 @@ describe('BudgetAllocationForm', () => {
         onLineChange={vi.fn()}
       />,
     );
-    const debitInput = screen.getByLabelText('Debit Card');
-    expect(debitInput).toBeDisabled();
-    expect(debitInput).toHaveValue('0.00');
-    expect(screen.getByText('Always $0.00')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Gifts'), { target: { value: '12.' } });
+    expect(screen.getByLabelText('Gifts')).toHaveValue('12.');
+  });
+
+  test('ignores input with more than two decimal places or letters', () => {
+    const onLineChange = vi.fn();
+    render(
+      <BudgetAllocationForm
+        allocations={allocations}
+        isScanned={false}
+        onLineChange={onLineChange}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Gifts'), { target: { value: '1.234' } });
+    fireEvent.change(screen.getByLabelText('Gifts'), { target: { value: 'abc' } });
+    expect(onLineChange).not.toHaveBeenCalled();
+  });
+
+  test('the debit card balance can be entered even after a scan', () => {
+    const onLineChange = vi.fn();
+    render(
+      <BudgetAllocationForm
+        allocations={allocations}
+        isScanned
+        onLineChange={onLineChange}
+      />,
+    );
+    const debitInput = screen.getByLabelText('Debit card balance right now');
+    expect(debitInput).toBeEnabled();
+    expect(screen.getByText(/Not on the budget sheet/)).toBeInTheDocument();
+
+    fireEvent.change(debitInput, { target: { value: '640.50' } });
+    expect(onLineChange).toHaveBeenCalledWith('Debit Card', 640.5);
   });
 
   test('shows a formatted currency preview for each line', () => {

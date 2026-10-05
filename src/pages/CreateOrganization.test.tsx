@@ -168,6 +168,37 @@ describe('CreateOrganization', () => {
     expect(asgInput).toHaveValue('123.45');
   });
 
+  test('saves the debit card balance entered alongside the scanned lines', async () => {
+    const initializeBudgetAllocations = vi.fn().mockResolvedValue(undefined);
+    mockParseBudgetAllocation.mockResolvedValue({ ASG: 100, Operating: 200, Gifts: 50 });
+    mockUseLedger.mockReturnValue({
+      activeOrganization: buildMockOrganization({ isBudgetLinesSet: false }),
+      initializeBudgetAllocations,
+      loading: false,
+      canEdit: true,
+    } as never);
+    const { container } = renderPage();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, {
+      target: { files: [new File(['x'], 'budget.png', { type: 'image/png' })] },
+    });
+    await screen.findByText('Save & Continue');
+
+    fireEvent.change(screen.getByLabelText('Debit card balance right now'), {
+      target: { value: '640.50' },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save & Continue'));
+    });
+
+    expect(initializeBudgetAllocations).toHaveBeenCalledWith({
+      ASG: 100,
+      Operating: 200,
+      Gifts: 50,
+      'Debit Card': 640.5,
+    });
+  });
+
   test('submitting saves the allocations, then navigates to /dashboard once the ledger confirms isBudgetLinesSet', async () => {
     const initializeBudgetAllocations = vi.fn().mockResolvedValue(undefined);
     mockParseBudgetAllocation.mockResolvedValue({ ASG: 100, Operating: 200, Gifts: 50 });
