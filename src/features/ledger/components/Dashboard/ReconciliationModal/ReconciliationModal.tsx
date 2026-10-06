@@ -237,12 +237,17 @@ export const ReconciliationModal = ({
           )}
 
           {!loadBalanceSet && unreconciledTxns.length > 0 && (
-            <div className={styles['wl-recon-block-warning']} role="alert">
-              ⚠ Set your debit card&apos;s Load Balance before reconciling. The
-              reconciliation form needs it to work out Total Expenditures.{' '}
+            <div
+              className={`${styles['wl-recon-block-warning']} ${styles['wl-recon-load-balance-warning']}`}
+              role="alert"
+            >
+              <p className={styles['wl-recon-load-balance-msg']}>
+                ⚠ Set your debit card&apos;s Load Balance before reconciling. The
+                reconciliation form needs it to work out Total Expenditures.
+              </p>
               <button
                 type="button"
-                className={styles['wl-recon-view-last']}
+                className={styles['wl-btn-upload-exemption']}
                 onClick={onOpenSettings}
               >
                 Open SOFO / CO Settings
