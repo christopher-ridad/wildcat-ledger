@@ -175,6 +175,10 @@ export const Dashboard = () => {
       <ReconciliationModal
         isOpen={reconcileOpen}
         onClose={() => setReconcileOpen(false)}
+        onOpenSettings={() => {
+          setReconcileOpen(false);
+          setDebitCardSettingsOpen(true);
+        }}
       />
       <DebitCardSettingsModal
         isOpen={debitCardSettingsOpen}

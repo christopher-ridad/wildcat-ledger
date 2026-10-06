@@ -84,9 +84,6 @@ export const FinishReconciliation = ({
 
   const { formData } = round;
   const askForLastReconciliationDate = !formData.lastReconciliationDate;
-  // A never-configured Load Balance makes Total Expenditures come out
-  // negative on the form -- better caught here than on paper.
-  const loadBalanceNotSet = !formData.loadBalance;
   // A reload has to be paid for out of one budget line in full.
   const canFundReload =
     !!balances && FUNDING_LINES.some((line) => balances[line] >= formData.reloadAmount);
@@ -217,13 +214,6 @@ export const FinishReconciliation = ({
 
       <div className={styles['wl-recon-reload']}>
         <h3 className={styles['wl-recon-reload-title']}>Debit Card Reload</h3>
-        {loadBalanceNotSet && (
-          <div className={styles['wl-recon-block-warning']}>
-            ⚠ This org&apos;s debit card Load Balance wasn&apos;t set, so the
-            reconciliation form won&apos;t be accurate. Set it under SOFO / CO Settings
-            before your next reconciliation.
-          </div>
-        )}
         {askForLastReconciliationDate && (
           <div className="wl-form-group">
             <label className="wl-form-label" htmlFor="last-reconciliation-date">
